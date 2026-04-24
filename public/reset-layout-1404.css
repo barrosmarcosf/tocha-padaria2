@@ -1,0 +1,881 @@
+:root {
+    --bg: #000000;
+    --nav-bg: rgba(0, 0, 0, 0.95);
+    --accent: #E5B560;
+    --accent-dark: #C5A059;
+    --text: #ffffff;
+    --text-dim: #a0a0a0;
+    --card-bg: #0a0a0a;
+    --border: rgba(229, 181, 96, 0.15);
+    --transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --nav-height: 85px;
+    --section-gap: 60px;
+    --top-banner-height: 32px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BARRA AMARELA SUPERIOR (CRÍTICO - ESTAVA FALTANDO)
+   ═══════════════════════════════════════════════════════════ */
+.top-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: var(--top-banner-height);
+    background: #FFC700;
+    color: #000;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    text-align: center;
+    padding: 0 1rem;
+}
+
+/* Ajustar navbar para ficar abaixo da barra amarela */
+.sticky-nav {
+    top: var(--top-banner-height) !important;
+}
+
+/* Ajustar body para compensar altura total */
+body {
+    padding-top: calc(var(--top-banner-height) + var(--nav-height));
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESET E BÁSICOS
+   ═══════════════════════════════════════════════════════════ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+    height: 100%;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+    display: none !important;
+}
+
+html,
+body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: 'Outfit', sans-serif;
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: 'Anton', sans-serif;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    font-weight: 400;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STICKY NAVIGATION (CORRIGIDA)
+   ═══════════════════════════════════════════════════════════ */
+.sticky-nav {
+    position: fixed;
+    top: var(--top-banner-height);
+    left: 0;
+    width: 100%;
+    padding: 1.2rem 4rem;
+    background: rgba(14, 14, 14, 0.98);
+    backdrop-filter: blur(20px);
+    z-index: 1000;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-content {
+    max-width: 1600px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nav-logo {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.nav-logo img {
+    height: 60px;
+    width: auto;
+}
+
+.nav-links {
+    display: flex;
+    list-style: none;
+    gap: 2.5rem;
+    align-items: center;
+}
+
+.nav-links a.nav-text-item {
+    color: var(--text);
+    text-decoration: none;
+    font-family: 'Anton', sans-serif;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.95rem;
+    transition: var(--transition);
+}
+
+.nav-links a.nav-text-item:hover {
+    color: var(--accent);
+}
+
+.nav-socials {
+    display: flex;
+    gap: 1rem;
+    margin-left: 2rem;
+    align-items: center;
+}
+
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-right: 1rem;
+}
+
+.search-box svg {
+    position: absolute;
+    left: 0.8rem;
+    width: 14px;
+    height: 14px;
+    color: var(--text-dim);
+    pointer-events: none;
+}
+
+.search-box input {
+    background: transparent;
+    border: 1px solid rgba(128, 128, 128, 0.3);
+    border-radius: 20px;
+    padding: 0.4rem 1rem 0.4rem 2.2rem;
+    color: var(--text);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    width: 120px;
+    transition: all 0.3s ease;
+}
+
+.search-box input:focus {
+    width: 180px;
+    outline: none;
+    border-color: var(--accent);
+}
+
+.nav-icon-link {
+    color: var(--text);
+    transition: color 0.3s;
+}
+
+.nav-icon-link:hover {
+    color: var(--accent);
+}
+
+.nav-social-icon {
+    width: 24px;
+    height: 24px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HERO SECTION (IMAGEM 5 - CORRIGIDA)
+   ═══════════════════════════════════════════════════════════ */
+.hero-section {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4rem;
+    background: #0a0a0a;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 6rem;
+    align-items: center;
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.hero-text-col {
+    max-width: 650px;
+    padding-left: 2rem;
+}
+
+.hero-eyebrow {
+    color: var(--text-dim);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+    font-weight: 400;
+}
+
+.hero-title {
+    font-family: 'Anton', sans-serif;
+    font-size: clamp(3.5rem, 7vw, 6.5rem);
+    line-height: 0.9;
+    margin-bottom: 2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.hero-description {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.65);
+    margin-bottom: 3rem;
+    max-width: 500px;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+}
+
+.hero-cta {
+    padding: 1.1rem 2.5rem;
+    font-family: 'Anton', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-radius: 2px;
+}
+
+.hero-cta.primary {
+    background: #fff;
+    color: #000;
+    border: none;
+}
+
+.hero-cta.secondary {
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    background: transparent;
+}
+
+.hero-cta:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.hero-image-col {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero-img-wrapper {
+    width: 100%;
+    max-width: 700px;
+    border-radius: 0;
+    overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+
+.hero-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+}
+
+/* Scroll indicator */
+.hero-scroll-indicator {
+    position: absolute;
+    bottom: 3rem;
+    left: 6rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    opacity: 0.5;
+}
+
+.hero-scroll-indicator span {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+}
+
+.hero-scroll-indicator .line {
+    width: 50px;
+    height: 1px;
+    background: #fff;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INSTAGRAM SECTION (IMAGEM 2 - CORRIGIDA)
+   ═══════════════════════════════════════════════════════════ */
+.instagram-section {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: #000;
+    padding: 6rem 2rem;
+    position: relative;
+}
+
+.section-eyebrow {
+    color: var(--accent);
+    font-family: 'Anton', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+}
+
+.instagram-section h3 {
+    font-family: 'Anton', sans-serif;
+    font-size: clamp(3.5rem, 8vw, 7rem);
+    line-height: 0.85;
+    margin-bottom: 1.5rem;
+    text-transform: uppercase;
+}
+
+.instagram-section h3 em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 400;
+}
+
+.ig-sub {
+    color: var(--text-dim);
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    max-width: 600px;
+    margin: 0 auto 3.5rem;
+    line-height: 1.6;
+}
+
+.ig-cta {
+    display: inline-flex;
+    align-items: center;
+    padding: 1rem 2.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #fff;
+    text-decoration: none;
+    font-family: 'Anton', sans-serif;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    transition: all 0.3s ease;
+    border-radius: 2px;
+}
+
+.ig-cta:hover {
+    background: #fff;
+    color: #000;
+    border-color: #fff;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FOODSERVICE SECTION (IMAGEM 3 - CORRIGIDA)
+   ═══════════════════════════════════════════════════════════ */
+.foodservice-section {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6rem 4rem;
+    background: #050505;
+    position: relative;
+}
+
+.foodservice-inner {
+    max-width: 1600px;
+    width: 100%;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6rem;
+    align-items: center;
+}
+
+.food-image-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.food-grid-item {
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border-radius: 16px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+}
+
+.food-grid-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s ease;
+    filter: brightness(0.95);
+}
+
+.food-grid-item:hover img {
+    transform: scale(1.06);
+    filter: brightness(1.05);
+}
+
+.food-text {
+    max-width: 580px;
+}
+
+.feat-eyebrow {
+    color: var(--accent);
+    font-family: 'Anton', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+    display: block;
+}
+
+.food-text h2 {
+    font-family: 'Anton', sans-serif;
+    font-size: clamp(3rem, 5vw, 5.5rem);
+    line-height: 0.9;
+    margin-bottom: 2rem;
+    text-transform: uppercase;
+}
+
+.food-desc {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.65);
+    margin-bottom: 3rem;
+}
+
+.food-main-btn {
+    padding: 1.1rem 2.5rem;
+    background: #fff;
+    color: #000;
+    font-family: 'Anton', sans-serif;
+    text-decoration: none;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    display: inline-block;
+    transition: all 0.3s ease;
+    border-radius: 2px;
+}
+
+.food-main-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(255, 255, 255, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MENU SECTION (IMAGEM 4 - CORRIGIDA)
+   ═══════════════════════════════════════════════════════════ */
+main#menu {
+    padding: 8rem 4rem 6rem;
+    max-width: 1600px;
+    margin: 0 auto;
+    min-height: 100vh;
+}
+
+.section-intro {
+    text-align: center;
+    margin-bottom: 4rem;
+}
+
+.section-title {
+    font-family: 'Anton', sans-serif;
+    font-size: clamp(3rem, 5vw, 4.5rem);
+    margin-bottom: 1rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #fff;
+}
+
+.section-intro p {
+    color: var(--text-dim);
+    max-width: 700px;
+    margin: 0 auto;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+/* Grid de Categorias - 4 colunas como na imagem */
+.categories-view-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+}
+
+.cat-main-card {
+    position: relative;
+    cursor: pointer;
+    background: #0a0a0a;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.4s ease;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.cat-main-card:hover {
+    transform: translateY(-8px);
+    border-color: var(--accent);
+    box-shadow: 0 20px 50px rgba(229, 181, 96, 0.15);
+}
+
+.cat-main-img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    display: block;
+    border-radius: 16px 16px 0 0;
+}
+
+.cat-main-info {
+    padding: 1.8rem 1.5rem;
+    background: #0a0a0a;
+}
+
+.cat-main-info h3 {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.4rem;
+    color: var(--accent) !important;
+    margin-bottom: 0.8rem;
+    line-height: 1.1;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.cat-main-info p {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+/* Grid de Produtos */
+.dyn-products-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+}
+
+.dyn-prod-card {
+    position: relative;
+    cursor: pointer;
+    background: #0a0a0a;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.4s ease;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dyn-prod-card:hover {
+    transform: translateY(-8px);
+    border-color: var(--accent);
+}
+
+.dyn-prod-img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    display: block;
+    border-radius: 16px 16px 0 0;
+}
+
+.dyn-prod-info {
+    padding: 1.8rem 1.5rem;
+}
+
+.dyn-prod-info h4 {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.3rem;
+    color: var(--accent);
+    margin-bottom: 0.8rem;
+    text-transform: uppercase;
+}
+
+.dyn-prod-info p {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+.dyn-prod-price-tag {
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 1.2rem;
+    font-family: 'Outfit', sans-serif;
+    margin-bottom: 1rem;
+}
+
+/* Botões dos Cards */
+.card-buy-btn {
+    width: 100%;
+    padding: 1rem;
+    background: #000;
+    color: #fff;
+    border: 2px solid #fff;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: 'Outfit', sans-serif;
+    border-radius: 2px;
+}
+
+.card-buy-btn:hover {
+    background: #fff;
+    color: #000;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FOOTER (IMAGEM 1 - CORRIGIDA)
+   ═══════════════════════════════════════════════════════════ */
+footer {
+    background: #000;
+    padding: 6rem 4rem 3rem;
+    position: relative;
+}
+
+.footer-content {
+    max-width: 1600px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6rem;
+    align-items: end;
+}
+
+.footer-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.footer-logo img {
+    height: 80px;
+    width: auto;
+}
+
+.footer-info {
+    text-align: right;
+}
+
+.footer-info p {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    line-height: 1.7;
+    margin-bottom: 2rem;
+    max-width: 400px;
+    margin-left: auto;
+}
+
+/* Ícones Sociais COLORIDOS (crítico) */
+.social-links {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-bottom: 2rem;
+}
+
+.social-sq-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+    overflow: hidden;
+}
+
+/* Instagram com gradiente */
+.social-sq-btn.instagram {
+    background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+}
+
+/* WhatsApp verde */
+.social-sq-btn.whatsapp {
+    background: #25D366;
+}
+
+.social-sq-btn:hover {
+    transform: scale(1.08);
+}
+
+.social-sq-btn svg {
+    width: 26px;
+    height: 26px;
+    fill: #fff;
+}
+
+.footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 2.5rem;
+    margin-top: 4rem;
+    text-align: center;
+}
+
+.footer-bottom p {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    line-height: 1.6;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   WHATSAPP FLOATING BUTTON
+   ═══════════════════════════════════════════════════════════ */
+#whatsapp-float {
+    position: fixed;
+    bottom: 2rem;
+    left: 2rem;
+    background: #25D366;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+    z-index: 9999;
+    text-decoration: none;
+    transition: transform 0.3s ease;
+}
+
+#whatsapp-float:hover {
+    transform: scale(1.12);
+}
+
+#whatsapp-float svg {
+    width: 34px;
+    height: 34px;
+    fill: #fff;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVIDADE
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 1400px) {
+
+    .categories-view-grid,
+    .dyn-products-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 1100px) {
+
+    .hero-grid,
+    .foodservice-inner {
+        grid-template-columns: 1fr;
+        gap: 4rem;
+    }
+
+    .hero-text-col {
+        text-align: center;
+        padding-left: 0;
+    }
+
+    .hero-actions {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 900px) {
+
+    .categories-view-grid,
+    .dyn-products-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .sticky-nav {
+        padding: 1rem 2rem;
+    }
+
+    .nav-links {
+        gap: 1.5rem;
+    }
+
+    .footer-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+
+    .footer-info {
+        text-align: center;
+    }
+
+    .footer-info p {
+        margin-left: 0;
+    }
+
+    .social-links {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 600px) {
+
+    .categories-view-grid,
+    .dyn-products-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .top-banner {
+        font-size: 0.6rem;
+        padding: 0 0.5rem;
+    }
+
+    .hero-title {
+        font-size: 3rem;
+    }
+
+    .section-title {
+        font-size: 2.5rem;
+    }
+}

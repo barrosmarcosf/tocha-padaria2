@@ -1,0 +1,29 @@
+# Dependências
+node_modules/
+
+# Variáveis de ambiente (NUNCA commitar!)
+.env
+.env.local
+.env.production
+
+# Logs
+logs/
+*.log
+
+# WhatsApp Web.js
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Uploads (conteúdo gerado pelo usuário)
+public/assets/uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Backups
+backups/

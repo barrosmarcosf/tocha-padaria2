@@ -1,0 +1,385 @@
+/* ═══════════════════════════════════════════════════
+   TOP STATUS BAR — Barra amarela fixa no topo
+   ═══════════════════════════════════════════════════ */
+.store-status-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: var(--status-bar-height);
+    background: #FFD700;
+    color: #000000;
+    display: flex; /* Sempre visível */
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+    font-family: Verdana, Geneva, sans-serif;
+    font-weight: 700;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-bottom: none;
+    box-shadow: none;
+}
+
+.store-status-bar.open {
+    background: #00FF47 !important;
+    color: #000000 !important;
+}
+
+.store-status-bar.next-batch {
+    background: #FFD700 !important;
+    color: #000000 !important;
+}
+
+.store-status-bar.closed {
+    background: #dc2626 !important;
+    color: #FFFFFF !important;
+}
+
+body.has-status-bar .sticky-nav {
+    top: var(--status-bar-height);
+}
+
+
+/* ═══════════════════════════════════════════════════
+   STICKY NAVIGATION — Fiel à referência
+   Layout: Logo | ~~~centro: Search + Links~~~ | Icons
+   ═══════════════════════════════════════════════════ */
+.sticky-nav {
+    position: fixed;
+    top: var(--status-bar-height);
+    left: 0;
+    width: 100%;
+    height: 58px;
+    padding: 0 3rem;
+    background: #0a0a0a;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 1000;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.3s ease-out;
+}
+
+/* Grid de 3 colunas: Logo | Centro flexível | Icons */
+.nav-content {
+    max-width: 1600px;
+    height: 100%;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+/* Navbar SEMPRE visível — override do JS */
+.sticky-nav.navbar-hidden {
+    transform: translateY(0) !important;
+    opacity: 1 !important;
+    pointer-events: all !important;
+}
+
+.sticky-nav.navbar-visible {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: all;
+}
+
+
+/* ── Logo (coluna 1) ── */
+.nav-logo {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    text-decoration: none;
+}
+
+.nav-logo img {
+    height: 46px;
+    width: auto;
+}
+
+
+/* ── Search Box (dentro da coluna 2, junto com os links) ── */
+.nav-search-item {
+    flex-shrink: 0;
+}
+
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-box svg {
+    position: absolute;
+    left: 0.75rem;
+    width: 14px;
+    height: 14px;
+    color: rgba(255, 255, 255, 0.45);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.search-box input {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 0;
+    padding: 0.35rem 0.7rem 0.35rem 1.8rem;
+    color: #fff;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.75rem;
+    width: 95px;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.search-box input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.search-box input:focus {
+    border-color: var(--accent);
+    width: 170px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+
+/* ── Zona central: Search + Links (coluna 2) ──
+   Flex-end para agrupar tudo junto aos ícones da direita */
+.nav-center-group {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1.8rem;
+}
+
+
+/* ── Nav Links ── */
+.nav-links {
+    display: flex;
+    list-style: none;
+    gap: 1.1rem;
+    align-items: center;
+}
+
+.nav-links li {
+    margin: 0;
+    padding: 0;
+}
+
+.nav-links a.nav-text-item,
+.nav-links a.nav-text-item:visited,
+.nav-links a.nav-text-item:link {
+    color: #ffffff !important;
+    text-decoration: none !important;
+    font-family: 'Anton', sans-serif;
+    font-weight: 400;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    transition: color 0.25s ease;
+    white-space: nowrap;
+}
+
+.nav-links a.nav-text-item:hover {
+    color: var(--accent) !important;
+}
+
+
+/* ── Right Icons (coluna 3) ── */
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+    justify-self: end;
+}
+
+.nav-socials {
+    display: flex;
+    align-items: center;
+}
+
+.nav-icon-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff !important;
+    text-decoration: none;
+    transition: color 0.25s ease;
+}
+
+.nav-icon-link:hover {
+    color: var(--accent) !important;
+}
+
+.nav-social-icon {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+}
+
+.nav-cart-item {
+    display: flex;
+    align-items: center;
+}
+
+.cart-toggle-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.cart-icon {
+    width: 24px;
+    height: 24px;
+    color: #ffffff;
+    transition: color 0.25s ease;
+}
+
+.cart-toggle-btn:hover .cart-icon {
+    color: var(--accent);
+}
+
+.cart-badge {
+    position: absolute;
+    top: -6px;
+    right: -8px;
+    background: var(--accent);
+    color: #000;
+    font-size: 0.6rem;
+    font-weight: 800;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════ */
+@media (max-width: 1100px) {
+    .nav-center-group {
+        gap: 2rem;
+    }
+
+    .nav-links {
+        gap: 1.5rem;
+    }
+
+    .nav-links a.nav-text-item {
+        font-size: 0.8rem;
+    }
+
+    .search-box input {
+        width: 100px;
+    }
+}
+
+@media (max-width: 860px) {
+    .sticky-nav {
+        padding: 0 1.5rem;
+        height: 60px;
+    }
+
+    .nav-content {
+        grid-template-columns: auto 1fr auto;
+    }
+
+    .nav-logo img {
+        height: 38px;
+    }
+
+    .nav-search-item {
+        display: none;
+    }
+
+    .nav-socials {
+        display: none;
+    }
+
+    .nav-center-group {
+        gap: 1rem;
+    }
+
+    .nav-links {
+        gap: 0.8rem;
+    }
+
+    .nav-links a.nav-text-item {
+        font-size: 0.7rem;
+        letter-spacing: 0;
+    }
+
+    .sticky-nav {
+        transform: translateY(0) !important;
+        opacity: 1 !important;
+        pointer-events: all !important;
+    }
+}
+
+@media (max-width: 520px) {
+    .sticky-nav {
+        padding: 0 0.8rem;
+    }
+
+    .nav-links {
+        gap: 0.5rem;
+    }
+
+    .nav-links a.nav-text-item {
+        font-size: 0.62rem;
+    }
+
+    .cart-icon {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+
+/* ═══════════════════════════════════════════════════
+   SIDE NAVIGATION DOTS
+   ═══════════════════════════════════════════════════ */
+.side-nav {
+    position: fixed;
+    right: 2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    z-index: 1001;
+    pointer-events: none;
+}
+
+.dot-nav {
+    width: 10px;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: var(--transition);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    pointer-events: auto;
+}
+
+.dot-nav.active {
+    background: var(--accent);
+    transform: scale(1.4);
+    box-shadow: 0 0 15px var(--accent);
+}
+
+.dot-nav:hover {
+    background: rgba(255, 255, 255, 0.6);
+}

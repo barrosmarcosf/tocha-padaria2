@@ -1,0 +1,115 @@
+/* --- Dashboard V3 Layout (Fidelidade à Imagem) --- */
+.dashboard-v3-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.tab-dash {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    padding: 0.5rem 1.2rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+}
+
+.tab-dash:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+.tab-dash.active {
+    background: #5a57e6;
+    color: #fff;
+    border-color: #5a57e6;
+    box-shadow: 0 4px 12px rgba(90, 87, 230, 0.2);
+}
+
+.metric-card {
+    background: #fff;
+    border: 1.5px solid #f1f5f9;
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.2s ease;
+}
+
+.metric-card.active {
+    border-color: #5a57e6;
+    background: rgba(90, 87, 230, 0.02);
+}
+
+.unit-card-simple button:hover {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+}
+
+/* Responsividade V3 */
+@media (max-width: 1200px) {
+    .dashboard-v3-container > div {
+        grid-template-columns: 1fr !important;
+    }
+    .dash-sidebar-column {
+        width: 100% !important;
+    }
+}
+
+/* --- Period Selector --- */
+.period-selector-btn i[data-lucide="chevron-down"] {
+    transition: transform 0.25s ease;
+}
+
+.period-selector-container:has(.period-selector-menu.active) .period-selector-btn i[data-lucide="chevron-down"] {
+    transform: rotate(180deg);
+}
+
+/* --- Component Loading Overlays --- */
+.component-container {
+    position: relative;
+}
+
+.loading-spinner-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(2px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    border-radius: 16px;
+    animation: fadeIn 0.2s ease;
+}
+
+.component-container.loading .loading-spinner-overlay {
+    display: flex;
+}
+
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid #f1f5f9;
+    border-top: 3px solid #5a57e6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}

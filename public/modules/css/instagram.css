@@ -1,0 +1,43 @@
+.instagram-section {
+    padding: 100px 2rem;
+    text-align: center;
+    background: #000;
+}
+
+.instagram-section h2 {
+    color: var(--accent);
+    font-size: 0.8rem;
+    letter-spacing: 0.3em;
+    margin-bottom: 2rem;
+}
+
+.instagram-section h3 {
+    font-size: clamp(3rem, 7vw, 8rem);
+    line-height: 0.9;
+    margin-bottom: 1.5rem;
+    color: #fff;
+}
+
+.ig-sub {
+    color: var(--text-dim);
+    font-size: 1rem;
+    max-width: 600px;
+    margin: 0 auto 3rem;
+}
+
+.ig-cta {
+    display: inline-block;
+    padding: 1rem 2.5rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    text-decoration: none;
+    font-family: 'Anton', sans-serif;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+}
+
+.ig-cta:hover {
+    background: #fff;
+    color: #000;
+}

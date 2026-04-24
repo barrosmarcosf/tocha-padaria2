@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tocha Padaria - Fermentação Natural & Pães Artesanais</title>
+    <meta name="description"
+        content="Tocha Padaria: Pães rústicos de fermentação natural, brioches e doces finos. Qualidade artesanal em cada detalhe.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;700&family=Outfit:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- CSS Modulares Independentes -->
+    <link rel="stylesheet" href="modules/css/base.css">
+    <link rel="stylesheet" href="modules/css/nav.css">
+    <link rel="stylesheet" href="modules/css/hero.css">
+    <link rel="stylesheet" href="modules/css/menu.css">
+    <link rel="stylesheet" href="modules/css/foodservice.css">
+    <link rel="stylesheet" href="modules/css/instagram.css">
+    <link rel="stylesheet" href="modules/css/footer.css">
+    <link rel="stylesheet" href="modules/css/cart.css">
+
+    <!-- Scripts Modulares Independentes -->
+    <script src="modules/js/hero.js" defer></script>
+    <script src="modules/js/menu.js" defer></script>
+    <script src="modules/js/foodservice.js" defer></script>
+    <script src="modules/js/instagram.js" defer></script>
+    <script src="modules/js/footer.js" defer></script>
+    
+    <script src="cart.js" defer></script>
+    <script src="app.js" defer></script>
+
+    <script>
+        (function() {
+            const theme = localStorage.getItem('tocha_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+</head>
+
+<body>
+    <div class="texture-overlay"></div>
+    
+    <div id="top-status-bar" class="store-status-bar">
+        <span id="status-text-top">ENCOMENDAS PARA O PRÓXIMO SÁBADO — FORNADA DIA 25/04 — ENCERRA EM 6D 23H 1MIN</span>
+    </div>
+
+    <nav class="sticky-nav">
+        <div class="nav-content">
+            <!-- LOGO -->
+            <a href="index.html" class="nav-logo" aria-label="Tocha Padaria – Ir para início">
+                <img id="site-logo-nav" src="assets/logo.png" alt="Tocha Padaria Logo">
+            </a>
+
+            <!-- CENTRO: Search + Links -->
+            <div class="nav-center-group">
+                <div class="nav-search-item">
+                    <div class="search-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" id="site-search" class="site-search" placeholder="Buscar">
+                    </div>
+                </div>
+
+                <ul class="nav-links">
+                    <li><a href="#hero" class="nav-text-item">INICIAL</a></li>
+                    <li><a href="produtos.html" class="nav-text-item">CARDÁPIO</a></li>
+                    <li><a href="nossa-historia.html" class="nav-text-item">NOSSA HISTÓRIA</a></li>
+                    <li><a href="fale-conosco.html" class="nav-text-item">FALE CONOSCO</a></li>
+                </ul>
+            </div>
+
+            <!-- ICONS (Direita) -->
+            <div class="nav-right">
+                <div class="nav-socials">
+                    <a href="https://instagram.com/tocha.padaria" target="_blank" rel="noopener" class="nav-icon-link" aria-label="Instagram">
+                        <svg class="nav-social-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                            <circle cx="12" cy="12" r="11.4"/>
+                            <rect x="7" y="7" width="10" height="10" rx="3" ry="3"/>
+                            <circle cx="12" cy="12" r="2.2" />
+                            <circle cx="15.5" cy="8.5" r="0.8" fill="currentColor" stroke="none"/>
+                        </svg>
+                    </a>
+                </div>
+
+                <div class="nav-cart-item">
+                    <button id="cart-toggle" class="cart-toggle-btn" aria-label="Abrir carrinho">
+                        <svg class="cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="20" r="1.5"></circle>
+                            <circle cx="18" cy="20" r="1.5"></circle>
+                            <path d="M1 1h3.5l2.68 12.39a2 2 0 0 0 2 1.61h8.72a2 2 0 0 0 2-1.61L22 5H5.5"></path>
+                        </svg>
+                        <span id="cart-badge" class="cart-badge" hidden>0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    
+    <!-- SIDE NAVIGATION DOTS -->
+    <div class="side-nav">
+        <div class="dot-nav active" data-target="hero" data-index="0" title="Início"></div>
+        <div class="dot-nav" data-target="menu" data-index="1" title="Cardápio"></div>
+        <div class="dot-nav" data-target="foodservice" data-index="2" title="Foodservice"></div>
+        <div class="dot-nav" data-target="instagram" data-index="3" title="Instagram"></div>
+        <div class="dot-nav" data-target="footer" data-index="4" title="Rodapé"></div>
+    </div>
+
+    <header id="hero" class="hero-section">
+        <div class="hero-grid">
+            <div class="hero-text-col">
+                <span class="hero-eyebrow" id="dyn-hero-eyebrow">Fermentação Natural</span>
+                <h1 class="hero-title" id="dyn-hero-title">
+                    O pão que<br>
+                    transforma<br>
+                    o seu dia
+                </h1>
+                <p class="hero-description" id="dyn-hero-description">
+                    Cada pão nasce de levain vivo, farinha de qualidade e tempo; não tem atalho, tem respeito.
+                </p>
+                <div class="hero-actions">
+                    <a href="produtos.html" class="hero-cta primary">Ver Cardápio</a>
+                    <a href="nossa-historia.html" class="hero-cta secondary">Nossa História</a>
+                </div>
+                <div class="hero-brand-mark" aria-hidden="true">
+                    <img src="assets/logo.png" alt="">
+                </div>
+            </div>
+
+            <div class="hero-image-col">
+                <div class="hero-img-wrapper">
+                    <img src="assets/sourdough.jpg" alt="Sourdough artesanal Tocha Padaria" class="hero-img" id="dyn-hero-img">
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-scroll-indicator">
+            <span>Scroll</span>
+            <div class="line"></div>
+        </div>
+    </header>
+
+
+    <main id="menu">
+        <div class="section-intro">
+            <h2 class="section-title" id="dyn-store-title">PÃES, DOCES E MUITO MAIS</h2>
+            <p id="dyn-store-desc">Nossos pães são resultado de dias de processo: levain ativo, hidratação precisa, longa fermentação e forno na hora certa. Não é só pão — é uma conquista.</p>
+        </div>
+
+        <div id="categories-view" class="categories-view-grid">
+            <!-- Categorias geradas via JS -->
+        </div>
+
+        <div id="products-view" class="products-view" style="display: none;">
+            <div class="inner-products-view">
+                <button id="btn-back-categories" class="btn-back-cat">&larr; Voltar para Categorias</button>
+                <div class="cat-header-dyn">
+                    <h3 id="dyn-cat-title">Categoria Title</h3>
+                </div>
+                
+                <div id="dyn-products-grid" class="dyn-products-grid">
+                    <!-- Produtos gerados via JS -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+
+    <section id="foodservice" class="foodservice-section">
+        <div class="foodservice-inner">
+            <div class="food-image-grid">
+                <div class="food-grid-item"><img src="assets/foodservice1.png" alt="Pães artesanais para restaurantes"></div>
+                <div class="food-grid-item"><img src="assets/foodservice2.png" alt="Sourdough para cafeterias"></div>
+                <div class="food-grid-item"><img src="assets/foodservice3.png" alt="Produtos exclusivos B2B"></div>
+                <div class="food-grid-item"><img src="assets/foodservice4.png" alt="Qualidade Tocha Padaria"></div>
+            </div>
+
+            <div class="food-text">
+                <span class="feat-eyebrow" id="dyn-food-eyebrow">B2B & Alianças</span>
+                <h2 id="dyn-food-title">Foodservice</h2>
+                <div class="food-desc" id="dyn-food-desc">
+                    <p>Soluções artesanais desenvolvidas para restaurantes, bares, cafeterias e lanchonetes que buscam elevar padrão e experiência.</p>
+                </div>
+                <a href="fale-conosco.html" class="food-main-btn">Fale Conosco</a>
+            </div>
+        </div>
+    </section>
+
+    <section id="instagram" class="instagram-section">
+        <div class="container text-center">
+            <span class="section-eyebrow">Nos acompanhe</span>
+            <h3 data-parallax="0.08">Cada fornada,<br>uma história</h3>
+            <p class="ig-sub">Confira o processo, os bastidores e avisos de quando abrimos para pedidos.</p>
+            <div style="margin-top: 40px;">
+                <a href="https://instagram.com/tocha.padaria" target="_blank" class="ig-cta">@tocha.padaria &rarr;</a>
+            </div>
+        </div>
+    </section>
+
+    <footer id="footer">
+        <div class="footer-content">
+            <div class="footer-logo">
+                <img id="site-logo-footer" src="assets/logo-footer (1).png" alt="Tocha Padaria">
+                <span>TOCHA</span>
+            </div>
+            <div class="footer-info">
+                <div id="dyn-footer-desc">
+                    <p>
+                        Padaria informal com respeito à longa fermentação.<br>
+                        Fornadas aos sábados. Produção sob demanda.<br>
+                        Peça com antecedência.
+                    </p>
+                </div>
+                <div class="social-links">
+                    <a href="https://instagram.com/tocha.padaria" target="_blank" aria-label="Instagram" class="social-sq-btn instagram">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                        </svg>
+                    </a>
+                    <a href="https://wa.me/5521966278965" target="_blank" aria-label="WhatsApp" class="social-sq-btn whatsapp">
+                        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <div id="dyn-footer-credits">
+                <p>
+                    &copy; Tocha Padaria desde 2022 entre idas e vindas, erros e acertos.<br>
+                    Nascido, criado e produzido em São João de Meriti.<br>
+                    Feito com paciência e levain.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- WhatsApp Floating Button -->
+    <a id="whatsapp-float" href="https://wa.me/5521966278965" target="_blank" rel="noopener" aria-label="Fale conosco no WhatsApp">
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+        </svg>
+    </a>
+
+    <!-- Cart Overlay -->
+    <div id="cart-overlay" class="cart-overlay"></div>
+
+    <!-- Cart Panel -->
+    <aside id="cart-panel" class="cart-panel" role="dialog" aria-modal="true" aria-label="Carrinho de compras">
+        <div class="cart-panel-header">
+            <h2>Meu Pedido <span class="cart-count-label" id="cart-count-label"></span></h2>
+            <button id="cart-close" class="cart-close-btn" aria-label="Fechar carrinho">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Estado vazio -->
+        <div id="cart-empty-state" class="cart-empty-state">
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M10 12h4l6 28h24l4-20H18" />
+                <circle cx="26" cy="46" r="2.5" />
+                <circle cx="38" cy="46" r="2.5" />
+            </svg>
+            <p>Nenhum item ainda.</p>
+            <span>Explore o Cardápio!</span>
+            <button class="cart-continue-btn" id="cart-empty-continue">Ver Produtos</button>
+        </div>
+
+        <!-- Lista de itens -->
+        <div id="cart-items-list" class="cart-items-list"></div>
+
+        <!-- Footer do carrinho -->
+        <div id="cart-footer" class="cart-footer" hidden>
+            <div class="coupon-row">
+                <input type="text" id="coupon-input" class="coupon-input" placeholder="Cupom de desconto" autocomplete="off">
+                <button id="coupon-apply-btn" class="coupon-apply-btn">Aplicar</button>
+            </div>
+            <p id="coupon-msg" class="coupon-msg"></p>
+
+            <div class="cart-summary">
+                <div class="summary-row"><span>Subtotal</span><span id="summary-subtotal">R$ 0,00</span></div>
+                <div class="summary-row discount-row" id="discount-row" hidden><span id="discount-label">Desconto</span><span id="summary-discount" class="discount-val">— R$ 0,00</span></div>
+                <div class="summary-row total-row"><span>Total</span><span id="summary-total">R$ 0,00</span></div>
+            </div>
+
+            <div class="cart-actions">
+                <button id="cart-checkout-btn" class="btn-checkout">Finalizar Compra</button>
+                <button id="cart-continue-btn" class="btn-continue">Continuar comprando</button>
+                <button id="cart-clear-btn" class="btn-clear">Esvaziar carrinho</button>
+            </div>
+        </div>
+    </aside>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <div id="success-overlay" class="cart-overlay"></div>
+    <div id="success-modal" class="id-modal success-modal-premium" role="dialog" aria-modal="true">
+        <div class="id-modal-body" style="padding: 4rem 2.5rem 3.5rem;">
+            <div class="success-icon-container">
+                <svg viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="27" cy="27" r="25.5" stroke="var(--accent)" stroke-width="2"/>
+                    <path d="M17 27.5L24 34.5L38 20.5" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <h2 class="success-title">PEDIDO CONFIRMADO!</h2>
+            <p class="success-description">Seu pagamento foi aprovado. Avisaremos pelo WhatsApp assim que seu pedido ficar pronto para retirada.</p>
+            <div id="success-delivery-info" class="success-delivery-summary"></div>
+            <button id="success-continue-btn" class="btn-checkout success-btn-main">CONTINUAR</button>
+        </div>
+    </div>
+
+    <div id="notification-overlay" class="cart-overlay"></div>
+    <div id="notification-modal" class="id-modal" role="dialog" aria-modal="true" style="text-align: center;">
+        <div class="id-modal-body" style="padding: 3.5rem 2rem 2.5rem;">
+            <div id="notification-icon" style="margin-bottom: 1.5rem;"></div>
+            <h2 id="notification-title"></h2>
+            <p id="notification-message" style="color: var(--text-dim); margin-bottom: 2rem; line-height: 1.6;"></p>
+            <button id="notification-close-btn" class="btn-checkout" style="width: 100%;">Continuar</button>
+        </div>
+    </div>
+
+    <div id="identificacao-overlay" class="cart-overlay"></div>
+    <div id="identificacao-modal" class="id-modal" role="dialog" aria-modal="true">
+        <button id="id-close" class="modal-close-float" aria-label="Fechar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+        </button>
+        <div class="id-modal-body" style="padding: 3.5rem 2.5rem 2.5rem;">
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem;">Identificação</h2>
+                <p style="color: var(--text-dim); line-height: 1.6; font-size: 0.9rem; margin: 0;">Para garantir a segurança do seu pedido, precisamos de alguns dados rápidos.</p>
+            </div>
+            <form id="id-form">
+                <div class="form-group">
+                    <label for="id-whatsapp">WhatsApp (com DDD)</label>
+                    <input type="tel" id="id-whatsapp" required placeholder="Ex: 21999999999">
+                </div>
+                <div class="form-group">
+                    <label for="id-name">Nome Completo</label>
+                    <input type="text" id="id-name" required placeholder="Seu nome completo">
+                </div>
+                <div class="form-group">
+                    <label for="id-email">E-mail</label>
+                    <input type="email" id="id-email" required placeholder="seu@email.com">
+                </div>
+                <button type="submit" class="btn-checkout" id="id-submit-btn" style="width: 100%; margin-top: 1rem;">Seguir para Pagamento</button>
+                <div id="id-payment-methods-display" style="margin-top: 1.5rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; border-top: 1px dashed #cbd5e1; padding-top: 1rem;"></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="lightbox-overlay" class="lightbox-overlay">
+        <span class="lightbox-close">&times;</span>
+        <img id="lightbox-img" class="lightbox-content" src="" alt="Zoom">
+    </div>
+
+</body>
+
+</html>

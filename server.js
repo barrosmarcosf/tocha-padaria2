@@ -1,0 +1,231 @@
+/**
+ * TOCHA PADARIA — Servidor Principal
+ * 
+ * Arquivo orquestrador: inicializa Express, Supabase, Stripe,
+ * monta as rotas modulares e inicia o worker de abandono.
+ */
+console.log("🚀 [SERVER] Iniciando processo...");
+require('dotenv').config();
+
+// CAPTURA DE ERROS TOTAIS (Para diagnosticar exit code 1)
+process.on('uncaughtException', (err) => {
+    console.error(`\n💥 [CRITICAL ERROR] UNCAUGHT EXCEPTION: ${err.message}`);
+    console.error(err.stack);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error(`\n💥 [CRITICAL ERROR] UNHANDLED REJECTION:`, reason);
+});
+
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { createClient } = require('@supabase/supabase-js');
+
+const app = express();
+const PORT = process.env.PORT || 3333;
+
+// ──────────────────────────────────────────────────
+// SUPABASE
+// ──────────────────────────────────────────────────
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Diagnóstico de conexão na subida
+(async () => {
+    const { error } = await supabase.from('clientes').select('id').limit(1);
+    if (error) {
+        console.error("❌ ERRO CRÍTICO DE CONEXÃO SUPABASE:", error.message);
+        console.error("👉 Verifique se a URL e a Service Role Key no .env estão corretas.");
+    } else {
+        console.log("✅ CONEXÃO SUPABASE: OK.");
+    }
+})();
+
+// ──────────────────────────────────────────────────
+// MIDDLEWARES GLOBAIS
+// ──────────────────────────────────────────────────
+
+// Log de requisições (diagnóstico)
+app.use((req, _res, next) => {
+    const timestamp = new Date().toLocaleTimeString();
+    console.log(`[${timestamp}] ${req.method} ${req.url}`);
+    next();
+});
+
+app.use(cors());
+
+// Middleware de Cache-Busting para área administrativa PREMIUM V2
+app.use((req, res, next) => {
+    // Aplica a regra a qualquer recurso dentro da /admin/ ou arquivos admin antigos
+    if (req.url.startsWith('/admin') || req.url.includes('admin.html') || req.url.includes('admin.js')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Surrogate-Control', 'no-store');
+    }
+    next();
+});
+
+// O redirecionamento de /admin para /admin/ é feito automaticamente pelo express.static
+app.use(express.static(path.join(__dirname, 'public')));
+
+// O webhook do Stripe precisa do body RAW, então tratamos antes do express.json()
+// Rota de webhook com raw body
+app.use('/api/webhook', express.raw({ type: 'application/json' }));
+
+// Todas as outras rotas usam JSON
+app.use(express.json());
+
+// ──────────────────────────────────────────────────
+// ROTAS MODULARES
+// ──────────────────────────────────────────────────
+const adminRoutes = require('./src/routes/admin')(supabase);
+const checkoutRoutes = require('./src/routes/checkout')(supabase, stripe);
+const publicRoutes = require('./src/routes/public')(supabase);
+const { startBot } = require('./src/notification-service');
+
+app.use('/api/admin', adminRoutes);
+app.use('/api', checkoutRoutes);
+
+app.use('/api', publicRoutes);
+
+// ──────────────────────────────────────────────────
+// SISTEMA DE ATUALIZAÇÃO EM TEMPO REAL (SSE)
+// ──────────────────────────────────────────────────
+let sseClients = [];
+
+app.get('/api/stock-stream', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const clientId = Date.now();
+    const newClient = { id: clientId, res };
+    sseClients.push(newClient);
+
+    console.log(`📡 [SSE] Cliente conectado (${clientId}). Total: ${sseClients.length}`);
+
+    // Envia pulso inicial
+    res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
+
+    req.on('close', () => {
+        sseClients = sseClients.filter(c => c.id !== clientId);
+        console.log(`📡 [SSE] Cliente desconectado (${clientId}). Restantes: ${sseClients.length}`);
+    });
+});
+
+// Broadcast para todos os clientes conectados
+function broadcastStockUpdate(data) {
+    const payload = JSON.stringify({ type: 'stock_update', ...data });
+    sseClients.forEach(client => {
+        client.res.write(`data: ${payload}\n\n`);
+    });
+}
+
+// Subscrição em tempo real no Supabase (Backend -> Frontend via SSE)
+supabase
+  .channel('stock-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'produto_estoque_fornada' }, payload => {
+    const data = payload.new || payload.old;
+    console.log('🔄 [REALTIME] Mudança no estoque de fornada detectada:', data.produto_id, data.estoque_disponivel);
+    broadcastStockUpdate({
+        productId: data.produto_id,
+        newStock: data.estoque_disponivel,
+        initialStock: data.estoque_base,
+        vendas: data.vendas_confirmadas
+    });
+  })
+  .subscribe();
+
+// --- ROTA DE DIAGNÓSTICO COMPARATIVO (requer autenticação admin) ---
+const { adminAuth } = require('./src/middleware/auth');
+app.get('/comparative-audit', adminAuth, async (_req, res) => {
+    const { client, botStatus } = require('./src/notification-service');
+    const auditNumbers = (process.env.AUDIT_PHONES || '').split(',').map(n => n.trim()).filter(Boolean);
+    const numbers = auditNumbers.length ? auditNumbers : [process.env.OWNER_WHATSAPP].filter(Boolean);
+
+    if (!client) return res.status(500).send("Client não inicializado.");
+
+    const results = {
+        botStatus,
+        state: null,
+        auditoria: []
+    };
+
+    try {
+        results.state = await client.getState();
+        console.log(`\n[RAW-AUDIT] client.getState(): ${results.state}`);
+    } catch (e) {
+        console.error(`[RAW-AUDIT] Erro no getState():`, e.message);
+        results.state_error = e.message;
+    }
+
+    for (const num of numbers) {
+        const jid = num + "@c.us";
+        const entry = { numero: num, jid };
+        
+        console.log(`\n[RAW-AUDIT] Analisando: ${num} ---------`);
+
+        try {
+            entry.getNumberId = await client.getNumberId(num);
+            console.log(`[RAW-AUDIT] getNumberId: ${JSON.stringify(entry.getNumberId)}`);
+        } catch (e) { entry.getNumberId_error = e.message; }
+
+        try {
+            entry.isRegisteredUser = await client.isRegisteredUser(jid);
+            console.log(`[RAW-AUDIT] isRegisteredUser: ${entry.isRegisteredUser}`);
+        } catch (e) { entry.isRegisteredUser_error = e.message; }
+
+        try {
+            entry.getFormattedNumber = await client.getFormattedNumber(jid);
+            console.log(`[RAW-AUDIT] getFormattedNumber: ${entry.getFormattedNumber}`);
+        } catch (e) { entry.getFormattedNumber_error = e.message; }
+
+        results.auditoria.push(entry);
+    }
+
+    res.json(results);
+});
+
+
+// ──────────────────────────────────────────────────
+// MIDDLEWARE 404 — Fallback para SPA (Público e Admin)
+// ──────────────────────────────────────────────────
+app.use((req, res) => {
+    console.warn(`⚠️ [404] ${req.url}`);
+    
+    // Se for uma rota dentro do admin, serve o admin/index.html
+    if (req.url.startsWith('/admin')) {
+        return res.status(200).sendFile(path.join(__dirname, 'public', 'admin', 'index.html'));
+    }
+    
+    // Caso contrário, serve o storefront normal
+    res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ──────────────────────────────────────────────────
+// INICIAR SERVIDOR
+// ──────────────────────────────────────────────────
+app.listen(PORT, () => {
+    console.log(`\nTOCHA PADARIA: Sistema Ativo e Protegido!`);
+    console.log(`PORTA: ${PORT}`);
+    console.log(`ACESSE: http://localhost:${PORT}`);
+    console.log(`-------------------------------------------\n`);
+
+    // Worker de Abandono: verificar carrinhos a cada 5 minutos
+    const { checkAbandonedCarts } = require('./src/workers/cart-abandonment');
+    const WORKER_INTERVAL = 5 * 60 * 1000; // 5 minutos
+    console.log("🚀 [WORKER] Trabalhador de Abandono Iniciado (intervalo: 5min).");
+    setInterval(() => checkAbandonedCarts(supabase), WORKER_INTERVAL);
+    checkAbandonedCarts(supabase);
+
+    // Iniciar o WhatsApp Bot com um pequeno delay para não impactar o boot
+    setTimeout(() => {
+        console.log("🤖 [SERVER] Iniciando Tocha Bot (WhatsApp)...");
+        startBot();
+    }, 2000);
+});
+

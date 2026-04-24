@@ -1,0 +1,32 @@
+{
+  "name": "tocha-padaria",
+  "version": "1.0.0",
+  "description": "Sistema de Checkout e Automação de WhatsApp para Tocha Padaria.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node --watch server.js",
+    "clean:auth": "rm -rf .wwebjs_auth",
+    "clean:logs": "rm -f logs/*.log",
+    "postinstall": "mkdir -p logs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.100.1",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.4",
+    "pg": "^8.20.0",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "stripe": "^21.0.1",
+    "whatsapp-web.js": "^1.34.6"
+  }
+}

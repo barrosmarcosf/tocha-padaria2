@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fale Conosco - Tocha Padaria</title>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=restore-1404">
+</head>
+<body class="l-fale-conosco">
+    <nav class="sticky-nav">
+        <div class="nav-content">
+            <a href="index.html" class="nav-logo" aria-label="Tocha Padaria – Ir para início">
+                <img src="assets/logo.png" alt="Tocha Padaria Logo">
+            </a>
+            <ul class="nav-links">
+                <li class="nav-search-item">
+                    <div class="search-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" id="site-search-f" class="site-search" placeholder="Buscar">
+                    </div>
+                </li>
+                <li><a href="index.html#hero" class="nav-text-item">INICIAL</a></li>
+                <li><a href="index.html#menu" class="nav-text-item">CARDÁPIO</a></li>
+                <li><a href="nossa-historia.html" class="nav-text-item">NOSSA HISTÓRIA</a></li>
+                <li><a href="fale-conosco.html" class="nav-text-item">FALE CONOSCO</a></li>
+                <li class="nav-socials">
+                    <a href="https://instagram.com/tocha.padaria" target="_blank" rel="noopener" class="nav-icon-link" aria-label="Instagram">
+                        <svg class="nav-social-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                            <circle cx="12" cy="12" r="11.4"/>
+                            <rect x="7" y="7" width="10" height="10" rx="3" ry="3"/>
+                            <circle cx="12" cy="12" r="2.2" />
+                            <circle cx="15.5" cy="8.5" r="0.8" fill="currentColor" stroke="none"/>
+                        </svg>
+                    </a>
+                </li>
+                <li>
+                    <button id="cart-toggle" class="cart-toggle-btn" aria-label="Abrir carrinho">
+                        <svg class="cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="20" r="1.5"></circle>
+                            <circle cx="18" cy="20" r="1.5"></circle>
+                            <path d="M1 1h3.5l2.68 12.39a2 2 0 0 0 2 1.61h8.72a2 2 0 0 0 2-1.61L22 5H5.5"></path>
+                        </svg>
+                        <span id="cart-badge" class="cart-badge" hidden>0</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="fale-container">
+        <h1 class="fale-title">FALE CONOSCO</h1>
+        <p class="fale-sub">Tem dúvidas, críticas ou sugestões?<br>Pergunte que a gente responde!</p>
+        
+        <form class="fale-form">
+            <input type="text" class="fale-input" placeholder="Nome completo" required>
+            <input type="email" class="fale-input" placeholder="Digite seu e-mail" required>
+            
+            <div class="input-wrapper">
+                <input type="tel" class="fale-input" placeholder="Telefone" required>
+                <!-- Cadeado icone (vermelho pequeno) -->
+                <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+            </div>
+            
+            <textarea class="fale-input fale-textarea" placeholder="Mensagem" required></textarea>
+            
+            <div class="fale-btn-wrapper">
+                <button type="submit" class="fale-submit">ENVIAR MENSAGEM</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Círculo WhatsApp flutuante no canto inferior esquerdo -->
+    <a id="whatsapp-float" href="https://wa.me/5521966278965" target="_blank" rel="noopener" aria-label="Fale conosco no WhatsApp">
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+        </svg>
+    </a>
+
+    <!-- Notification Overlay & Modal -->
+    <div id="notification-overlay" class="cart-overlay"></div>
+    <div id="notification-modal" class="id-modal" role="dialog" aria-modal="true" style="text-align: center;">
+        <div class="id-modal-body" style="padding: 3.5rem 2rem 2.5rem;">
+            <div id="notification-icon" style="margin-bottom: 1.5rem;"></div>
+            <h2 id="notification-title" style="font-family: 'Playfair Display', serif; font-size: 1.8rem; margin-bottom: 1rem;"></h2>
+            <p id="notification-message" style="color: var(--text-dim); margin-bottom: 2rem; line-height: 1.6;"></p>
+            <button id="notification-close-btn" class="btn-checkout" style="width: 100%;">Continuar</button>
+        </div>
+    </div>
+
+    <!-- Script form submit -->
+    <script>
+        document.querySelector('.fale-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const submitBtn = this.querySelector('.fale-submit');
+            const originalText = submitBtn.textContent;
+            
+            // Capturar dados
+            const formData = {
+                name: this.querySelector('input[placeholder="Nome completo"]').value,
+                email: this.querySelector('input[placeholder="Digite seu e-mail"]').value,
+                phone: this.querySelector('input[placeholder="Telefone"]').value,
+                message: this.querySelector('textarea').value
+            };
+
+            try {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'ENVIANDO...';
+
+                const response = await fetch('/api/contact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) throw new Error('Falha no envio');
+
+                // Mostrar Modal de Sucesso (mantendo sua lógica original)
+                const overlay = document.getElementById('notification-overlay');
+                const modal = document.getElementById('notification-modal');
+                const iconContainer = document.getElementById('notification-icon');
+                
+                iconContainer.innerHTML = '<svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
+                
+                document.getElementById('notification-title').textContent = 'Mensagem Enviada!';
+                document.getElementById('notification-message').textContent = 'Sua mensagem foi entregue com sucesso. Obrigado pelo contato!';
+                
+                overlay.classList.add('visible');
+                modal.classList.add('open');
+                
+                const closeFn = () => {
+                    overlay.classList.remove('visible');
+                    modal.classList.remove('open');
+                    this.reset();
+                };
+                
+                document.getElementById('notification-close-btn').onclick = closeFn;
+                overlay.onclick = closeFn;
+
+            } catch (err) {
+                console.error(err);
+                alert('Desculpe, ocorreu um erro ao enviar sua mensagem. Tente novamente em alguns instantes.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        });
+    </script>
+    <script src="app.js?v=restore-1404"></script>
+    <script src="cart.js?v=restore-1404"></script>
+</body>
+</html>
