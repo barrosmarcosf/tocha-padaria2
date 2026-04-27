@@ -864,6 +864,16 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(e => console.error('[Abandono] Falha na recuperação:', e));
     }
 
+    // Seleção de Método de Pagamento
+    document.querySelectorAll('.btn-payment-method').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.btn-payment-method').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentPaymentMethod = btn.dataset.method;
+            console.log('[Checkout] Método selecionado:', currentPaymentMethod);
+        });
+    });
+
     // Render inicial
     render();
     fetchStoreStatus();

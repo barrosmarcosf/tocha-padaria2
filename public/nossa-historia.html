@@ -9,7 +9,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Anton&family=Outfit:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    
+    <!-- CSS Modulares Independentes -->
+    <link rel="stylesheet" href="/modules/css/base.css">
+    <link rel="stylesheet" href="/modules/css/nav.css">
+    <link rel="stylesheet" href="/modules/css/footer.css">
+    <link rel="stylesheet" href="/modules/css/cart.css">
 </head>
 
 <body class="l-nossa-historia">
@@ -17,8 +22,8 @@
 
     <nav class="sticky-nav">
         <div class="nav-content">
-            <a href="index.html" class="nav-logo" aria-label="Tocha Padaria – Ir para início">
-                <img src="assets/logo.png" alt="Tocha Padaria Logo">
+            <a href="/" class="nav-logo" aria-label="Tocha Padaria – Ir para início">
+                <img src="/assets/logo.png" alt="Tocha Padaria Logo">
             </a>
             <ul class="nav-links">
                 <li class="nav-search-item">
@@ -30,10 +35,10 @@
                         <input type="text" id="site-search" class="site-search" placeholder="Buscar">
                     </div>
                 </li>
-                <li><a href="index.html#hero" class="nav-text-item">INICIAL</a></li>
-                <li><a href="index.html#menu" class="nav-text-item">CARDÁPIO</a></li>
-                <li><a href="nossa-historia.html" class="nav-text-item">NOSSA HISTÓRIA</a></li>
-                <li><a href="fale-conosco.html" class="nav-text-item">FALE CONOSCO</a></li>
+                <li><a href="/#hero" class="nav-text-item">INICIAL</a></li>
+                <li><a href="/#menu" class="nav-text-item">CARDÁPIO</a></li>
+                <li><a href="/nossa-historia.html" class="nav-text-item">NOSSA HISTÓRIA</a></li>
+                <li><a href="/fale-conosco.html" class="nav-text-item">FALE CONOSCO</a></li>
                 <li class="nav-socials">
                     <a href="https://instagram.com/tocha.padaria" target="_blank" rel="noopener" class="nav-icon-link" aria-label="Instagram">
                         <svg class="nav-social-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
@@ -70,7 +75,7 @@
     <footer id="footer">
         <div class="footer-content">
             <div class="footer-logo">
-                <img src="assets/logo-footer (1).png" alt="Tocha Padaria">
+                <img src="/assets/logo-footer (1).png" alt="Tocha Padaria">
             </div>
             <div class="footer-info">
                 <p>Padaria informal com respeito à longa fermentação.<br>
@@ -114,8 +119,8 @@
         </svg>
     </a>
 
-    <script src="app.js"></script>
-    <script src="cart.js"></script>
+    <script src="/app.js"></script>
+    <script src="/cart.js"></script>
 </body>
 
 </html>
