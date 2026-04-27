@@ -137,16 +137,24 @@
     pointer-events: none;
     z-index: 2;
     background:
-        /* QUINAS (transição suave e longa) */
-        radial-gradient(circle at top left, rgba(0,0,0,0.15) 0%, transparent 50%),
-        radial-gradient(circle at top right, rgba(0,0,0,0.25) 0%, transparent 60%),
-        radial-gradient(circle at bottom left, rgba(0,0,0,0.20) 0%, transparent 55%),
-        radial-gradient(circle at bottom right, rgba(0,0,0,0.25) 0%, transparent 65%),
+        /* REFORÇO EXTRA NAS QUINAS (Fade Profundo 30%) */
+        radial-gradient(circle at 0% 0%, rgba(0,0,0,0.3) 0%, transparent 70%),
+        radial-gradient(circle at 100% 0%, rgba(0,0,0,0.3) 0%, transparent 70%),
+        radial-gradient(circle at 0% 100%, rgba(0,0,0,0.3) 0%, transparent 70%),
+        radial-gradient(circle at 100% 100%, rgba(0,0,0,0.35) 0%, transparent 80%),
+        
+        /* QUINAS BASE (Suavidade secundária) */
+        radial-gradient(circle at top left, rgba(0,0,0,0.15) 0%, transparent 45%),
+        radial-gradient(circle at top right, rgba(0,0,0,0.20) 0%, transparent 50%),
+        radial-gradient(circle at bottom left, rgba(0,0,0,0.20) 0%, transparent 50%),
+        radial-gradient(circle at bottom right, rgba(0,0,0,0.25) 0%, transparent 55%),
+
         /* BORDAS DIRECIONAIS */
         linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, transparent 40%),
         linear-gradient(to top, rgba(0,0,0,0.16) 0%, transparent 40%),
         linear-gradient(to left, rgba(0,0,0,0.15) 0%, transparent 40%),
         linear-gradient(to right, rgba(0,0,0,0.08) 0%, transparent 40%),
+        
         /* NOISE */
         url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
     mix-blend-mode: multiply;
@@ -211,12 +219,21 @@
     }
 
     .hero-img-wrapper::after {
-        opacity: 0.85;
+        opacity: 0.75;
         background:
-            radial-gradient(circle at top left, rgba(0,0,0,0.15) 0%, transparent 50%),
-            radial-gradient(circle at top right, rgba(0,0,0,0.25) 0%, transparent 60%),
-            radial-gradient(circle at bottom left, rgba(0,0,0,0.20) 0%, transparent 55%),
-            radial-gradient(circle at bottom right, rgba(0,0,0,0.25) 0%, transparent 65%),
+            /* REFORÇO EXTRA NAS QUINAS */
+            radial-gradient(circle at 0% 0%, rgba(0,0,0,0.3) 0%, transparent 70%),
+            radial-gradient(circle at 100% 0%, rgba(0,0,0,0.3) 0%, transparent 70%),
+            radial-gradient(circle at 0% 100%, rgba(0,0,0,0.3) 0%, transparent 70%),
+            radial-gradient(circle at 100% 100%, rgba(0,0,0,0.35) 0%, transparent 80%),
+            
+            /* QUINAS BASE */
+            radial-gradient(circle at top left, rgba(0,0,0,0.15) 0%, transparent 45%),
+            radial-gradient(circle at top right, rgba(0,0,0,0.20) 0%, transparent 50%),
+            radial-gradient(circle at bottom left, rgba(0,0,0,0.20) 0%, transparent 50%),
+            radial-gradient(circle at bottom right, rgba(0,0,0,0.25) 0%, transparent 55%),
+
+            /* BORDAS DIRECIONAIS */
             linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, transparent 40%),
             linear-gradient(to top, rgba(0,0,0,0.16) 0%, transparent 40%),
             linear-gradient(to left, rgba(0,0,0,0.15) 0%, transparent 40%),
