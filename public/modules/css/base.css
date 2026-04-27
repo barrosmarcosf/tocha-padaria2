@@ -135,11 +135,11 @@ h1, h2, h3, h4, h5, h6 {
    ═══════════════════════════════════════════════════════════ */
 .whatsapp-float {
     position: fixed;
-    bottom: 24px;
-    left: 24px;
+    bottom: 32px;
+    left: 39px;
     z-index: 999999;
-    width: 56px;
-    height: 56px;
+    width: 62px;
+    height: 62px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -156,9 +156,9 @@ h1, h2, h3, h4, h5, h6 {
 
 @media (max-width: 768px) {
     .whatsapp-float {
-        bottom: 16px;
-        left: 16px;
-        width: 52px;
-        height: 52px;
+        bottom: 24px;
+        left: 24px;
+        width: 58px;
+        height: 58px;
     }
 }
