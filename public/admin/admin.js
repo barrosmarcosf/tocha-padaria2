@@ -3908,7 +3908,7 @@ let state = {
                     </div>
                 </div>
 
-                <div class="dashboard-kpis" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2.5rem;">
+                <div class="dashboard-kpis" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2.5rem; zoom: 0.7; width: calc(100% / 0.7);">
                     <div class="kpi-card-dash" style="border-bottom: 4px solid #6366f1;">
                         <div class="label">Total Pedidos</div>
                         <div class="val" style="color: #6366f1;">${totalOrders}</div>
