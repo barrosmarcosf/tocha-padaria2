@@ -1,8 +1,8 @@
 :root {
-    --bg: #000000;
-    --nav-bg: rgba(0, 0, 0, 0.95);
-    --accent: #E5B560;
-    --accent-dark: #C5A059;
+    --bg: #0A0A0A;
+    --nav-bg: rgba(10, 10, 10, 0.95);
+    --accent: #F5B841;
+    --accent-dark: #D49820;
     --text: #ffffff;
     --text-dim: #a0a0a0;
     --card-bg: #0a0a0a;
@@ -23,9 +23,9 @@
 }
 
 html {
-    scroll-behavior: auto !important;
+    scroll-behavior: smooth !important;
+    scroll-snap-type: y mandatory;
     height: 100%;
-    zoom: 0.75;
 }
 
 html::-webkit-scrollbar,
@@ -79,13 +79,53 @@ h1, h2, h3, h4, h5, h6 {
     transform: translateY(0);
 }
 
-/* Immersive Sections Base */
-.hero-section,
-main#menu,
-.foodservice-section,
-.instagram-section,
-footer {
-    min-height: 133.334vh;
+/* Estrutura de Layout Obrigatória (Fullpage Sections) */
+.section {
+    min-height: 100vh;
     width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     position: relative;
+    overflow: hidden;
+    scroll-snap-align: start;
+}
+
+.container {
+    width: 100%;
+    max-width: 1200px;
+    padding: 0 24px;
+    margin: 0 auto;
+}
+
+/* Utilitários de Alinhamento e Bloco de Texto */
+.text-block {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 16px;
+}
+
+.centered {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+/* Responsividade Global */
+@media (max-width: 1024px) {
+    .container {
+        padding: 0 32px;
+    }
+}
+
+@media (max-width: 768px) {
+    .section {
+        min-height: auto;
+        padding: 80px 0;
+        scroll-snap-align: none; /* Desativa snap estrito no mobile para evitar saltos bruscos em telas pequenas */
+    }
+    html {
+        scroll-snap-type: none; /* Scroll livre no mobile */
+    }
 }

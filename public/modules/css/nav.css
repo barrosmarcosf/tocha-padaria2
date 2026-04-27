@@ -52,7 +52,7 @@ body.has-status-bar .sticky-nav {
     left: 0;
     width: 100%;
     height: 58px;
-    padding: 0 3rem;
+    padding: 0; /* O padding será gerenciado pelo nav-content que atua como container */
     background: #0a0a0a;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -64,7 +64,8 @@ body.has-status-bar .sticky-nav {
 
 /* Grid de 3 colunas: Logo | Centro flexível | Icons */
 .nav-content {
-    max-width: 1600px;
+    max-width: 1200px;
+    padding: 0 24px;
     height: 100%;
     margin: 0 auto;
     display: grid;

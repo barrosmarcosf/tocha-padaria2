@@ -112,9 +112,9 @@
         <div class="dot-nav" data-target="footer" data-index="4" title="Rodapé"></div>
     </div>
 
-    <header id="hero" class="hero-section">
-        <div class="hero-grid">
-            <div class="hero-text-col">
+    <header id="hero" class="section hero-section">
+        <div class="container hero">
+            <div class="text-block hero-text-col">
                 <span class="hero-eyebrow" id="dyn-hero-eyebrow">Fermentação Natural</span>
                 <h1 class="hero-title" id="dyn-hero-title">
                     O pão que<br>
@@ -147,13 +147,14 @@
     </header>
 
 
-    <main id="menu">
-        <div class="section-intro">
-            <h2 class="section-title" id="dyn-store-title">PÃES, DOCES E MUITO MAIS</h2>
-            <p id="dyn-store-desc">Nossos pães são resultado de dias de processo: levain ativo, hidratação precisa, longa fermentação e forno na hora certa. Não é só pão — é uma conquista.</p>
-        </div>
+    <main id="menu" class="section">
+        <div class="container">
+            <div class="centered text-block section-intro">
+                <h2 class="section-title" id="dyn-store-title">PÃES, DOCES E MUITO MAIS</h2>
+                <p id="dyn-store-desc">Nossos pães são resultado de dias de processo: levain ativo, hidratação precisa, longa fermentação e forno na hora certa. Não é só pão — é uma conquista.</p>
+            </div>
 
-        <div id="categories-view" class="categories-view-grid">
+            <div id="categories-view" class="categories-view-grid products">
             <!-- Categorias geradas via JS -->
         </div>
 
@@ -164,24 +165,25 @@
                     <h3 id="dyn-cat-title">Categoria Title</h3>
                 </div>
                 
-                <div id="dyn-products-grid" class="dyn-products-grid">
+                <div id="dyn-products-grid" class="dyn-products-grid products">
                     <!-- Produtos gerados via JS -->
                 </div>
             </div>
         </div>
+        </div>
     </main>
 
 
-    <section id="foodservice" class="foodservice-section">
-        <div class="foodservice-inner">
-            <div class="food-image-grid">
+    <section id="foodservice" class="section foodservice-section">
+        <div class="container foodservice">
+            <div class="image-grid">
                 <div class="food-grid-item"><img src="/assets/foodservice1.png" alt="Pães artesanais para restaurantes"></div>
                 <div class="food-grid-item"><img src="/assets/foodservice2.png" alt="Sourdough para cafeterias"></div>
                 <div class="food-grid-item"><img src="/assets/foodservice3.png" alt="Produtos exclusivos B2B"></div>
                 <div class="food-grid-item"><img src="/assets/foodservice4.png" alt="Qualidade Tocha Padaria"></div>
             </div>
 
-            <div class="food-text">
+            <div class="text-block food-text">
                 <span class="feat-eyebrow" id="dyn-food-eyebrow">B2B & Alianças</span>
                 <h2 id="dyn-food-title">Foodservice</h2>
                 <div class="food-desc" id="dyn-food-desc">
@@ -192,8 +194,8 @@
         </div>
     </section>
 
-    <section id="instagram" class="instagram-section">
-        <div class="container text-center">
+    <section id="instagram" class="section instagram-section">
+        <div class="container centered text-block">
             <span class="section-eyebrow">Nos acompanhe</span>
             <h3 data-parallax="0.08">Cada fornada,<br>uma história</h3>
             <p class="ig-sub">Confira o processo, os bastidores e avisos de quando abrimos para pedidos.</p>
@@ -203,9 +205,10 @@
         </div>
     </section>
 
-    <footer id="footer">
-        <div class="footer-content">
-            <div class="footer-logo">
+    <footer id="footer" class="section">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
                 <img id="site-logo-footer" src="/assets/logo-footer (1).png" alt="Tocha Padaria">
                 <span>TOCHA</span>
             </div>
@@ -241,6 +244,8 @@
                     Feito com paciência e levain.
                 </p>
             </div>
+            </div>
+        </div>
         </div>
     </footer>
 

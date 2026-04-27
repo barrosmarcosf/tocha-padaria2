@@ -3,27 +3,11 @@
    Guiado por altura + max-width centralizado
    ═══════════════════════════════════════════════════ */
 
-.hero-section {
-    min-height: 133.334vh; /* 100vh / zoom:0.75 — preenche 100% visual da viewport */
-    display: flex;
-    align-items: flex-start;
-    background: #0b0b0b;
-    position: relative;
-    overflow: hidden;
-}
-
-/* Container central — amplo mas controlado */
-.hero-grid {
-    width: 100%;
-    max-width: 1600px; /* Igual ao nav-content para alinhar com o logo */
-    margin: 0 auto;
-    padding: 80px 3rem; /* 3rem de padding lateral, igual à navbar */
+.hero {
     display: grid;
-    grid-template-columns: 1fr 1fr; /* Proporção exata de 50/50 */
-    align-items: center; /* Centraliza verticalmente o texto e a imagem */
-    gap: 80px;
-    box-sizing: border-box;
-    height: 100%; /* Permite ocupar a altura total */
+    grid-template-columns: 1fr 1.2fr; /* Texto: 45%, Imagem: 55% */
+    gap: 48px;
+    align-items: center;
 }
 
 /* ── Coluna de Texto ── */
@@ -167,51 +151,34 @@
 }
 
 /* ═══════════════════════════════════════════════════
-   RESPONSIVE — Mobile (<900px)
+   RESPONSIVE — Mobile (<768px)
    ═══════════════════════════════════════════════════ */
-@media (max-width: 900px) {
-    .hero-section {
-        min-height: 133.334vh;
-        display: block;
-    }
-
-    .hero-grid {
+@media (max-width: 768px) {
+    .hero {
         grid-template-columns: 1fr;
-        padding: 0;
-        gap: 0;
+        gap: 32px;
     }
 
     .hero-image-col {
-        height: 60vh;
-        justify-content: center;
-        align-items: center;
-    }
-
-    .hero-image-col::before {
-        width: 100%;
-        background: linear-gradient(
-            to top,
-            rgba(0,0,0,1)   0%,
-            rgba(0,0,0,0.5) 40%,
-            rgba(0,0,0,0)   100%
-        );
+        order: -1; /* Imagem acima do texto no mobile */
+        height: auto;
     }
 
     .hero-img {
-        height: 60vh;
         width: 100%;
+        height: 50vh;
         object-fit: cover;
     }
 
     .hero-text-col {
-        padding: 4rem 2rem;
+        padding: 0;
+        margin: 0;
+        background: transparent;
         max-width: 100%;
-        background: linear-gradient(to top, #0b0b0b 60%, transparent);
-        margin-top: -15vh;
     }
 
     .hero-title {
-        font-size: clamp(2.8rem, 11vw, 4.2rem);
+        font-size: clamp(2.5rem, 10vw, 3.5rem);
         line-height: 1.0;
     }
 
@@ -219,14 +186,17 @@
         font-size: 1rem;
     }
 
+    .hero-actions {
+        flex-direction: column;
+        gap: 16px;
+    }
+
     .hero-cta {
-        height: 48px;
-        min-width: 150px;
-        font-size: 13px;
+        width: 100%;
+        min-width: 100%;
     }
 
     .hero-scroll-indicator {
-        left: 2rem;
-        bottom: 1.5rem;
+        display: none;
     }
 }
