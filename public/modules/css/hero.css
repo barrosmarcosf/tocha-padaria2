@@ -58,7 +58,8 @@
     height: 56px;
     min-width: 220px;
     padding: 0 32px;
-    font-family: 'Anton', sans-serif;
+    font-family: 'Lato', sans-serif;
+    font-weight: 400;
     font-size: 14px;
     letter-spacing: 1.2px;
     text-transform: uppercase;
