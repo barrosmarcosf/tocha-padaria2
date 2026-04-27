@@ -767,37 +767,7 @@ footer {
     line-height: 1.6;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   WHATSAPP FLOATING BUTTON
-   ═══════════════════════════════════════════════════════════ */
-#whatsapp-float {
-    position: fixed;
-    bottom: 24px;
-    left: 24px;
-    background: #25D366;
-    width: 60px;
-    height: 60px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 50%;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-    z-index: 999999;
-    text-decoration: none;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-#whatsapp-float:hover {
-    transform: scale(1.1);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-}
-
-#whatsapp-float svg {
-    width: 34px;
-    height: 34px;
-    fill: #fff;
-}
-
+/* Legado Removido */
 /* ═══════════════════════════════════════════════════════════
    RESPONSIVIDADE
    ═══════════════════════════════════════════════════════════ */
