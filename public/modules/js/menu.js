@@ -107,6 +107,18 @@ window.MenuModule = {
                     </button>
                 </div>
             `;
+            
+            const buyBtn = card.querySelector('.btn-buy-now');
+            if (buyBtn) {
+                buyBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (window.addDirectToCart) {
+                        window.addDirectToCart(prod.id, prod.name, prod.price, 1, prod.stock_quantity);
+                        if (window.openCart) window.openCart(true); 
+                    }
+                });
+            }
+
             grid.appendChild(card);
             this.updateScarcityBadge(prod);
         });

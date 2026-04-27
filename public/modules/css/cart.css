@@ -115,3 +115,58 @@
     padding: 1.5rem;
     margin-bottom: 2rem;
 }
+
+/* Payment Selection & Pix Modal */
+.btn-payment-method {
+    background: #151515;
+    border: 1px solid #333;
+    padding: 1.2rem;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+}
+
+.btn-payment-method:hover {
+    background: #202020;
+    border-color: #555;
+}
+
+.btn-payment-method.active {
+    border-color: var(--accent);
+    background: rgba(229, 181, 96, 0.05);
+    box-shadow: 0 0 15px rgba(229, 181, 96, 0.1);
+}
+
+.btn-payment-method.active svg {
+    color: var(--accent);
+}
+
+.spinner-small {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(229, 181, 96, 0.2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.pix-qr-container img {
+    max-width: 100%;
+    height: auto;
+}
+
+.pix-code-area input {
+    background: #000;
+    border: 1px solid #333;
+    padding: 0.8rem;
+    color: #fff;
+    width: 100%;
+}
