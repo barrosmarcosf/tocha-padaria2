@@ -1,7 +1,7 @@
 /* --- Dashboard V3 Layout (Fidelidade à Imagem) --- */
 .dashboard-v3-container {
     max-width: none;
-    margin: 0 auto;
+    margin: 0;
     padding: 2rem;
     zoom: 1.15;
     width: calc(100% / 1.15);
