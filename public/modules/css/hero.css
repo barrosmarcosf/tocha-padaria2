@@ -125,9 +125,9 @@
     background:
         radial-gradient(
             circle at 65% 45%,
-            rgba(255, 210, 140, 0.20) 0%,
-            rgba(255, 210, 140, 0.12) 25%,
-            rgba(0,0,0,0) 55%
+            rgba(255, 210, 140, 0.45) 0%,
+            rgba(255, 210, 140, 0.25) 30%,
+            rgba(0,0,0,0) 65%
         );
     mix-blend-mode: screen;
 }
