@@ -137,12 +137,6 @@
     display: block;
     border-radius: 0; /* Brutalist: sem bordas arredondadas */
     box-shadow: 0 20px 50px rgba(0,0,0,0.5); /* Leve sombra para destacar do fundo */
-    animation: heroZoom 20s ease-in-out infinite alternate;
-}
-
-@keyframes heroZoom {
-    from { transform: scale(1); }
-    to   { transform: scale(1.06); }
 }
 
 .hero-scroll-indicator {
