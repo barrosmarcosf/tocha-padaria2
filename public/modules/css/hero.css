@@ -15,21 +15,22 @@
 /* Container central — amplo mas controlado */
 .hero-grid {
     width: 100%;
-    max-width: 1750px;
+    max-width: 1600px; /* Igual ao nav-content para alinhar com o logo */
     margin: 0 auto;
-    padding: 120px 100px 80px;
+    padding: 80px 3rem; /* 3rem de padding lateral, igual à navbar */
     display: grid;
-    grid-template-columns: 0.95fr 1.05fr;
-    align-items: start;
-    gap: 90px;
+    grid-template-columns: 1fr 1fr; /* Proporção exata de 50/50 */
+    align-items: center; /* Centraliza verticalmente o texto e a imagem */
+    gap: 80px;
     box-sizing: border-box;
+    height: 100%; /* Permite ocupar a altura total */
 }
 
 /* ── Coluna de Texto ── */
 .hero-text-col {
     z-index: 3;
     position: relative;
-    max-width: 720px;
+    max-width: 650px; /* Levemente mais contido para forçar a quebra correta de linha */
 }
 
 .hero-eyebrow {
@@ -42,13 +43,13 @@
 }
 
 .hero-title {
-    font-size: 128px;
-    line-height: 0.98;
+    font-size: clamp(4.5rem, 8vw, 105px); /* Tamanho ajustado para caber em 3 linhas exatas */
+    line-height: 0.95; /* Line-height um pouco mais apertado para o visual em bloco sólido */
     margin-bottom: 0;
     letter-spacing: -0.01em;
     word-spacing: normal;
     text-transform: uppercase;
-    text-shadow: 0 4px 40px rgba(0,0,0,0.7);
+    text-shadow: none; /* A referência parece não ter drop-shadow ou ter muito leve */
 }
 
 .hero-description {
@@ -113,41 +114,28 @@
     position: relative;
     display: flex;
     justify-content: flex-end;
-    align-items: flex-start;
-    overflow: hidden;
-}
-
-/* Efeito de fusão */
-.hero-image-col::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 40%;
+    align-items: center; /* Centraliza a imagem verticalmente */
     height: 100%;
-    background: linear-gradient(
-        to right,
-        rgba(0,0,0,1)    0%,
-        rgba(0,0,0,0.85) 45%,
-        rgba(0,0,0,0)    100%
-    );
-    z-index: 2;
-    pointer-events: none;
 }
 
 .hero-img-wrapper {
     position: relative;
     z-index: 1;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
+    width: 100%;
+    justify-content: flex-end;
 }
 
 .hero-img {
-    height: min(85vh, 980px);
-    width: auto;
+    height: min(85vh, 850px);
+    width: 100%;
+    max-width: 750px; /* Limita a largura para não ficar esticada demais */
     object-fit: cover;
-    object-position: center 25%;
+    object-position: center;
     display: block;
+    border-radius: 0; /* Brutalist: sem bordas arredondadas */
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5); /* Leve sombra para destacar do fundo */
     animation: heroZoom 20s ease-in-out infinite alternate;
 }
 
