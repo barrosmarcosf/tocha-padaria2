@@ -13,8 +13,8 @@
     align-items: center;
     justify-content: center;
     z-index: 10001;
-    font-family: 'Anton', sans-serif;
-    font-weight: 400; /* Anton já é bem bold naturalmente */
+    font-family: 'Lato', sans-serif;
+    font-weight: 700;
     font-size: 0.8rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
