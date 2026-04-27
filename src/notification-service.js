@@ -158,8 +158,8 @@ client.on('disconnected', (reason) => {
 
 // --- NOVO: INTERACAO INTELIGENTE (IA) ---
 client.on('message', async msg => {
-    // Ignorar mensagens de grupos ou se o bot nao estiver pronto
-    if (!isBotReady || msg.from.includes('@g.us')) return;
+    // Ignorar mensagens de grupos, status@broadcast ou se o bot nao estiver pronto
+    if (!isBotReady || msg.from.includes('@g.us') || msg.from === 'status@broadcast') return;
 
     const chat = await msg.getChat();
     // Nao responder se for do proprio dono (feedback loop)

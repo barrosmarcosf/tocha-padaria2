@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git status --porcelain | grep -q . && git add -A && git commit -m \"chore: auto-deploy $(date +'%d/%m %H:%M')\" && git push origin main || true"
+          }
+        ]
+      }
+    ]
+  }
+}
