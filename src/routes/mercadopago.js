@@ -9,8 +9,15 @@ const { getUnifiedStoreStatus } = require('../services/storeStatusService');
 module.exports = function (supabase) {
     
     // Configuração do Mercado Pago
+    const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
+    if (!token) {
+        console.error("❌ [Mercado Pago] ERRO: MERCADOPAGO_ACCESS_TOKEN não encontrado nas variáveis de ambiente!");
+    } else {
+        console.log("✅ [Mercado Pago] Token configurado:", token.substring(0, 10) + "...");
+    }
+
     const client = new MercadoPagoConfig({ 
-        accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN,
+        accessToken: token,
         options: { timeout: 5000 }
     });
     const payment = new Payment(client);

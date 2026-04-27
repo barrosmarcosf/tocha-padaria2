@@ -867,6 +867,5 @@ document.addEventListener('DOMContentLoaded', () => {
     // Render inicial
     render();
     fetchStoreStatus();
-    setupSmartLookup();
     checkPaymentSuccess();
 });
