@@ -1,6 +1,5 @@
 #menu {
-    padding-top: calc(var(--nav-height) + 2rem);
-    background: #000000;
+    background: #0A0A0A;
 }
 
 .section-intro {

@@ -1,12 +1,9 @@
 footer {
     background: #080808;
-    padding: 8rem 4rem 4rem;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .footer-content {
-    max-width: 1600px;
-    margin: 0 auto;
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
@@ -55,6 +52,7 @@ footer {
     justify-content: center;
     background: rgba(255, 255, 255, 0.05);
     color: #fff;
+    border-radius: 8px; /* Adicionado border-radius suave */
     transition: all 0.3s ease;
 }
 

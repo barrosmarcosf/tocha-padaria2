@@ -5,7 +5,7 @@
 
 .hero {
     display: grid;
-    grid-template-columns: 1fr 1.2fr; /* Texto: 45%, Imagem: 55% */
+    grid-template-columns: 45% 55%; /* Proporções travadas conforme solicitado */
     gap: 48px;
     align-items: center;
 }
