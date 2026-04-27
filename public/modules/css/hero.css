@@ -60,10 +60,12 @@
     padding: 0 32px;
     font-family: 'Lato', sans-serif;
     font-weight: 400;
-    font-size: 14px;
-    letter-spacing: 1.2px;
+    font-size: 13px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
     text-decoration: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     transition: all 0.3s ease;
     border-radius: 0;
 }
