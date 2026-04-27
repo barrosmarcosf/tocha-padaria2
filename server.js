@@ -83,11 +83,13 @@ app.use(express.json());
 // ──────────────────────────────────────────────────
 const adminRoutes = require('./src/routes/admin')(supabase);
 const checkoutRoutes = require('./src/routes/checkout')(supabase, stripe);
+const mercadopagoRoutes = require('./src/routes/mercadopago')(supabase);
 const publicRoutes = require('./src/routes/public')(supabase);
 const { startBot } = require('./src/notification-service');
 
 app.use('/api/admin', adminRoutes);
 app.use('/api', checkoutRoutes);
+app.use('/api', mercadopagoRoutes);
 
 app.use('/api', publicRoutes);
 

@@ -7,6 +7,8 @@ let cart = JSON.parse(localStorage.getItem('tocha-cart') || '[]');
 let coupon = null;
 let autoCloseTimer = null;
 let globalStatus = null;
+let currentPaymentMethod = 'stripe';
+let pixPollingInterval = null;
 
 async function fetchStoreStatus() {
     try {
@@ -552,6 +554,19 @@ function setupSmartLookup() {
     });
 }
 
+window.setPaymentMethod = function(method) {
+    currentPaymentMethod = method;
+    document.getElementById('btn-pay-stripe').classList.toggle('active', method === 'stripe');
+    document.getElementById('btn-pay-pix').classList.toggle('active', method === 'pix');
+    
+    const submitBtn = document.getElementById('id-submit-btn');
+    if (method === 'pix') {
+        submitBtn.textContent = 'Gerar QR Code Pix';
+    } else {
+        submitBtn.textContent = 'Finalizar Pedido';
+    }
+};
+
 /* ── Checkout ── */
 async function processCheckout(e) {
     if (e) e.preventDefault();
@@ -570,7 +585,10 @@ async function processCheckout(e) {
     localStorage.setItem('tocha-customer-registry', JSON.stringify(registry));
     localStorage.setItem('tocha-customer', JSON.stringify(customer));
 
-    if (btn) { btn.classList.add('checkout-loading'); btn.textContent = 'Processando'; }
+    if (btn) { 
+        btn.classList.add('checkout-loading'); 
+        btn.textContent = currentPaymentMethod === 'pix' ? 'Gerando Pix...' : 'Processando...'; 
+    }
 
     const sub      = subtotal();
     const total    = sub - discountAmount(sub);
@@ -578,6 +596,27 @@ async function processCheckout(e) {
     localStorage.setItem('tocha-last-order-summary', JSON.stringify(cart));
     localStorage.setItem('tocha-last-order-total', total.toFixed(2).replace('.', ','));
 
+    // Rota Pix
+    if (currentPaymentMethod === 'pix') {
+        try {
+            const response = await fetch('/api/create-pix-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customer, cart, totalAmount: total })
+            });
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+
+            showPixModal(data);
+        } catch (error) {
+            console.error('[Pix] Erro:', error);
+            alert('Erro ao gerar Pix: ' + error.message);
+            if (btn) { btn.classList.remove('checkout-loading'); btn.textContent = 'Gerar QR Code Pix'; }
+        }
+        return;
+    }
+
+    // Rota Stripe (Original)
     const performCheckout = async (attempt = 1) => {
         try {
             const response = await fetch('/api/checkout', {
@@ -607,13 +646,89 @@ async function processCheckout(e) {
                 alert('Não conseguimos conectar com o servidor para gerar seu pagamento. Por favor, verifique sua internet e tente novamente.');
                 if (btn) { 
                     btn.classList.remove('checkout-loading'); 
-                    btn.textContent = 'Seguir para Pagamento'; 
+                    btn.textContent = 'Finalizar Pedido'; 
                 }
             }
         }
     };
 
     performCheckout();
+}
+
+/* ── Lógica Pix Frontend ── */
+function showPixModal(data) {
+    closeIdModal();
+    const overlay = document.getElementById('pix-overlay');
+    const modal = document.getElementById('pix-modal');
+    const qrImg = document.getElementById('pix-qr-img');
+    const codeInput = document.getElementById('pix-code-input');
+
+    qrImg.src = data.qr_code_base64;
+    codeInput.value = data.qr_code;
+    
+    overlay.classList.add('visible');
+    modal.classList.add('open');
+
+    // Botão Copiar
+    document.getElementById('btn-copy-pix').onclick = () => {
+        codeInput.select();
+        document.execCommand('copy');
+        const btn = document.getElementById('btn-copy-pix');
+        const originalText = btn.textContent;
+        btn.textContent = 'Copiado!';
+        setTimeout(() => btn.textContent = originalText, 2000);
+    };
+
+    // Cancelar
+    document.getElementById('pix-cancel-btn').onclick = () => {
+        stopPixPolling();
+        overlay.classList.remove('visible');
+        modal.classList.remove('open');
+        openIdModal();
+    };
+
+    startPixPolling(data.payment_id);
+}
+
+function startPixPolling(paymentId) {
+    if (pixPollingInterval) clearInterval(pixPollingInterval);
+    
+    pixPollingInterval = setInterval(async () => {
+        try {
+            const resp = await fetch(`/api/check-payment/${paymentId}`);
+            const data = await resp.json();
+
+            if (data.status === 'approved') {
+                stopPixPolling();
+                document.getElementById('pix-status-text').textContent = 'Pagamento Aprovado!';
+                document.getElementById('pix-status-text').style.color = '#10b981';
+                
+                setTimeout(() => {
+                    document.getElementById('pix-overlay').classList.remove('visible');
+                    document.getElementById('pix-modal').classList.remove('open');
+                    
+                    // Limpa carrinho e mostra sucesso
+                    cart = [];
+                    localStorage.removeItem('tocha-cart');
+                    render();
+                    showSuccessModal();
+                }, 1500);
+            } else if (data.status === 'cancelled') {
+                stopPixPolling();
+                alert('O pagamento foi cancelado ou expirou.');
+                document.getElementById('pix-cancel-btn').click();
+            }
+        } catch (e) {
+            console.error('[Pix Polling] Erro:', e);
+        }
+    }, 3000); // A cada 3 segundos
+}
+
+function stopPixPolling() {
+    if (pixPollingInterval) {
+        clearInterval(pixPollingInterval);
+        pixPollingInterval = null;
+    }
 }
 
 /* ── Panel Open / Close ── */
