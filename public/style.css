@@ -1709,8 +1709,8 @@ footer {
 /* ─── WhatsApp Floating Button ─────────────────────────── */
 #whatsapp-float {
     position: fixed;
-    bottom: 2rem;
-    left: 2rem;
+    bottom: 24px;
+    left: 24px;
     background: #25D366;
     width: 60px;
     height: 60px;
@@ -1719,14 +1719,15 @@ footer {
     align-items: center;
     border-radius: 50%;
     box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-    z-index: 9999;
+    z-index: 999999; /* Força sobreposição absoluta a qualquer contexto criado por .section */
     text-decoration: none;
-    transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     animation: waPop 0.8s 1s both cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 #whatsapp-float:hover {
-    transform: scale(1.08); /* expande suavemente */
+    transform: scale(1.1);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
 }
 
 #whatsapp-float svg {
