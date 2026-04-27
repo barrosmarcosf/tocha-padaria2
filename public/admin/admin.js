@@ -1228,7 +1228,7 @@ let state = {
                     <div style="display: flex; align-items: center; gap: 0.3rem; color: #ef4444;"><span style="width:8px; height:8px; background:#ef4444; border-radius:50%;"></span> Mês Anterior</div>
                     <div style="display: flex; align-items: center; gap: 0.3rem; color: ${metricColor};"><span style="width:8px; height:8px; background:${metricColor}; border-radius:50%;"></span> Mês Atual</div>
                 </div>
-                <div style="height: 100px; width: 100%;"><canvas id="cumulativeChart"></canvas></div>
+                <div style="height: 160px; width: 100%;"><canvas id="cumulativeChart"></canvas></div>
             `;
             initCumulativeChart();
             if (window.lucide) lucide.createIcons();
@@ -1525,7 +1525,7 @@ let state = {
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 340px; gap: 2rem; align-items: flex-start;">
+                <div style="display: grid; grid-template-columns: 1fr 520px; gap: 2rem; align-items: flex-start;">
                     
                     <div class="dash-main-column" style="display: flex; flex-direction: column; gap: 1.5rem;">
                         
@@ -1660,11 +1660,11 @@ let state = {
                              </div>
 
 
-                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 110px;">
+                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 170px;">
                                  <div class="payment-legend-container" style="display: flex; flex-direction: column; gap: 0.6rem; flex: 1.2;">
                                      <!-- Injetado via initPaymentChart -->
                                  </div>
-                                 <div style="width: 100px; height: 100px; position:relative; flex-shrink: 0;">
+                                 <div style="width: 160px; height: 160px; position:relative; flex-shrink: 0;">
                                      <canvas id="paymentChart"></canvas>
                                  </div>
                              </div>
