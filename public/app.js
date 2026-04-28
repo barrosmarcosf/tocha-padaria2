@@ -24,9 +24,23 @@ document.addEventListener('DOMContentLoaded', () => {
     let scrollTimeout = null;
     let scrollToSection = null; 
 
-    // scroll nativo via scrollIntoView — roda no thread do compositor (GPU), sem reflow
+    // Motor de scroll com easeOutQuart (começa rápido, para suave) — 280ms
     function smoothScrollTo(targetEl) {
-        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const startY = window.pageYOffset;
+        const endY = targetEl.getBoundingClientRect().top + startY;
+        const diff = endY - startY;
+        if (diff === 0) return;
+        const duration = 280;
+        let startTime = null;
+        function step(ts) {
+            if (!startTime) startTime = ts;
+            const elapsed = Math.min(ts - startTime, duration);
+            const p = elapsed / duration;
+            const ease = 1 - Math.pow(1 - p, 4); // easeOutQuart
+            window.scrollTo(0, startY + diff * ease);
+            if (elapsed < duration) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
     }
 
     // --- SYNC GLOBAL STORE STATUS (ETAPA 4) ---
@@ -179,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
             clearTimeout(scrollTimeout);
             scrollTimeout = setTimeout(() => {
                 state.isLocked = false;
-            }, 700);
+            }, 350);
         }
 
         function handleNavigate(direction) {
