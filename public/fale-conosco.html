@@ -14,6 +14,10 @@
     <link rel="stylesheet" href="/modules/css/fale-conosco.css">
 </head>
 <body class="l-fale-conosco">
+    <div id="top-status-bar" class="store-status-bar">
+        <span id="status-text-top">VERIFICANDO PEDIDOS...</span>
+    </div>
+
     <nav class="sticky-nav">
         <div class="nav-content">
             <a href="/" class="nav-logo" aria-label="Tocha Padaria – Ir para início">
@@ -59,11 +63,6 @@
 
     <main class="fale-main">
         <div class="fale-container">
-
-            <div class="fornada-bar" id="fornadaBar" hidden>
-                <div class="fornada-progress" id="fornadaProgress"></div>
-                <span class="fornada-label" id="fornadaLabel"></span>
-            </div>
 
             <h1 class="fale-title">FALE CONOSCO</h1>
             <p class="fale-sub">Tem dúvidas, críticas ou sugestões?<br>Pergunte que a gente responde!</p>
@@ -159,62 +158,6 @@
             }
         });
 
-        /* ── Barra de Fornada ── */
-        (async function initFornadaBar() {
-            function parseCountdownToSeconds(str) {
-                if (!str) return 0;
-                let s = 0;
-                const d = str.match(/(\d+)d/);
-                const h = str.match(/(\d+)h/);
-                const m = str.match(/(\d+)min/);
-                if (d) s += parseInt(d[1]) * 86400;
-                if (h) s += parseInt(h[1]) * 3600;
-                if (m) s += parseInt(m[1]) * 60;
-                return s;
-            }
-
-            function formatTime(secs) {
-                const d = Math.floor(secs / 86400);
-                const h = Math.floor((secs % 86400) / 3600);
-                const m = Math.floor((secs % 3600) / 60);
-                const s = secs % 60;
-                if (d > 0) return `${d}d ${h}h ${m}min`;
-                if (h > 0) return `${h}h ${m}min ${s}s`;
-                return `${m}min ${s}s`;
-            }
-
-            try {
-                const resp = await fetch('/api/store-status');
-                if (!resp.ok) return;
-                const status = await resp.json();
-                if (!status.isOpen || !status.countdown) return;
-
-                const bar      = document.getElementById('fornadaBar');
-                const progress = document.getElementById('fornadaProgress');
-                const label    = document.getElementById('fornadaLabel');
-
-                /* Janela típica: 7 dias (9→2 dias antes da fornada) */
-                const WINDOW_SECS = 7 * 24 * 3600;
-                let remaining = parseCountdownToSeconds(status.countdown);
-
-                bar.hidden = false;
-
-                function tick() {
-                    if (remaining <= 0) {
-                        progress.style.width = '0%';
-                        label.textContent = 'Encerrado';
-                        return;
-                    }
-                    const pct = Math.min(100, (remaining / WINDOW_SECS) * 100);
-                    progress.style.width = pct + '%';
-                    label.textContent = 'Encerra em ' + formatTime(remaining);
-                    remaining--;
-                    setTimeout(tick, 1000);
-                }
-                tick();
-
-            } catch (e) { /* API indisponível — barra permanece oculta */ }
-        })();
     </script>
     <script src="/app.js"></script>
     <script src="/cart.js"></script>

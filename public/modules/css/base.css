@@ -131,6 +131,42 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   BARRA DE STATUS DA LOJA (GLOBAL)
+   ═══════════════════════════════════════════════════════════ */
+.store-status-bar {
+    width: 100%;
+    height: var(--status-bar-height, 29px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-family: 'Outfit', sans-serif;
+    background: #1a1a1a;
+    color: rgba(255, 255, 255, 0.6);
+    z-index: 1001;
+}
+
+.store-status-bar.open       { background: #22c55e; color: #000; }
+.store-status-bar.next-batch { background: var(--accent, #F5B841); color: #000; }
+.store-status-bar.closed     { background: #1a1a1a; color: rgba(255, 255, 255, 0.5); }
+
+/* Páginas internas: barra fixa no topo + nav abaixo dela */
+body.l-fale-conosco .store-status-bar,
+body.l-nossa-historia .store-status-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+body.l-fale-conosco .sticky-nav,
+body.l-nossa-historia .sticky-nav {
+    top: var(--status-bar-height, 29px);
+}
+
+/* ═══════════════════════════════════════════════════════════
    WHATSAPP FLOATING BUTTON (GLOBAL)
    ═══════════════════════════════════════════════════════════ */
 .whatsapp-float {
