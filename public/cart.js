@@ -224,15 +224,15 @@ function injectCart() {
 
         <div id="checkoutOverlay" class="cart-overlay"></div>
         <div id="checkoutModal" class="modal" style="display:none">
-            <div class="modal-box" style="text-align: left; max-width: 420px; border-radius: 20px;">
-                <h2 style="color: var(--accent); font-size: 1.5rem; font-weight: 700; margin-bottom: 15px; font-family: 'Anton', sans-serif;">Finalizar Pedido</h2>
-                <p style="color: #888; font-size: 0.85rem; line-height: 1.5; margin-bottom: 20px;">
+            <div class="modal-box" style="text-align: left; max-width: 450px; border-radius: 20px;">
+                <h2 class="modal-title">Finalizar Pedido</h2>
+                <p class="modal-info-text">
                     Preencha seus dados corretamente. Entraremos em contato via WhatsApp no dia da fornada (<strong id="dataFornada">Sábado, 02/05</strong>) para confirmar quando seu pedido estiver pronto para retirada.
                 </p>
 
-                <div style="margin-bottom: 15px;"><input type="text" id="chk-name" placeholder="Nome completo" style="width: 100%; padding: 12px; background: #111; border: 1px solid #333; color: #fff; border-radius: 8px;"></div>
-                <div style="margin-bottom: 15px;"><input type="tel" id="chk-whatsapp" placeholder="WhatsApp" style="width: 100%; padding: 12px; background: #111; border: 1px solid #333; color: #fff; border-radius: 8px;"></div>
-                <div style="margin-bottom: 20px;"><input type="email" id="chk-email" placeholder="Email" style="width: 100%; padding: 12px; background: #111; border: 1px solid #333; color: #fff; border-radius: 8px;"></div>
+                <div style="margin-bottom: 5px;"><input type="text" id="chk-name" placeholder="Nome completo" class="modal-input"></div>
+                <div style="margin-bottom: 5px;"><input type="tel" id="chk-whatsapp" placeholder="WhatsApp" class="modal-input"></div>
+                <div style="margin-bottom: 10px;"><input type="email" id="chk-email" placeholder="Email" class="modal-input"></div>
 
                 <div style="margin-bottom: 25px;">
                     <p style="color: #fff; font-weight: 600; margin-bottom: 12px; font-size: 0.9rem;">Forma de pagamento</p>
@@ -245,7 +245,7 @@ function injectCart() {
                 </div>
                 <p id="checkoutError" style="color: #ff4444; font-size: 0.75rem; margin-top: -15px; margin-bottom: 15px; display: none;">Preencha todos os campos corretamente.</p>
                 <button class="btn-primary" onclick="confirmarPedido()" style="border-radius: 10px; margin-bottom: 10px; width: 100%;">CONFIRMAR PEDIDO</button>
-                <button onclick="closeCheckoutModal()" style="width: 100%; background: none; border: none; color: #555; cursor: pointer; font-size: 0.85rem;">Cancelar</button>
+                <button class="modal-cancel" onclick="closeCheckoutModal()">Cancelar</button>
             </div>
         </div>
 
