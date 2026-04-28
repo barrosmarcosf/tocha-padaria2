@@ -50,7 +50,7 @@
 .categoria-header {
   margin-bottom: 30px;
   text-align: left;
-  min-height: 90px; /* Ajustado para o novo tamanho de titulo */
+  min-height: 75px; /* Ajustado para titulo de 38px */
 }
 
 .back-btn {
@@ -78,7 +78,7 @@
 
 .categoria-header h1 {
   font-family: 'Anton', sans-serif;
-  font-size: 48px;
+  font-size: 38px;
   color: #d4a64a;
   text-transform: uppercase;
   letter-spacing: 1.5px;
