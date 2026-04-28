@@ -29,6 +29,7 @@ html {
     scroll-behavior: auto;
     scroll-snap-type: none;
     height: 100%;
+    background-color: #0a0a0a;
 }
 
 html::-webkit-scrollbar,

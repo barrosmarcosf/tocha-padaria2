@@ -313,6 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         state.currentIndex = startingIndex;
+        sessionStorage.setItem('tocha_section', startingIndex); // grava posição inicial
 
         // Scroll imediato para a seção correta (sem delay perceptível)
         window.scrollTo(0, sections[startingIndex] ? sections[startingIndex].offsetTop : 0);
