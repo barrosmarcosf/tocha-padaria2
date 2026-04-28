@@ -51,8 +51,9 @@ body.has-status-bar .sticky-nav {
     top: var(--status-bar-height);
     left: 0;
     width: 100%;
-    height: 104px;
-    padding: 0; /* O padding será gerenciado pelo nav-content que atua como container */
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 6px 0 !important; /* Controle fino de altura */
     background: #0a0a0a;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -66,12 +67,17 @@ body.has-status-bar .sticky-nav {
 .nav-content {
     max-width: 1200px;
     padding: 0 80px;
-    height: 100%;
+    height: auto;
     margin: 0 auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 2rem;
+}
+
+.sticky-nav, .sticky-nav * {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
 }
 
 /* Navbar SEMPRE visível — override do JS */
@@ -133,7 +139,7 @@ body.has-status-bar .sticky-nav {
     font-family: 'Outfit', sans-serif;
     font-size: 14px;
     width: 220px;
-    height: 44px;
+    height: 34px; /* Reduzido para não esticar a barra */
     transition: all 0.3s ease;
     outline: none;
 }
@@ -183,6 +189,7 @@ body.has-status-bar .sticky-nav {
     font-size: 15px;
     text-transform: uppercase;
     letter-spacing: 0.12em;
+    line-height: 1; /* Garante alinhamento sem expandir altura */
     transition: all 0.25s ease;
     white-space: nowrap;
 }
@@ -290,8 +297,8 @@ body.has-status-bar .sticky-nav {
 
 @media (max-width: 860px) {
     .sticky-nav {
-        padding: 0;
-        height: 72px;
+        padding: 6px 0 !important;
+        height: auto !important;
     }
 
     .nav-content {
