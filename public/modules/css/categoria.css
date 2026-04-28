@@ -1,13 +1,13 @@
 /* ─── CLS STABILITY & SKELETONS ─── */
 @keyframes skeleton-loading {
-  0% { background-color: #0d0d0d; }
-  50% { background-color: #1a1a1a; }
-  100% { background-color: #0d0d0d; }
+  0% { opacity: 0.1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 0.1; }
 }
 
 .skeleton {
-  animation: skeleton-loading 1.5s infinite linear;
-  background: #0d0d0d;
+  animation: skeleton-loading 2s infinite ease-in-out;
+  background: #111;
 }
 
 .skeleton-text {

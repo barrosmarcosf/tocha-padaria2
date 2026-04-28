@@ -1,6 +1,7 @@
 // PEGAR SLUG
 const params = new URLSearchParams(window.location.search);
 const slug = params.get("slug");
+let configCache = null;
 
 async function carregarCategoria() {
   if (!slug) {
@@ -49,7 +50,7 @@ function renderProdutos(produtos, storeStatus) {
     entregaTexto = `Entrega: ${storeStatus.batchLabel}`;
   }
 
-  container.innerHTML = produtos.map(p => {
+  container.innerHTML = produtos.map((p, index) => {
     // Forçando a imagem padrão conforme solicitado pelo mestre
     const imgPath = '/assets/sourdough.jpg';
     
@@ -58,13 +59,16 @@ function renderProdutos(produtos, storeStatus) {
     const isEsgotado = p.stock_quantity === 0;
     const isDisabled = isFechado || isEsgotado;
     
+    // Otimização de performance: Prioridade alta para as primeiras 2 imagens
+    const isPriority = index < 2 ? 'fetchpriority="high"' : '';
+    
     let btnTexto = "COMPRAR AGORA";
     if (isFechado) btnTexto = "FECHADO";
     else if (isEsgotado) btnTexto = "ESGOTADO";
     
     return `
       <div class="produto-card">
-        <img src="${imgPath}" alt="${p.name}" loading="lazy" />
+        <img src="${imgPath}" alt="${p.name}" loading="${index < 4 ? 'eager' : 'lazy'}" ${isPriority} decoding="async" />
         <div class="produto-info">
           <div><span class="entrega">⛟ ${entregaTexto}</span></div>
           <h3>${p.name}</h3>
