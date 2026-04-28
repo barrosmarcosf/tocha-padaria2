@@ -319,11 +319,8 @@ document.addEventListener('DOMContentLoaded', () => {
         window.scrollTo(0, sections[startingIndex] ? sections[startingIndex].offsetTop : 0);
         syncNavUI(startingIndex);
 
-        // Fade-in após posicionar na seção correta
-        requestAnimationFrame(() => {
-            document.documentElement.style.transition = 'opacity 0.22s ease';
-            document.documentElement.style.opacity = '1';
-        });
+        // Remove a cobertura escura após posicionar na seção correta
+        revealPage();
         
         const stickyNav = document.querySelector('.sticky-nav');
         if (stickyNav) {
@@ -343,13 +340,16 @@ document.addEventListener('DOMContentLoaded', () => {
         
     } // Fim do bloco isLanding
 
-    // --- FADE-IN UNIVERSAL (landing faz o próprio; inner pages fazem aqui) ---
-    if (!isLanding) {
-        requestAnimationFrame(() => {
-            document.documentElement.style.transition = 'opacity 0.22s ease';
-            document.documentElement.style.opacity = '1';
-        });
+    // --- REVEAL: remove a cobertura escura (funciona para todas as páginas) ---
+    function revealPage() {
+        const cover = document.getElementById('page-cover');
+        if (!cover) return;
+        cover.style.transition = 'opacity 0.22s ease';
+        cover.style.opacity = '0';
+        setTimeout(() => cover.remove(), 280);
     }
+
+    if (!isLanding) revealPage();
 
     // --- LOGICA DE NAVBAR PARA TODAS AS PAGINAS (Padrão Início) ---
     const stickyNav = document.querySelector('.sticky-nav');
@@ -423,9 +423,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const href = link.getAttribute('href');
         if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('mailto') || href.startsWith('tel') || link.target === '_blank') return;
         e.preventDefault();
-        document.documentElement.style.transition = 'opacity 0.18s ease';
-        document.documentElement.style.opacity = '0';
-        setTimeout(() => { window.location.href = href; }, 200);
+        // Cria cobertura escura sobre a página atual antes de navegar
+        const cover = document.createElement('div');
+        cover.style.cssText = 'position:fixed;inset:0;background:#0a0a0a;z-index:999999;pointer-events:none;opacity:0;transition:opacity 0.18s ease';
+        document.body.appendChild(cover);
+        requestAnimationFrame(() => {
+            cover.style.opacity = '1';
+            setTimeout(() => { window.location.href = href; }, 200);
+        });
     });
 
     // --- INIT ---
