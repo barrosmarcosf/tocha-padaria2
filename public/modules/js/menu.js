@@ -31,6 +31,16 @@ window.MenuModule = {
         if (prodView) prodView.style.display = 'none';
 
         catView.innerHTML = '';
+        
+        // Lógica de Grid Dinâmico Inteligente
+        const total = this.state.allCategories.length;
+        let cols = 4;
+        if (total >= 9) cols = 5;
+        
+        // Reset e aplicação das classes
+        catView.className = 'categories-view-grid products';
+        catView.classList.add(`cols-${cols}`);
+
         this.state.allCategories.forEach(cat => {
             const imgPath = cat.image_url && cat.image_url.startsWith('http') ? cat.image_url : '/' + cat.image_url;
             const card = document.createElement('div');
