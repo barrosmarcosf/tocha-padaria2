@@ -392,9 +392,10 @@ function showSuccessModal() {
     }
 }
 
-function fecharModal() {
-    document.getElementById('modalSuccess').classList.remove('active');
-}
+window.fecharModal = function() {
+    const m = document.getElementById('modalSuccess');
+    if (m) m.classList.remove('active');
+};
 
 /* ── Pix Helpers ── */
 function showPixModal(data) {
