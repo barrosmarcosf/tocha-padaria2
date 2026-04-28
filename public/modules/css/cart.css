@@ -12,12 +12,12 @@
 .cart-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
     opacity: 0;
     visibility: hidden;
     z-index: 10000;
-    transition: opacity 0.3s ease; /* Transicao leve */
+    transition: opacity 0.4s ease;
 }
 .cart-overlay.active {
     opacity: 1;
@@ -142,10 +142,27 @@
 .btn-secondary { background: transparent; border: 1px solid #222; color: #fff; width: 100%; padding: 14px; font-weight: 600; font-size: 0.9rem; text-transform: uppercase; cursor: pointer; margin-bottom: 15px; }
 .clear-cart-link { display: block; text-align: center; color: var(--accent); font-size: 0.8rem; text-decoration: underline; cursor: pointer; }
 
-/* Modal Sucesso */
-.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 20000; }
+/* Modal Base (Checkout & Success) */
+.modal { 
+    position: fixed; 
+    inset: 0; 
+    background: rgba(0,0,0,0.6); 
+    backdrop-filter: blur(12px); 
+    display: none; 
+    justify-content: center; 
+    align-items: center; 
+    z-index: 20000; 
+}
 .modal.active { display: flex; }
-.modal-box { background: #0d0d0d; width: min(500px, 95vw); padding: 40px; border-radius: 20px; border: 1px solid rgba(212, 168, 87, 0.2); text-align: center; }
+.modal-box { 
+    background: #0d0d0d; 
+    width: min(500px, 95vw); 
+    padding: 40px; 
+    border-radius: 24px; 
+    border: 1px solid rgba(212, 168, 87, 0.2); 
+    text-align: center; 
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
 
 /* Status Button */
 .btn-out-of-stock { background: var(--danger) !important; color: #fff !important; cursor: not-allowed !important; }
