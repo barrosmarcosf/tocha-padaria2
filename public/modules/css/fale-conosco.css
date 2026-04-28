@@ -82,9 +82,44 @@ body.l-fale-conosco .sticky-nav .cart-icon {
     transition: outline 0.2s;
 }
 
-.fale-input::placeholder { color: #777; }
-.fale-input:focus { outline: 2px solid #ccc; }
+.fale-input::placeholder { color: #999; }
+.fale-input:focus { outline: 2px solid #bbb; }
 .fale-textarea { resize: vertical; min-height: 140px; }
+
+/* ── Campo inválido ── */
+.fale-input.input-erro {
+    outline: 2px solid #d14141;
+    background: #fff5f5;
+}
+
+/* ── Labels dos campos ── */
+.field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.field-label {
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: #444;
+    text-transform: uppercase;
+}
+
+.obrigatorio {
+    color: #d14141;
+    font-weight: 700;
+    margin-left: 1px;
+}
+
+.opcional {
+    color: #999;
+    font-weight: 400;
+    text-transform: none;
+    font-size: 11px;
+}
 
 .input-wrapper { position: relative; }
 .input-icon {

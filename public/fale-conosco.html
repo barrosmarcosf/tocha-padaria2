@@ -67,19 +67,32 @@
             <h1 class="fale-title">FALE CONOSCO</h1>
             <p class="fale-sub">Tem dúvidas, críticas ou sugestões?<br>Pergunte que a gente responde!</p>
 
-            <form class="fale-form">
-                <input type="text" class="fale-input" placeholder="Nome completo" required>
-                <input type="email" class="fale-input" placeholder="Digite seu e-mail" required>
-
-                <div class="input-wrapper">
-                    <input type="tel" class="fale-input" placeholder="Telefone" required>
-                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                    </svg>
+            <form class="fale-form" novalidate>
+                <div class="field-group">
+                    <label class="field-label">Nome completo <span class="obrigatorio">*</span></label>
+                    <input type="text" class="fale-input" placeholder="Seu nome" required autocomplete="name">
                 </div>
 
-                <textarea class="fale-input fale-textarea" placeholder="Mensagem" required></textarea>
+                <div class="field-group">
+                    <label class="field-label">E-mail <span class="obrigatorio">*</span></label>
+                    <input type="email" class="fale-input" placeholder="seu@email.com" required autocomplete="email">
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label">Telefone <span class="opcional">(opcional)</span></label>
+                    <div class="input-wrapper">
+                        <input type="tel" class="fale-input" placeholder="(21) 99999-9999" autocomplete="tel">
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label">Mensagem <span class="opcional">(opcional)</span></label>
+                    <textarea class="fale-input fale-textarea" placeholder="Como podemos ajudar?"></textarea>
+                </div>
 
                 <div class="container-botao">
                     <button type="submit" class="botao-contato">ENVIAR MENSAGEM</button>
@@ -105,17 +118,52 @@
     </div>
 
     <script>
+        /* ── Validação: marca campo inválido ao sair do foco ── */
+        document.querySelectorAll('.fale-input[required]').forEach(input => {
+            input.addEventListener('blur', () => {
+                if (!input.value.trim() || !input.checkValidity()) {
+                    input.classList.add('input-erro');
+                } else {
+                    input.classList.remove('input-erro');
+                }
+            });
+            input.addEventListener('input', () => {
+                if (input.value.trim() && input.checkValidity()) {
+                    input.classList.remove('input-erro');
+                }
+            });
+        });
+
         /* ── Form Submit ── */
         document.querySelector('.fale-form').addEventListener('submit', async function(e) {
             e.preventDefault();
+
+            const nomeInput  = this.querySelector('input[type="text"]');
+            const emailInput = this.querySelector('input[type="email"]');
+            let valido = true;
+
+            [nomeInput, emailInput].forEach(input => {
+                if (!input.value.trim() || !input.checkValidity()) {
+                    input.classList.add('input-erro');
+                    valido = false;
+                } else {
+                    input.classList.remove('input-erro');
+                }
+            });
+
+            if (!valido) {
+                nomeInput.closest('.field-group').querySelector('.fale-input.input-erro')?.focus();
+                return;
+            }
+
             const submitBtn = this.querySelector('.botao-contato');
             const originalText = submitBtn.textContent;
 
             const formData = {
-                name: this.querySelector('input[placeholder="Nome completo"]').value,
-                email: this.querySelector('input[placeholder="Digite seu e-mail"]').value,
-                phone: this.querySelector('input[placeholder="Telefone"]').value,
-                message: this.querySelector('textarea').value
+                name:    nomeInput.value.trim(),
+                email:   emailInput.value.trim(),
+                phone:   this.querySelector('input[type="tel"]').value.trim(),
+                message: this.querySelector('textarea').value.trim()
             };
 
             try {
