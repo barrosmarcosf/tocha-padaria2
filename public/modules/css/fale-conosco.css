@@ -1,0 +1,120 @@
+/* ═══════════════════════════════════════
+   PÁGINA FALE CONOSCO
+   ═══════════════════════════════════════ */
+
+body.l-fale-conosco {
+    --bg: #ece6d9;
+    --text: #1a1a1a;
+    background-color: var(--bg);
+    color: var(--text);
+}
+
+body.l-fale-conosco .sticky-nav .search-box input {
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+body.l-fale-conosco .sticky-nav .search-box input::placeholder {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+body.l-fale-conosco .sticky-nav .cart-icon {
+    stroke: #ffffff !important;
+}
+
+/* Container principal */
+.fale-container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 80px 24px 120px;
+    position: relative;
+}
+
+.fale-title {
+    font-family: 'Anton', sans-serif;
+    font-size: 5rem;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.fale-red { color: #d14141; }
+
+.fale-sub {
+    font-size: 1.25rem;
+    color: #333;
+    margin-bottom: 2rem;
+    line-height: 1.4;
+    font-weight: 400;
+}
+
+/* Formulário */
+.fale-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+
+.fale-input {
+    width: 100%;
+    padding: 16px 20px;
+    border: none;
+    border-radius: 12px;
+    background: #ffffff;
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    font-weight: 400;
+    color: #333;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+    outline: 2px solid transparent;
+    transition: outline 0.2s;
+}
+
+.fale-input::placeholder { color: #777; }
+.fale-input:focus { outline: 2px solid #ccc; }
+.fale-textarea { resize: vertical; min-height: 140px; }
+
+.input-wrapper { position: relative; }
+.input-icon {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    color: #d14141;
+}
+
+/* ── Wrapper do botão ── */
+.container-botao {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+/* ── Botão de envio ── */
+.botao-contato {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    padding: 12px 40px;
+    width: auto;
+    background: #d9d9d9;
+    color: #000;
+    text-align: center;
+    border-radius: 10px;
+    font-size: 14px;
+    letter-spacing: 2px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    border: none;
+    cursor: pointer;
+    transition: background 0.3s, color 0.3s;
+}
+
+.botao-contato:hover {
+    background: #c9a85d;
+    color: #fff;
+}
