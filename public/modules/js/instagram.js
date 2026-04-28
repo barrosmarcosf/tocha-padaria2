@@ -2,10 +2,10 @@ window.InstagramModule = {
     init(igConfig) {
         if (!igConfig) return;
         
-        const eyebrow = document.querySelector('.instagram-section h2');
-        const title = document.querySelector('.instagram-section h3');
-        const desc = document.querySelector('.instagram-section .ig-sub');
-        const cta = document.querySelector('.instagram-section .ig-cta');
+        const eyebrow = document.querySelector('.acompanhe .tag');
+        const title = document.querySelector('.acompanhe h1');
+        const desc = document.querySelector('.acompanhe p');
+        const cta = document.querySelector('.btn-instagram');
 
         if (eyebrow) eyebrow.textContent = igConfig.hashtag || '#TochaPadaria';
         if (title) title.innerHTML = (igConfig.title || 'Siga Nossa<br>Jornada').replace(/\n/g, '<br>');
