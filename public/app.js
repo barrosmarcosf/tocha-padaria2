@@ -328,9 +328,8 @@ document.addEventListener('DOMContentLoaded', () => {
         state.currentIndex = startingIndex;
         sessionStorage.setItem('tocha_section', startingIndex);
 
-        // Posiciona na seção correta após layout completo (window.load garante
-        // que offsetTop é calculado com imagens e CSS já aplicados, e também
-        // roda DEPOIS de qualquer restauração de scroll do browser)
+        // Posiciona na seção correta e revela a página. Chamada no DOMContentLoaded
+        // (CSS já aplicado, layout calculado) sem esperar imagens (window.load).
         function applyStartPosition() {
             const idx = state.currentIndex;
 
@@ -347,8 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Aplica o scroll imediatamente...
             window.scrollTo(0, targetY);
 
-            // ...e reaplica no próximo frame para sobrescrever qualquer
-            // restauração assíncrona do browser que ocorra após window.load
+            // ...e reaplica no próximo frame para garantir layout estável
             requestAnimationFrame(() => {
                 window.scrollTo(0, targetY);
 
@@ -391,11 +389,9 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStorage.setItem('tocha_section', state.currentIndex);
         });
 
-        if (document.readyState === 'complete') {
-            applyStartPosition();
-        } else {
-            window.addEventListener('load', applyStartPosition, { once: true });
-        }
+        // Chama diretamente — CSS já está aplicado no DOMContentLoaded.
+        // Não aguarda window.load (que esperaria imagens) para revelar a página.
+        applyStartPosition();
         
     } // Fim do bloco isLanding
 
@@ -403,9 +399,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function revealPage() {
         const cover = document.getElementById('page-cover');
         if (!cover) return;
-        cover.style.transition = 'opacity 0.12s ease';
+        cover.style.transition = 'opacity 0.06s ease';
         cover.style.opacity = '0';
-        setTimeout(() => cover.remove(), 150);
+        setTimeout(() => cover.remove(), 80);
     }
 
     if (!isLanding) revealPage();
@@ -476,20 +472,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- TRANSIÇÃO DE SAÍDA ENTRE PÁGINAS ---
+    // Navegação direta: sem cobertura preta, sem atraso.
+    // As páginas internas não têm page-cover, então aparecem instantaneamente.
+    // A landing page tem seu próprio page-cover que some em ~60ms após o DOMContentLoaded.
     document.addEventListener('click', (e) => {
         const link = e.target.closest('a[href]');
         if (!link) return;
         const href = link.getAttribute('href');
         if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('mailto') || href.startsWith('tel') || link.target === '_blank') return;
         e.preventDefault();
-        // Cria cobertura escura sobre a página atual antes de navegar
-        const cover = document.createElement('div');
-        cover.style.cssText = 'position:fixed;inset:0;background:#0a0a0a;z-index:999999;pointer-events:none;opacity:0;transition:opacity 0.1s ease';
-        document.body.appendChild(cover);
-        requestAnimationFrame(() => {
-            cover.style.opacity = '1';
-            setTimeout(() => { window.location.href = href; }, 80);
-        });
+        window.location.href = href;
     });
 
     // --- INIT ---
