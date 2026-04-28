@@ -195,7 +195,7 @@ body.has-status-bar .sticky-nav {
     transform: scale(1.05);
     transform-origin: center;
     display: inline-block;
-    transition: all 0.25s ease;
+    transition: color 0.25s ease, opacity 0.25s ease;
     white-space: nowrap;
 }
 
@@ -267,7 +267,7 @@ body.has-status-bar .sticky-nav {
     color: #ffffff;
     transform: scale(1.05);
     transform-origin: center;
-    transition: all 0.25s ease;
+    transition: color 0.25s ease, opacity 0.25s ease;
 }
 
 .cart-toggle-btn:hover .cart-icon {

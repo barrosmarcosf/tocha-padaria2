@@ -7,8 +7,9 @@
     --text-dim: #a0a0a0;
     --card-bg: #0a0a0a;
     --border: rgba(229, 181, 96, 0.15);
-    --transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-    --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    /* "all" substituído por propriedades específicas — evita recalc a cada frame */
+    --transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    --transition-fast: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     --nav-height: 85px;
     --section-gap: 60px;
     --status-bar-height: 29px;
@@ -44,6 +45,10 @@ body {
     font-family: 'Outfit', sans-serif;
     line-height: 1.1;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior: contain;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -70,8 +75,9 @@ h1, h2, h3, h4, h5, h6 {
 
 .reveal {
     opacity: 0;
-    transform: translateY(30px);
-    transition: opacity 0.8s ease-out, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(20px);
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+    will-change: transform, opacity;
 }
 
 .reveal.active {
@@ -89,6 +95,8 @@ h1, h2, h3, h4, h5, h6 {
     position: relative;
     overflow: hidden;
     scroll-snap-align: start;
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 .container {
