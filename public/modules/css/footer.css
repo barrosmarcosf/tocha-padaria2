@@ -40,42 +40,44 @@ footer {
 
 .social-links {
     display: flex;
-    gap: 12px;
+    gap: 14px;
     justify-content: flex-end;
+    align-items: center;
 }
 
 .social-sq-btn {
-    width: 48px;
-    height: 48px;
+    width: 42px;
+    height: 42px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff !important;
     border-radius: 12px;
-    transition: all 0.3s ease;
-    overflow: hidden; /* Garante que a imagem respeite o border-radius se necessário */
+    transition: transform 0.2s ease;
+    overflow: hidden;
 }
 
-.social-sq-btn .icon {
+.social-sq-btn svg {
+    width: 22px;
+    height: 22px;
     display: block;
-    transition: all 0.3s ease;
 }
 
-.social-sq-btn .icon.insta {
-    width: 28px;
-    height: 28px;
+.social-sq-btn.instagram {
+    background: linear-gradient(
+        135deg,
+        #f58529,
+        #dd2a7b,
+        #8134af,
+        #515bd4
+    );
 }
 
-.social-sq-btn .icon.whats {
-    width: 44px;
-    height: 44px;
+.social-sq-btn.whatsapp {
+    background: #25d366;
 }
-
-/* As classes .insta e .whats agora controlam o tamanho diretamente nos SVGs */
 
 .social-sq-btn:hover {
-    transform: translateY(-5px);
-    filter: brightness(1.1);
+    transform: scale(1.06);
 }
 
 .footer-bottom {
