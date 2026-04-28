@@ -128,7 +128,7 @@ window.MenuModule = {
                             name: prod.name, 
                             price: prod.price, 
                             image: prod.image_url 
-                        });
+                        }, 1);
                     }
                 });
             }

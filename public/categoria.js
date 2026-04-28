@@ -154,9 +154,7 @@ window.addAoCarrinhoComQtd = function(id, name, price, stock) {
   const qty = span ? parseInt(span.innerText) : 1;
   
   if (window.addToCart) {
-    for(let i=0; i<qty; i++) {
-        window.addToCart({ id, name, price });
-    }
+    window.addToCart({ id, name, price }, qty);
     
     if (span) span.innerText = 1;
   }

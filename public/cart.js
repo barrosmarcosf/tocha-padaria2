@@ -17,17 +17,20 @@ function save() {
 }
 
 /* ── Global Cart Context (Functions) ── */
-window.addToCart = function(product) {
-    const existing = cart.find(i => i.id === product.id);
+window.addToCart = function(product, qty = 1) {
+    // Normalização para garantir que a comparação funcione (string vs number)
+    const productId = String(product.id);
+    const existing = cart.find(i => String(i.id) === productId);
+
     if (existing) {
-        existing.qty++;
+        existing.qty += qty;
     } else {
         cart.push({
             id: product.id,
             name: product.name,
             price: product.price,
             image: product.image_url || product.image,
-            qty: 1
+            qty: qty
         });
     }
     save();
