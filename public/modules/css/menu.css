@@ -1,5 +1,7 @@
 #menu {
     background: #0A0A0A;
+    padding-top: clamp(80px, 10vh, 140px); /* Evita que o título suma sob o navbar */
+    scroll-margin-top: 120px;
 }
 
 .section-intro {
@@ -8,9 +10,10 @@
 }
 
 .section-title {
-    font-size: 4rem;
+    font-size: clamp(2.5rem, 6vw, 4rem);
     color: #fff;
-    margin-bottom: 0.5rem;
+    margin-bottom: 32px;
+    line-height: 1.1;
 }
 
 .section-intro p {
@@ -23,8 +26,8 @@
 /* Grids */
 .products {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 24px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
     width: 100%;
 }
 
@@ -35,8 +38,25 @@
 }
 
 @media (max-width: 768px) {
+    #menu {
+        padding-top: 100px;
+    }
+
+    .section-title {
+        font-size: 2.2rem;
+    }
+
+    .prod-card-img-wrap {
+        height: 150px;
+    }
+
+    .prod-card-info h3 {
+        font-size: 0.85rem;
+    }
+
     .products {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
     }
 }
 
@@ -48,6 +68,10 @@
     transition: var(--transition-fast);
     position: relative;
     overflow: hidden;
+    height: auto;
+    max-width: 320px;
+    justify-self: center;
+    width: 100%;
 }
 
 .cat-main-card:hover {
@@ -57,7 +81,7 @@
 
 .prod-card-img-wrap {
     width: 100%;
-    aspect-ratio: 1/1;
+    height: 180px; /* Reduzido para liberar espaço vertical */
     overflow: hidden;
 }
 
@@ -77,9 +101,10 @@
 }
 
 .prod-card-info h3 {
-    font-size: 1.8rem;
+    font-size: 1rem;
     color: var(--accent);
     margin-bottom: 0.5rem;
+    letter-spacing: 1px;
 }
 
 .prod-card-info p {
