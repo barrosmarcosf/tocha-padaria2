@@ -16,8 +16,9 @@ body.l-nossa-historia {
 }
 
 .historia-container {
-    max-width: 800px;
     width: 100%;
+    max-width: 700px;
+    margin: 0 auto;
 }
 
 /* Título */
