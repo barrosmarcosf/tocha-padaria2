@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isTransitioning: false
     };
 
-    const navSections = ['hero', 'menu', 'foodservice', 'instagram', 'footer'];
+    const navSections = ['hero', 'menu', 'foodservice', 'acompanhe', 'footer'];
     const navDots = document.querySelectorAll('.dot-nav');
     const isLanding = !!document.getElementById('hero');
     let scrollTimeout = null;
