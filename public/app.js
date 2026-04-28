@@ -360,28 +360,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 3. Hover Global da Navbar (Resposta Instantânea)
+    // 3. Hover Global da Navbar — throttled via rAF para não bloquear compositor
+    let navMouseRafPending = false;
     window.addEventListener('mousemove', (e) => {
-        if (stickyNav) {
-            // Se estivermos abaixo do topo (onde a navbar normalmente estaria oculta)
+        if (!stickyNav || navMouseRafPending) return;
+        navMouseRafPending = true;
+        requestAnimationFrame(() => {
+            navMouseRafPending = false;
             const isScrolled = window.scrollY > 100 || (isLanding && state.currentIndex > 0);
-            
-            if (isScrolled) {
-                if (e.clientY <= 100) {
-                    if (stickyNav.classList.contains('navbar-hidden')) {
-                        stickyNav.classList.remove('navbar-hidden');
-                        stickyNav.classList.add('navbar-visible');
-                        document.body.classList.add('navbar-is-visible');
-                    }
-                } else {
-                    if (stickyNav.classList.contains('navbar-visible')) {
-                        stickyNav.classList.remove('navbar-visible');
-                        stickyNav.classList.add('navbar-hidden');
-                        document.body.classList.remove('navbar-is-visible');
-                    }
+            if (!isScrolled) return;
+            if (e.clientY <= 100) {
+                if (stickyNav.classList.contains('navbar-hidden')) {
+                    stickyNav.classList.remove('navbar-hidden');
+                    stickyNav.classList.add('navbar-visible');
+                    document.body.classList.add('navbar-is-visible');
+                }
+            } else {
+                if (stickyNav.classList.contains('navbar-visible')) {
+                    stickyNav.classList.remove('navbar-visible');
+                    stickyNav.classList.add('navbar-hidden');
+                    document.body.classList.remove('navbar-is-visible');
                 }
             }
-        }
+        });
     });
 
     // --- UI FEEDBACK ---
