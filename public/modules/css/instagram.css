@@ -1,19 +1,32 @@
 .instagram-section {
-    text-align: center;
+    width: 100%;
     background: #000;
+    padding: clamp(80px, 10vh, 140px) 0;
+    display: flex;
+    justify-content: center;
+    text-align: center;
+}
+
+.instagram-section > .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px;
+    width: 100%;
 }
 
 .instagram-section h2 {
     color: var(--accent);
     font-size: 0.8rem;
     letter-spacing: 0.3em;
-    margin-bottom: 2rem;
+    margin-bottom: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
 }
 
 .instagram-section h3 {
     font-size: clamp(3rem, 7vw, 8rem);
     line-height: 0.9;
-    margin-bottom: 1.5rem;
+    margin-bottom: 24px;
     color: #fff;
 }
 
@@ -21,14 +34,15 @@
     color: var(--text-dim);
     font-size: 1rem;
     max-width: 600px;
-    margin: 0 auto 3rem;
+    margin: 0 auto 40px;
+    opacity: 0.8;
 }
 
 .ig-cta {
     display: inline-block;
     padding: 1rem 2.5rem;
     border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 8px;
+    border-radius: 0; /* Brutalist: border-radius 0 conforme regras do site */
     color: #fff;
     text-decoration: none;
     font-family: 'Anton', sans-serif;
@@ -40,4 +54,10 @@
 .ig-cta:hover {
     background: #fff;
     color: #000;
+}
+
+@media (max-width: 768px) {
+    .instagram-section {
+        padding: 60px 16px;
+    }
 }
