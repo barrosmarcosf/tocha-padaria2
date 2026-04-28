@@ -3,18 +3,29 @@
    Guiado por altura + max-width centralizado
    ═══════════════════════════════════════════════════ */
 
+.hero-section {
+    padding-top: clamp(80px, 10vh, 140px);
+    padding-bottom: clamp(80px, 10vh, 140px);
+    height: auto; /* Permite que o conteúdo defina a altura se for maior que 100vh */
+    min-height: 100vh;
+}
+
 .hero {
     display: grid;
-    grid-template-columns: 45% 55%; /* Proporções travadas conforme solicitado */
-    gap: 48px;
+    grid-template-columns: 1fr 1.2fr; /* Imagem maior e mais dominante */
+    gap: clamp(40px, 6vw, 120px);
     align-items: center;
+    max-width: 1600px; /* Layout Wide */
+    padding-left: clamp(24px, 6vw, 120px);
+    padding-right: clamp(24px, 6vw, 120px);
+    width: 100%;
 }
 
 /* ── Coluna de Texto ── */
 .hero-text-col {
     z-index: 3;
     position: relative;
-    max-width: 650px; /* Levemente mais contido para forçar a quebra correta de linha */
+    max-width: 520px; /* Mantém o impacto do texto sem espalhar demais */
 }
 
 .hero-eyebrow {
@@ -99,10 +110,18 @@
 /* ── Coluna de Imagem — grande e dominante ── */
 .hero-image-col {
     position: relative;
+    width: 100%;
+    max-width: 720px;
+    justify-self: end;
     display: flex;
     justify-content: flex-end;
-    align-items: center; /* Centraliza a imagem verticalmente */
-    height: 100%;
+    align-items: center;
+}
+
+@media (min-width: 1600px) {
+    .hero-image-col {
+        max-width: 900px;
+    }
 }
 
 .hero-img-wrapper {
@@ -181,51 +200,50 @@
 }
 
 /* ═══════════════════════════════════════════════════
-   RESPONSIVE — Mobile (<768px)
+   RESPONSIVIDADE (TABLET & MOBILE)
    ═══════════════════════════════════════════════════ */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     .hero {
         grid-template-columns: 1fr;
-        gap: 32px;
+        gap: 60px;
+        padding-top: 100px;
+        padding-bottom: 60px;
+    }
+
+    .hero-text-col {
+        max-width: 100%;
     }
 
     .hero-image-col {
-        order: -1; /* Imagem acima do texto no mobile */
-        height: auto;
+        order: -1; /* Imagem acima do texto */
+        justify-self: center;
+        max-width: 100%;
     }
 
     .hero-img {
         width: 100%;
-        height: 50vh;
-        object-fit: cover;
-        filter: saturate(1.08) contrast(1.04);
-        mix-blend-mode: normal;
-    }
-
-    .hero-img-wrapper::after {
-        opacity: 0.7;
-        background:
-            radial-gradient(circle at 0% 0%, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0) 40%),
-            radial-gradient(circle at 100% 0%, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 40%),
-            radial-gradient(circle at 0% 100%, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 40%),
-            radial-gradient(circle at 100% 100%, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0) 40%),
-            linear-gradient(to left, rgba(0,0,0,0) 85%, rgba(0,0,0,0.2) 100%),
-            linear-gradient(to right, rgba(0,0,0,0) 85%, rgba(0,0,0,0.2) 100%),
-            linear-gradient(to top, rgba(0,0,0,0) 85%, rgba(0,0,0,0.2) 100%),
-            linear-gradient(to bottom, rgba(0,0,0,0) 85%, rgba(0,0,0,0.2) 100%),
-            url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-    }
-
-    .hero-text-col {
-        padding: 0;
-        margin: 0;
-        background: transparent;
+        height: 45vh;
         max-width: 100%;
     }
 
     .hero-title {
-        font-size: clamp(2.5rem, 10vw, 3.5rem);
-        line-height: 1.0;
+        font-size: clamp(3rem, 10vw, 5rem);
+    }
+}
+
+@media (max-width: 768px) {
+    .hero {
+        padding-left: 24px;
+        padding-right: 24px;
+        gap: 40px;
+    }
+
+    .hero-img {
+        height: 40vh;
+    }
+
+    .hero-title {
+        font-size: clamp(2.5rem, 12vw, 4rem);
     }
 
     .hero-description {
