@@ -47,19 +47,7 @@ if (!sessionId) {
 
 /* ── Inject All Cart Elements (Autonomia) ── */
 function injectAllCartElements() {
-    // 1. Botão Flutuante
-    if (!document.getElementById('floating-cart')) {
-        document.body.insertAdjacentHTML('beforeend', `
-            <button id="floating-cart" class="floating-cart-btn" aria-label="Ver carrinho" onclick="openCart(false)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="9" cy="20" r="1.5"></circle>
-                    <circle cx="18" cy="20" r="1.5"></circle>
-                    <path d="M1 1h3.5l2.68 12.39a2 2 0 0 0 2 1.61h8.72a2 2 0 0 0 2-1.61L22 5H5.5"></path>
-                </svg>
-                <span id="floating-cart-badge" class="cart-badge">0</span>
-            </button>
-        `);
-    }
+    // 1. Botão Flutuante removido a pedido do cliente para não conflitar com botões customizados
 
     // 2. Overlay e Painel do Carrinho
     if (!document.getElementById('cart-panel')) {
