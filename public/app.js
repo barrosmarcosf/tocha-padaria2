@@ -26,7 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const isLanding = !!document.getElementById('hero');
     let scrollTimeout = null;
     let scrollToSection = null;
-    let configReadyPromise = null;
 
     // Motor de scroll com easeOutQuart (começa rápido, para suave) — 280ms
     function smoothScrollTo(targetEl) {
@@ -118,46 +117,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- DYNAMIC CONFIG LOAD ---
+    // Aplica um objeto de config nos módulos. Chamada tanto pelo cache quanto pela rede.
+    function applyConfig({ categorias, produtos, siteContent }) {
+        state.menuData = (categorias || []).map(cat => ({
+            ...cat,
+            id: cat.slug,
+            items: (produtos || []).filter(p => p.category_slug === cat.slug)
+        }));
+
+        if (window.HeroModule) HeroModule.init(siteContent.hero);
+        if (window.MenuModule) MenuModule.init(categorias, produtos);
+        if (window.FoodserviceModule) FoodserviceModule.init(siteContent.foodservice);
+        if (window.InstagramModule) InstagramModule.init(siteContent.instagram);
+        if (window.FooterModule) FooterModule.init(siteContent.footer, siteContent.store_info);
+
+        if (siteContent.site_logo) {
+            const l = siteContent.site_logo;
+            const url = l.startsWith('http') ? l : '/' + l;
+            document.querySelectorAll('#site-logo-nav, #site-logo-hero, #site-logo-footer, #site-logo-back-top').forEach(img => {
+                img.src = url;
+            });
+        }
+
+        const si = siteContent.store_info;
+        if (si && si.phone) {
+            let cleanPhone = si.phone.replace(/\D/g, '');
+            if (cleanPhone.length <= 11 && cleanPhone.length >= 10) cleanPhone = '55' + cleanPhone;
+            document.querySelectorAll('a[href^="https://wa.me/"]').forEach(link => {
+                link.href = `https://wa.me/${cleanPhone}`;
+            });
+        }
+    }
+
+    // Stale-while-revalidate: aplica cache local instantaneamente e busca dados
+    // frescos em paralelo. A página nunca espera a API para aparecer.
     async function loadDynamicConfig() {
+        const CACHE_KEY = 'tocha_cfg_v2';
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (raw) {
+            try { applyConfig(JSON.parse(raw)); } catch(e) {}
+        }
         try {
             const resp = await fetch('/api/config');
             if (resp.ok) {
-                const { categorias, produtos, siteContent } = await resp.json();
-                console.log("📦 DADOS RECEBIDOS:", { categorias, produtos });
-                
-                state.menuData = (categorias || []).map(cat => ({
-                    ...cat,
-                    id: cat.slug,
-                    items: (produtos || []).filter(p => p.category_slug === cat.slug)
-                }));
-
-                // Inicializa Módulos Independentes
-                if (window.HeroModule) HeroModule.init(siteContent.hero);
-                if (window.MenuModule) MenuModule.init(categorias, produtos);
-                if (window.FoodserviceModule) FoodserviceModule.init(siteContent.foodservice);
-                if (window.InstagramModule) InstagramModule.init(siteContent.instagram);
-                if (window.FooterModule) FooterModule.init(siteContent.footer, siteContent.store_info);
-
-                // Global Assets
-                if (siteContent.site_logo) {
-                    const l = siteContent.site_logo;
-                    const url = l.startsWith('http') ? l : '/' + l;
-                    document.querySelectorAll('#site-logo-nav, #site-logo-hero, #site-logo-footer, #site-logo-back-top').forEach(img => {
-                        img.src = url;
-                    });
-                }
-                
-                // Atualiza links de WhatsApp
-                const si = siteContent.store_info;
-                if (si && si.phone) {
-                    let cleanPhone = si.phone.replace(/\D/g, '');
-                    if (cleanPhone.length <= 11 && cleanPhone.length >= 10) cleanPhone = '55' + cleanPhone;
-                    document.querySelectorAll('a[href^="https://wa.me/"]').forEach(link => {
-                        link.href = `https://wa.me/${cleanPhone}`;
-                    });
-                }
-
-                console.log("✅ Módulos carregados e inicializados!");
+                const data = await resp.json();
+                localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+                applyConfig(data);
             }
         } catch (err) { console.error("Erro no loadDynamicConfig:", err); }
     }
@@ -365,32 +370,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 navDots.forEach(d => d.classList.remove('active'));
                 if (navDots[idx]) navDots[idx].classList.add('active');
 
-                // Aguarda módulos inicializarem antes de revelar, para que qualquer
-                // mudança de altura de seção seja corrigida sem pulo visual.
-                // IMPORTANTE: usa `idx` (capturado) e não `state.currentIndex` (mutável).
-                // Se qualquer evento de snap alterar state.currentIndex durante o
-                // carregamento da API, doReveal ainda posiciona na seção correta.
-                const doReveal = () => {
-                    // Restaura estado para a seção correta (idx), ignorando
-                    // qualquer desvio causado por eventos durante o carregamento.
-                    state.currentIndex = idx;
-                    sessionStorage.setItem('tocha_section', idx);
-
-                    const el = sections[idx];
-                    if (el) {
-                        window.scrollTo(0, el.offsetTop);
-                        sessionStorage.setItem('tocha_scroll_y', Math.round(el.offsetTop));
-                    }
-
-                    // Libera o snap apenas após a posição estar correta
-                    state.isLocked = false;
-                    revealPage();
-                };
-                if (configReadyPromise) {
-                    configReadyPromise.then(doReveal).catch(doReveal);
-                } else {
-                    doReveal();
+                // Revela imediatamente após posicionar — config carregada em paralelo.
+                // Não bloqueia mais na API: o cache já aplicou os dados (ou a página
+                // aparece em branco por ≤ 300ms enquanto a primeira chamada retorna).
+                state.currentIndex = idx;
+                sessionStorage.setItem('tocha_section', idx);
+                const el = sections[idx];
+                if (el) {
+                    window.scrollTo(0, el.offsetTop);
+                    sessionStorage.setItem('tocha_scroll_y', Math.round(el.offsetTop));
                 }
+                state.isLocked = false;
+                revealPage();
             });
         }
 
@@ -412,9 +403,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function revealPage() {
         const cover = document.getElementById('page-cover');
         if (!cover) return;
-        cover.style.transition = 'opacity 0.22s ease';
+        cover.style.transition = 'opacity 0.12s ease';
         cover.style.opacity = '0';
-        setTimeout(() => cover.remove(), 280);
+        setTimeout(() => cover.remove(), 150);
     }
 
     if (!isLanding) revealPage();
@@ -493,15 +484,15 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         // Cria cobertura escura sobre a página atual antes de navegar
         const cover = document.createElement('div');
-        cover.style.cssText = 'position:fixed;inset:0;background:#0a0a0a;z-index:999999;pointer-events:none;opacity:0;transition:opacity 0.18s ease';
+        cover.style.cssText = 'position:fixed;inset:0;background:#0a0a0a;z-index:999999;pointer-events:none;opacity:0;transition:opacity 0.1s ease';
         document.body.appendChild(cover);
         requestAnimationFrame(() => {
             cover.style.opacity = '1';
-            setTimeout(() => { window.location.href = href; }, 200);
+            setTimeout(() => { window.location.href = href; }, 80);
         });
     });
 
     // --- INIT ---
-    configReadyPromise = loadDynamicConfig();
+    loadDynamicConfig();
     syncGlobalStoreStatus();
 });
