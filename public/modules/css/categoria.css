@@ -1,8 +1,17 @@
 .categoria-page {
-  padding: 10px 30px 30px;
   background: #000;
   color: #fff;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  box-sizing: border-box;
+}
+
+.categoria-page::before,
+.categoria-page::after {
+  content: "";
+  flex: 1;
 }
 
 /* HEADER & NAVIGATION */
