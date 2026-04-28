@@ -100,8 +100,13 @@ function renderProdutos(produtos, storeStatus) {
     const isPriority = index < 2 ? 'fetchpriority="high"' : '';
     
     let btnTexto = "COMPRAR AGORA";
-    if (isFechado) btnTexto = "FECHADO";
-    else if (isEsgotado) btnTexto = "ESGOTADO";
+    let btnClass = "btn-comprar";
+    if (isFechado) {
+      btnTexto = "LOJA FECHADA";
+    } else if (isEsgotado) {
+      btnTexto = "ESGOTADO";
+      btnClass += " btn-out-of-stock";
+    }
     
     return `
       <div class="produto-card">
@@ -118,7 +123,7 @@ function renderProdutos(produtos, storeStatus) {
               <button onclick="changeLocalQty('${p.id}', 1, ${p.stock_quantity})">+</button>
             </div>
           </div>
-          <button class="btn-comprar" 
+          <button class="${btnClass}" 
             onclick="addAoCarrinhoComQtd('${p.id}', '${p.name.replace(/'/g, "\\'")}', ${p.price}, ${p.stock_quantity})" 
             ${isDisabled ? 'disabled' : ''}>
             ${btnTexto}
@@ -139,21 +144,20 @@ window.changeLocalQty = function(id, delta, maxStock) {
   if (qty < 1) qty = 1;
   if (maxStock > 0 && qty > maxStock) {
     qty = maxStock;
-    // Opcional: Toast de limite de estoque
   }
   span.innerText = qty;
 };
 
-// Integrado com o cart.js existente
+// Integrado com o cart.js
 window.addAoCarrinhoComQtd = function(id, name, price, stock) {
   const span = document.getElementById(`local-qty-${id}`);
   const qty = span ? parseInt(span.innerText) : 1;
   
-  if (window.addDirectToCart) {
-    window.addDirectToCart(id, name, price, qty, stock);
-    if (window.openCart) window.openCart(true); // Abre o modal do carrinho
+  if (window.addToCart) {
+    for(let i=0; i<qty; i++) {
+        window.addToCart({ id, name, price });
+    }
     
-    // Retorna a quantidade para 1 após adicionar para facilitar nova compra
     if (span) span.innerText = 1;
   }
 };

@@ -122,9 +122,13 @@ window.MenuModule = {
             if (buyBtn) {
                 buyBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    if (window.addDirectToCart) {
-                        window.addDirectToCart(prod.id, prod.name, prod.price, 1, prod.stock_quantity);
-                        if (window.openCart) window.openCart(true); 
+                    if (window.addToCart) {
+                        window.addToCart({ 
+                            id: prod.id, 
+                            name: prod.name, 
+                            price: prod.price, 
+                            image: prod.image_url 
+                        });
                     }
                 });
             }
