@@ -335,8 +335,9 @@ document.addEventListener('DOMContentLoaded', () => {
         function applyStartPosition() {
             const idx = state.currentIndex;
 
-            // Preferência: scrollY salvo exato; fallback: offsetTop da seção
-            const savedY = parseInt(sessionStorage.getItem('tocha_scroll_y') || '-1');
+            // Se veio via hash (ex: /#menu, /#hero), ignora savedY e usa offsetTop direto
+            const hasHashNav = !!(window.location.hash && navSections.includes(window.location.hash.substring(1)));
+            const savedY = hasHashNav ? -1 : parseInt(sessionStorage.getItem('tocha_scroll_y') || '-1');
             const targetY = (savedY >= 0) ? savedY : (sections[idx] ? sections[idx].offsetTop : 0);
 
             // Aplica o scroll imediatamente...
