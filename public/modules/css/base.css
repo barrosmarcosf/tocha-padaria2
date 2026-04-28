@@ -15,17 +15,21 @@
     --status-bar-height: 29px;
 }
 
-* {
+*,
+*::before,
+*::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     list-style: none;
     text-decoration: none;
+    animation: none !important;
+    transition: none !important;
 }
 
 html {
-    scroll-behavior: smooth !important;
-    scroll-snap-type: y mandatory;
+    scroll-behavior: auto !important;
+    scroll-snap-type: none;
     height: 100%;
 }
 
@@ -73,16 +77,10 @@ h1, h2, h3, h4, h5, h6 {
     z-index: 999;
 }
 
-.reveal {
-    opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.4s ease-out, transform 0.4s ease-out;
-    will-change: transform, opacity;
-}
-
+.reveal,
 .reveal.active {
-    opacity: 1;
-    transform: translateY(0);
+    opacity: 1 !important;
+    transform: none !important;
 }
 
 /* Estrutura de Layout Obrigatória (Fullpage Sections) */
@@ -95,8 +93,7 @@ h1, h2, h3, h4, h5, h6 {
     position: relative;
     overflow: hidden;
     scroll-snap-align: start;
-    transform: translateZ(0);
-    backface-visibility: hidden;
+    transform: none !important;
 }
 
 .container {

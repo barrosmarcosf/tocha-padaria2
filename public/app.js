@@ -99,20 +99,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- REVEAL ON SCROLL ---
-    window.revealObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('active');
-                window.revealObserver.unobserve(entry.target);
-            }
-        });
-    }, {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    });
-
-    document.querySelectorAll('.reveal').forEach(el => window.revealObserver.observe(el));
+    // --- REVEAL ON SCROLL (desativado — animações removidas) ---
+    // Garante que todos os elementos .reveal fiquem visíveis imediatamente
+    document.querySelectorAll('.reveal').forEach(el => el.classList.add('active'));
 
 
     // --- DYNAMIC CONFIG LOAD ---
