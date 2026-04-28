@@ -43,7 +43,8 @@ window.MenuModule = {
 
         this.state.allCategories.forEach(cat => {
             const imgPath = cat.image_url && cat.image_url.startsWith('http') ? cat.image_url : '/' + cat.image_url;
-            const card = document.createElement('div');
+            const card = document.createElement('a');
+            card.href = `/${cat.slug}.html`;
             card.className = 'cat-main-card reveal';
             card.innerHTML = `
                 <div class="prod-card-img-wrap">
@@ -54,7 +55,6 @@ window.MenuModule = {
                     <p>${cat.description}</p>
                 </div>
             `;
-            card.addEventListener('click', () => this.showProducts(cat));
             catView.appendChild(card);
         });
 
