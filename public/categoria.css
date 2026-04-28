@@ -1,0 +1,121 @@
+body {
+  background: #000000;
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  margin: 0;
+  padding: 40px;
+}
+
+/* BOTÃO VOLTAR */
+.back-btn {
+  margin-bottom: 20px;
+  background: transparent;
+  color: #d4a64a;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-family: 'Outfit', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.back-btn:hover {
+  color: #fff;
+}
+
+/* HEADER */
+.categoria-header {
+  margin-bottom: 40px;
+}
+
+.categoria-header h1 {
+  font-size: 64px;
+  color: #d4a64a;
+  font-family: 'Anton', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin: 0 0 10px 0;
+}
+
+.categoria-header p {
+  color: #aaa;
+  font-size: 18px;
+  margin: 0;
+}
+
+/* GRID */
+.produtos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* CARD */
+.card {
+  background: #111;
+  border-radius: 0; /* Padrão Brutalista */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.card img {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+}
+
+.card-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.card-content h3 {
+  font-family: 'Anton', sans-serif;
+  font-size: 24px;
+  margin: 0 0 10px 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.card-content p {
+  color: #aaa;
+  font-size: 14px;
+  flex: 1;
+  margin: 0 0 15px 0;
+}
+
+.card-content strong {
+  font-size: 20px;
+  color: #d4a64a;
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+.card-content button {
+  background: #fff;
+  color: #000;
+  border: none;
+  padding: 12px;
+  font-family: 'Anton', sans-serif;
+  font-size: 16px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 0;
+}
+
+.card-content button:hover {
+  background: #d4a64a;
+  color: #000;
+}
+
+.card-content button:disabled {
+  background: #ff3b30;
+  color: #fff;
+  cursor: not-allowed;
+}
+
+/* CARRINHO FLUTUANTE */
+/* A injeção do cart.js já cuida de posicionar e exibir o carrinho flutuante com a classe .floating-cart-btn */

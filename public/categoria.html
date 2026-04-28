@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Categoria - Tocha Padaria</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Lato:wght@400;700&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/modules/css/base.css">
+  <link rel="stylesheet" href="/modules/css/cart.css">
+  <link rel="stylesheet" href="categoria.css">
+</head>
+
+<body>
+
+<!-- BOTÃO VOLTAR -->
+<button class="back-btn" onclick="window.location.href='/index.html#menu'">
+  ← Voltar para categorias
+</button>
+
+<!-- HEADER -->
+<section class="categoria-header">
+  <h1 id="categoriaTitulo">Carregando...</h1>
+  <p id="categoriaSubtitulo"></p>
+</section>
+
+<!-- PRODUTOS -->
+<section id="produtosGrid" class="produtos-grid"></section>
+
+<!-- O cart.js injeta automaticamente o carrinho flutuante e o painel modal -->
+<script src="/cart.js"></script>
+<script src="categoria.js"></script>
+
+</body>
+</html>

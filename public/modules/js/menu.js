@@ -44,7 +44,7 @@ window.MenuModule = {
         this.state.allCategories.forEach(cat => {
             const imgPath = cat.image_url && cat.image_url.startsWith('http') ? cat.image_url : '/' + cat.image_url;
             const card = document.createElement('a');
-            card.href = `/${cat.slug}.html`;
+            card.href = `/categoria.html?slug=${cat.slug}`;
             card.className = 'cat-main-card reveal';
             card.innerHTML = `
                 <div class="prod-card-img-wrap">
