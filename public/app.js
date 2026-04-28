@@ -201,6 +201,11 @@ document.addEventListener('DOMContentLoaded', () => {
             state.currentIndex = index;
             state.isLocked = true;
             sessionStorage.setItem('tocha_section', index);
+            // Mantém o hash da URL sincronizado com a seção atual.
+            // Sem isso, clicar em "#menu" enquanto isLocked=true não intercepta o
+            // e.preventDefault(), o browser grava "#menu" na URL e o reload sempre
+            // volta para cardápio.
+            history.replaceState(null, '', '#' + navSections[index]);
 
             syncNavUI(index);
             smoothScrollTo(sections[index]);
@@ -324,6 +329,11 @@ document.addEventListener('DOMContentLoaded', () => {
         function applyStartPosition() {
             const idx = state.currentIndex;
 
+            // Trava o motor de snap durante o carregamento inicial.
+            // Sem isso, qualquer evento de roda do mouse enquanto a API carrega
+            // chama scrollToSection() e muda state.currentIndex antes de doReveal.
+            state.isLocked = true;
+
             // Se veio via hash (ex: /#menu, /#hero), ignora savedY e usa offsetTop direto
             const hasHashNav = !!(window.location.hash && navSections.includes(window.location.hash.substring(1)));
             const savedY = hasHashNav ? -1 : parseInt(sessionStorage.getItem('tocha_scroll_y') || '-1');
@@ -356,13 +366,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (navDots[idx]) navDots[idx].classList.add('active');
 
                 // Aguarda módulos inicializarem antes de revelar, para que qualquer
-                // mudança de altura de seção seja corrigida sem pulo visual
+                // mudança de altura de seção seja corrigida sem pulo visual.
+                // IMPORTANTE: usa `idx` (capturado) e não `state.currentIndex` (mutável).
+                // Se qualquer evento de snap alterar state.currentIndex durante o
+                // carregamento da API, doReveal ainda posiciona na seção correta.
                 const doReveal = () => {
-                    const el = document.getElementById(navSections[state.currentIndex]);
+                    // Restaura estado para a seção correta (idx), ignorando
+                    // qualquer desvio causado por eventos durante o carregamento.
+                    state.currentIndex = idx;
+                    sessionStorage.setItem('tocha_section', idx);
+
+                    const el = sections[idx];
                     if (el) {
                         window.scrollTo(0, el.offsetTop);
                         sessionStorage.setItem('tocha_scroll_y', Math.round(el.offsetTop));
                     }
+
+                    // Libera o snap apenas após a posição estar correta
+                    state.isLocked = false;
                     revealPage();
                 };
                 if (configReadyPromise) {
