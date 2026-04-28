@@ -15,22 +15,21 @@
 <body style="background:#000;">
 
 <main class="categoria-page">
-  <!-- BOTÃO VOLTAR -->
-  <div class="categoria-container">
+  <div class="container">
+    <!-- BOTÃO VOLTAR -->
     <button class="back-btn" onclick="window.location.href='/index.html#menu'">
       ← Voltar para o Cardápio
     </button>
+
+    <!-- HEADER -->
+    <section class="categoria-header">
+      <h1 id="categoriaTitulo">Carregando...</h1>
+      <p id="categoriaSubtitulo"></p>
+    </section>
+
+    <!-- PRODUTOS -->
+    <section id="produtosGrid" class="produtos-grid"></section>
   </div>
-
-  <!-- HEADER -->
-  <section class="categoria-header">
-    <h1 id="categoriaTitulo">Carregando...</h1>
-    <p id="categoriaSubtitulo"></p>
-  </section>
-
-
-  <!-- PRODUTOS -->
-  <section id="produtosGrid" class="produtos-grid"></section>
 </main>
 
 <!-- O cart.js injeta automaticamente o carrinho flutuante e o painel modal -->
