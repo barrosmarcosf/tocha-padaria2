@@ -166,6 +166,13 @@ body.l-nossa-historia .sticky-nav {
     top: var(--status-bar-height, 29px);
 }
 
+/* Páginas internas: esconde o botão flutuante do carrinho (injetado por cart.js)
+   O painel completo só existe no index.html */
+body.l-fale-conosco #floating-cart,
+body.l-nossa-historia #floating-cart {
+    display: none !important;
+}
+
 /* ═══════════════════════════════════════════════════════════
    WHATSAPP FLOATING BUTTON (GLOBAL)
    ═══════════════════════════════════════════════════════════ */
