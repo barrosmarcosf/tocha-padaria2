@@ -25,7 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const navDots = document.querySelectorAll('.dot-nav');
     const isLanding = !!document.getElementById('hero');
     let scrollTimeout = null;
-    let scrollToSection = null; 
+    let scrollToSection = null;
+    let configReadyPromise = null;
 
     // Motor de scroll com easeOutQuart (começa rápido, para suave) — 280ms
     function smoothScrollTo(targetEl) {
@@ -157,18 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 console.log("✅ Módulos carregados e inicializados!");
-
-                // Re-snap silencioso: módulos podem ter alterado alturas de seções
-                // (ex: HeroModule.init pode crescer o hero, deslocando o cardápio)
-                if (isLanding) {
-                    requestAnimationFrame(() => {
-                        const el = document.getElementById(navSections[state.currentIndex]);
-                        if (el) {
-                            window.scrollTo(0, el.offsetTop);
-                            sessionStorage.setItem('tocha_scroll_y', Math.round(el.offsetTop));
-                        }
-                    });
-                }
             }
         } catch (err) { console.error("Erro no loadDynamicConfig:", err); }
     }
@@ -366,9 +355,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 navDots.forEach(d => d.classList.remove('active'));
                 if (navDots[idx]) navDots[idx].classList.add('active');
 
-                revealPage();
+                // Aguarda módulos inicializarem antes de revelar, para que qualquer
+                // mudança de altura de seção seja corrigida sem pulo visual
+                const doReveal = () => {
+                    const el = document.getElementById(navSections[state.currentIndex]);
+                    if (el) {
+                        window.scrollTo(0, el.offsetTop);
+                        sessionStorage.setItem('tocha_scroll_y', Math.round(el.offsetTop));
+                    }
+                    revealPage();
+                };
+                if (configReadyPromise) {
+                    configReadyPromise.then(doReveal).catch(doReveal);
+                } else {
+                    doReveal();
+                }
             });
         }
+
+        // Salva o scrollY exato ao sair/atualizar — mais confiável que o timeout
+        window.addEventListener('beforeunload', () => {
+            sessionStorage.setItem('tocha_scroll_y', Math.round(window.scrollY));
+            sessionStorage.setItem('tocha_section', state.currentIndex);
+        });
 
         if (document.readyState === 'complete') {
             applyStartPosition();
@@ -472,6 +481,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- INIT ---
-    loadDynamicConfig();
+    configReadyPromise = loadDynamicConfig();
     syncGlobalStoreStatus();
 });
