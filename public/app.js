@@ -207,6 +207,8 @@ document.addEventListener('DOMContentLoaded', () => {
             clearTimeout(scrollTimeout);
             scrollTimeout = setTimeout(() => {
                 state.isLocked = false;
+                // Salva o scrollY real após a animação terminar (280ms < 350ms)
+                sessionStorage.setItem('tocha_scroll_y', Math.round(window.scrollY));
             }, 350);
         }
 
@@ -320,27 +322,39 @@ document.addEventListener('DOMContentLoaded', () => {
         // roda DEPOIS de qualquer restauração de scroll do browser)
         function applyStartPosition() {
             const idx = state.currentIndex;
-            const targetEl = sections[idx];
-            if (targetEl) window.scrollTo(0, targetEl.offsetTop);
-            syncNavUI(idx);
 
-            const stickyNav = document.querySelector('.sticky-nav');
-            if (stickyNav) {
-                if (idx === 0) {
-                    stickyNav.classList.add('navbar-visible');
-                    stickyNav.classList.remove('navbar-hidden');
-                    document.body.classList.add('navbar-is-visible');
-                } else {
-                    stickyNav.classList.add('navbar-hidden');
-                    stickyNav.classList.remove('navbar-visible');
-                    document.body.classList.remove('navbar-is-visible');
+            // Preferência: scrollY salvo exato; fallback: offsetTop da seção
+            const savedY = parseInt(sessionStorage.getItem('tocha_scroll_y') || '-1');
+            const targetY = (savedY >= 0) ? savedY : (sections[idx] ? sections[idx].offsetTop : 0);
+
+            // Aplica o scroll imediatamente...
+            window.scrollTo(0, targetY);
+
+            // ...e reaplica no próximo frame para sobrescrever qualquer
+            // restauração assíncrona do browser que ocorra após window.load
+            requestAnimationFrame(() => {
+                window.scrollTo(0, targetY);
+
+                syncNavUI(idx);
+
+                const stickyNav = document.querySelector('.sticky-nav');
+                if (stickyNav) {
+                    if (idx === 0) {
+                        stickyNav.classList.add('navbar-visible');
+                        stickyNav.classList.remove('navbar-hidden');
+                        document.body.classList.add('navbar-is-visible');
+                    } else {
+                        stickyNav.classList.add('navbar-hidden');
+                        stickyNav.classList.remove('navbar-visible');
+                        document.body.classList.remove('navbar-is-visible');
+                    }
                 }
-            }
 
-            navDots.forEach(d => d.classList.remove('active'));
-            if (navDots[idx]) navDots[idx].classList.add('active');
+                navDots.forEach(d => d.classList.remove('active'));
+                if (navDots[idx]) navDots[idx].classList.add('active');
 
-            revealPage();
+                revealPage();
+            });
         }
 
         if (document.readyState === 'complete') {
