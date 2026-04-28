@@ -218,3 +218,39 @@
     color: #ffffff;
     opacity: 1;
 }
+
+/* ── Form Validation & Grouping ── */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.required {
+    color: #ff4d4d;
+    margin-left: 4px;
+    font-weight: 600;
+}
+
+.input-error {
+    border-color: #ff4d4d !important;
+}
+
+.input-error-text {
+    font-size: 12px;
+    color: #ff4d4d;
+    margin-top: 5px;
+    display: none;
+}
+
+.form-note {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 15px;
+}

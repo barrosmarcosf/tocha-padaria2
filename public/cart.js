@@ -152,18 +152,45 @@ window.closeCheckoutModal = function() {
     document.getElementById('checkoutOverlay').classList.remove('active');
 };
 
-window.confirmarPedido = function() {
-    const name = document.getElementById('chk-name').value.trim();
-    const whatsapp = document.getElementById('chk-whatsapp').value.trim();
-    const email = document.getElementById('chk-email').value.trim();
-    const payment = document.querySelector('input[name="payment-method"]:checked').value;
-    const errorEl = document.getElementById('checkoutError');
+window.validarFormulario = function() {
+    const campos = [
+        { id: 'nome', msg: 'Informe seu nome completo' },
+        { id: 'whatsapp', msg: 'Informe seu WhatsApp' },
+        { id: 'email', msg: 'Informe seu email' }
+    ];
 
-    if (!name || !whatsapp || !email) {
-        errorEl.style.display = 'block';
-        return;
+    let valido = true;
+
+    campos.forEach(campo => {
+        const input = document.getElementById(campo.id);
+        const erro = input.nextElementSibling;
+
+        if (!input.value.trim()) {
+            input.classList.add('input-error');
+            erro.innerText = campo.msg;
+            erro.style.display = 'block';
+            if (valido) input.focus();
+            valido = false;
+        } else {
+            input.classList.remove('input-error');
+            erro.style.display = 'none';
+        }
+    });
+
+    return valido;
+};
+
+window.tentarFinalizar = function() {
+    if (window.validarFormulario()) {
+        window.confirmarPedido();
     }
-    errorEl.style.display = 'none';
+};
+
+window.confirmarPedido = function() {
+    const name = document.getElementById('nome').value.trim();
+    const whatsapp = document.getElementById('whatsapp').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const payment = document.querySelector('input[name="payment-method"]:checked').value;
 
     localStorage.setItem('tocha-customer', JSON.stringify({ name, whatsapp, email }));
 
@@ -226,13 +253,28 @@ function injectCart() {
         <div id="checkoutModal" class="modal" style="display:none">
             <div class="modal-box" style="text-align: left; max-width: 450px; border-radius: 20px;">
                 <h2 class="modal-title">Finalizar Pedido</h2>
+                <p class="form-note">* Campos obrigatórios</p>
                 <p class="modal-info-text">
                     Preencha seus dados corretamente. Entraremos em contato via WhatsApp no dia da fornada (<strong id="dataFornada">Sábado, 02/05</strong>) para confirmar quando seu pedido estiver pronto para retirada.
                 </p>
 
-                <div style="margin-bottom: 5px;"><input type="text" id="chk-name" placeholder="Nome completo" class="modal-input"></div>
-                <div style="margin-bottom: 5px;"><input type="tel" id="chk-whatsapp" placeholder="WhatsApp" class="modal-input"></div>
-                <div style="margin-bottom: 10px;"><input type="email" id="chk-email" placeholder="Email" class="modal-input"></div>
+                <div class="form-group">
+                    <label>Nome completo <span class="required">*</span></label>
+                    <input id="nome" type="text" placeholder="Ex: João Silva" class="modal-input" />
+                    <div class="input-error-text"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>WhatsApp <span class="required">*</span></label>
+                    <input id="whatsapp" type="tel" placeholder="(00) 00000-0000" class="modal-input" />
+                    <div class="input-error-text"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Email <span class="required">*</span></label>
+                    <input id="email" type="email" placeholder="seu@email.com" class="modal-input" />
+                    <div class="input-error-text"></div>
+                </div>
 
                 <div style="margin-bottom: 25px;">
                     <p style="color: #fff; font-weight: 600; margin-bottom: 12px; font-size: 0.9rem;">Forma de pagamento</p>
@@ -243,8 +285,8 @@ function injectCart() {
                         <input type="radio" name="payment-method" value="card" style="accent-color: var(--accent);"> Cartão de crédito (Stripe)
                     </label>
                 </div>
-                <p id="checkoutError" style="color: #ff4444; font-size: 0.75rem; margin-top: -15px; margin-bottom: 15px; display: none;">Preencha todos os campos corretamente.</p>
-                <button class="btn-primary" onclick="confirmarPedido()" style="border-radius: 10px; margin-bottom: 10px; width: 100%;">CONFIRMAR PEDIDO</button>
+                
+                <button class="btn-primary" onclick="window.tentarFinalizar()" style="border-radius: 10px; margin-bottom: 10px; width: 100%;">CONFIRMAR PEDIDO</button>
                 <button class="modal-cancel" onclick="closeCheckoutModal()">Cancelar</button>
             </div>
         </div>
@@ -343,7 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Mascara de WhatsApp
-    const whatsappInput = document.getElementById('chk-whatsapp');
+    const whatsappInput = document.getElementById('whatsapp');
     if (whatsappInput) {
         whatsappInput.addEventListener('input', (e) => {
             let x = e.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,5})(\d{0,4})/);
