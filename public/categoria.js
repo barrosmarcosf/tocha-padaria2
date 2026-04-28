@@ -19,12 +19,13 @@ async function carregarCategoria() {
     const storeStatus = statusRes.ok ? await statusRes.json() : null;
     
     const categoria = data.categorias.find(c => c.slug === slug);
-    if (!categoria) {
-      document.getElementById("categoriaTitulo").innerText = "Categoria não encontrada";
-      return;
-    }
+    const tituloEl = document.getElementById("categoriaTitulo");
+    const skeletonEl = document.getElementById("headerLoading");
 
-    document.getElementById("categoriaTitulo").innerText = categoria.title || categoria.nome;
+    tituloEl.innerText = categoria.title || categoria.nome;
+    tituloEl.style.display = 'block';
+    if (skeletonEl) skeletonEl.style.display = 'none';
+
     document.getElementById("categoriaSubtitulo").innerText = categoria.description || categoria.descricao || '';
 
     // BUSCAR PRODUTOS
@@ -34,6 +35,8 @@ async function carregarCategoria() {
   } catch (error) {
     console.error("Erro ao carregar os dados:", error);
     document.getElementById("categoriaTitulo").innerText = "Erro ao carregar";
+    const skeletonEl = document.getElementById("headerLoading");
+    if (skeletonEl) skeletonEl.style.display = 'none';
   }
 }
 
@@ -65,6 +68,10 @@ function renderProdutos(produtos, storeStatus) {
         <div class="produto-info">
           <div><span class="entrega">⛟ ${entregaTexto}</span></div>
           <h3>${p.name}</h3>
+          <div class="rating-row">
+            <span>★★★★★</span>
+            <span style="color: #666; font-size: 10px;">(5.0)</span>
+          </div>
           <p>${p.description || ''}</p>
           <div class="preco-row">
             <div class="preco">R$ ${p.price.toFixed(2).replace('.', ',')}</div>

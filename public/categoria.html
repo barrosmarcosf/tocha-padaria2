@@ -23,12 +23,20 @@
 
     <!-- HEADER -->
     <section class="categoria-header">
-      <h1 id="categoriaTitulo">Carregando...</h1>
+      <div id="headerLoading" class="skeleton skeleton-title"></div>
+      <h1 id="categoriaTitulo" style="display: none;"></h1>
       <p id="categoriaSubtitulo"></p>
     </section>
 
     <!-- PRODUTOS -->
-    <section id="produtosGrid" class="produtos-grid"></section>
+    <section id="produtosGrid" class="produtos-grid">
+      <!-- Skeletons iniciais (5 cards para mimetizar o grid desktop) -->
+      <div class="produto-card skeleton"></div>
+      <div class="produto-card skeleton"></div>
+      <div class="produto-card skeleton"></div>
+      <div class="produto-card skeleton"></div>
+      <div class="produto-card skeleton"></div>
+    </section>
   </div>
 </main>
 
