@@ -1,96 +1,81 @@
-/* ═══════════════════════════════════════
-   SEÇÃO NOS ACOMPANHE
-   ═══════════════════════════════════════ */
-
-.acompanhe {
-    width: 100%;
-    background: #000;
-    padding: 180px 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    scroll-snap-align: start;
-}
-
-.acompanhe-content {
-    max-width: 700px;
-    margin: 0 auto;
-    padding: 0 24px;
+.nos-acompanhe {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
+    text-align: center;
+    height: 100vh;
+    background: #000;
+    scroll-snap-align: start;
 }
 
-.acompanhe .tag {
-    color: #d4a84f;
-    font-size: 0.7rem;
-    letter-spacing: 0.45em;
+.nos-acompanhe .subtitle {
+    font-size: 12px;
+    letter-spacing: 4px;
+    color: #c9a85d;
+    margin-bottom: 20px;
     text-transform: uppercase;
-    font-weight: 700;
     font-family: 'Outfit', sans-serif;
-    margin-bottom: 24px;
 }
 
-.acompanhe h1 {
-    font-size: clamp(3rem, 7vw, 7.5rem);
+.nos-acompanhe h1 {
+    font-size: 72px;
     line-height: 0.95;
-    margin-bottom: 28px;
-    font-family: 'Anton', sans-serif;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    font-weight: 400;
-}
-
-.acompanhe h1 .linha-branca {
+    font-weight: 800;
+    margin: 0;
     color: #fff;
-    display: block;
-    font-style: normal;
+    font-family: 'Anton', sans-serif;
+    text-transform: uppercase;
 }
 
-.acompanhe h1 .linha-dourada {
-    color: #d4a84f;
+.nos-acompanhe h1 span {
+    color: #c9a85d;
+    font-size: 64px;
     display: block;
     font-style: italic;
 }
 
-.acompanhe p {
-    color: #aaa;
-    font-size: 0.72rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    max-width: 560px;
-    margin: 0 auto 44px;
-    line-height: 1.7;
-    font-family: 'Outfit', sans-serif;
-}
-
-.btn-instagram {
-    display: inline-block;
-    padding: 1rem 2.8rem;
-    border: 1px solid #444;
+.nos-acompanhe p {
+    margin-top: 25px;
+    font-size: 14px;
+    opacity: 0.7;
+    max-width: 500px;
     color: #fff;
-    text-decoration: none;
-    font-family: 'Anton', sans-serif;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    font-size: 0.9rem;
-    background: transparent;
-    transition: border-color 0.3s ease, color 0.3s ease;
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: 1px;
+    line-height: 1.6;
 }
 
-.btn-instagram:hover {
-    border-color: #d4a84f;
-    color: #d4a84f;
+.nos-acompanhe .btn {
+    margin-top: 30px;
+    padding: 12px 28px;
+    border: 1px solid #555;
+    color: white;
+    text-decoration: none;
+    transition: 0.3s;
+    font-family: 'Anton', sans-serif;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-size: 14px;
+}
+
+.nos-acompanhe .btn:hover {
+    border-color: #c9a85d;
+    color: #c9a85d;
 }
 
 @media (max-width: 768px) {
-    .acompanhe {
-        padding: 80px 16px;
+    .nos-acompanhe {
+        height: auto;
+        padding: 80px 24px;
         scroll-snap-align: none;
     }
 
-    .acompanhe h1 {
-        font-size: clamp(2.5rem, 12vw, 4.5rem);
+    .nos-acompanhe h1 {
+        font-size: 48px;
+    }
+
+    .nos-acompanhe h1 span {
+        font-size: 42px;
     }
 }
