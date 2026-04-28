@@ -35,9 +35,11 @@ module.exports = function (supabase, stripe) {
                 // VALIDAR ESTOQUE USANDO A FONTE ÚNICA DE VERDADE
                 for (const item of cart) {
                     const available = await getUnifiedAvailableStock(supabase, item.id);
+                    console.log(`📦 [StockCheck] Produto: ${item.id}, Solicitado: ${item.qty}, Disponível: ${available}`);
 
                     if (available < item.qty) {
-                         const { data: pInfo } = await supabase.from('produtos').select('name').eq('id', item.id).single();
+                         const { data: pInfo } = await supabase.from('produtos').select('name').eq('id', item.id).maybeSingle();
+                         console.warn(`⚠️ [StockCheck] Falha: Estoque insuficiente para ${pInfo?.name || item.id}`);
                          return res.status(400).json({ 
                              error: `Estoque insuficiente para "${pInfo?.name || item.id}". Disponível agora: ${available}` 
                          });
@@ -46,6 +48,7 @@ module.exports = function (supabase, stripe) {
             }
 
             // 1. REGISTRAR/ATUALIZAR CLIENTE
+            console.log("📝 [Checkout] Cliente:", customer);
             let customerId;
             const { data: existingCustomer } = await supabase
                 .from('clientes')
@@ -55,18 +58,23 @@ module.exports = function (supabase, stripe) {
 
             if (existingCustomer) {
                 customerId = existingCustomer.id;
+                console.log("📝 [Checkout] Atualizando cliente existente:", customerId);
                 await supabase
                     .from('clientes')
                     .update({ name: customer.name, whatsapp: customer.whatsapp })
                     .eq('id', customerId);
             } else {
+                console.log("📝 [Checkout] Criando novo cliente...");
                 const { data: newCustomer, error: insertError } = await supabase
                     .from('clientes')
                     .insert([{ name: customer.name, email: customer.email, whatsapp: customer.whatsapp }])
                     .select()
                     .single();
 
-                if (insertError) throw insertError;
+                if (insertError) {
+                    console.error("❌ [Checkout] Erro ao criar cliente:", insertError);
+                    throw insertError;
+                }
                 customerId = newCustomer.id;
             }
 
@@ -75,10 +83,12 @@ module.exports = function (supabase, stripe) {
                 price_data: {
                     currency: 'brl',
                     product_data: { name: item.name },
-                    unit_amount: Math.round(item.price * 100),
+                    unit_amount: Math.round(Number(item.price) * 100),
                 },
-                quantity: item.qty,
+                quantity: parseInt(item.qty),
             }));
+
+            console.log("🛒 [Checkout] Itens formatados:", line_items.length);
 
             // 2.5 BUSCAR MÉTODOS ATIVOS
             const { data: payContent } = await supabase.from('site_content').select('value').eq('key', 'payment_methods').maybeSingle();
@@ -154,7 +164,7 @@ module.exports = function (supabase, stripe) {
             res.json({ url: session.url });
 
         } catch (error) {
-            console.error('Erro no checkout:', error);
+            console.error('❌ [Checkout] Erro fatal:', error);
             res.status(500).json({ error: error.message || 'Ocorreu um erro interno ao processar o checkout.' });
         }
     });

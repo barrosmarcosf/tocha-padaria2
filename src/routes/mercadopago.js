@@ -41,6 +41,7 @@ module.exports = function (supabase) {
             if (batchDate) {
                 for (const item of cart) {
                     const available = await getUnifiedAvailableStock(supabase, item.id);
+                    console.log(`📦 [StockCheck-MP] Produto: ${item.id}, Solicitado: ${item.qty}, Disponível: ${available}`);
                     if (available < item.qty) {
                         return res.status(400).json({ error: `Estoque insuficiente para ${item.name}.` });
                     }
@@ -59,6 +60,9 @@ module.exports = function (supabase) {
             }
 
             // Criar Pagamento no Mercado Pago
+            const baseUrl = process.env.BASE_URL || "";
+            const isHttps = baseUrl.startsWith('https://');
+
             const paymentData = {
                 body: {
                     transaction_amount: Number(totalAmount),
@@ -69,9 +73,11 @@ module.exports = function (supabase) {
                         first_name: customer.name.split(' ')[0],
                         last_name: customer.name.split(' ').slice(1).join(' ') || 'Cliente',
                     },
-                    notification_url: `${process.env.BASE_URL || req.headers.origin}/webhook/mercadopago`
+                    notification_url: isHttps ? `${baseUrl}/webhook/mercadopago` : undefined
                 }
             };
+
+            console.log("💳 [Pix] Criando pagamento no MP:", paymentData.body.transaction_amount);
 
             const mpResponse = await payment.create(paymentData);
             const mpId = String(mpResponse.id);
