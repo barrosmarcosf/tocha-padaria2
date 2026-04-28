@@ -1,22 +1,40 @@
-.categoria-page {
-  padding-top: 140px;
-  padding-bottom: 60px;
-  background: #000;
-  color: #fff;
-  min-height: 100vh;
+/* 1. TRAVAR A ALTURA DA TELA */
+html, body {
+  height: 100vh;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
 }
 
-/* HEADER & NAVIGATION */
+/* 2. ORGANIZAR A PÁGINA EM 3 PARTES */
+.categoria-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding-top: 40px;
+  padding-bottom: 20px;
+  background: #000;
+  color: #fff;
+  box-sizing: border-box;
+}
+
+/* 3. HEADER (fixo) */
 .categoria-container {
+  flex-shrink: 0;
   max-width: 1440px;
+  width: 100%;
   margin: 0 auto;
   padding: 0 20px;
+  box-sizing: border-box;
 }
 
 .categoria-header {
+  flex-shrink: 0;
   max-width: 1440px;
-  margin: 0 auto 40px;
+  width: 100%;
+  margin: 0 auto 20px;
   padding: 0 20px;
+  box-sizing: border-box;
 }
 
 .back-btn {
@@ -32,7 +50,7 @@
   letter-spacing: 1.5px;
   display: inline-flex;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   transition: all 0.3s ease;
 }
 
@@ -42,47 +60,73 @@
   border-color: #d4a64a;
 }
 
-
 .categoria-header h1 {
   font-family: 'Anton', sans-serif;
   font-size: 48px;
   color: #d4a64a;
   text-transform: uppercase;
   letter-spacing: 1px;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
 }
 
 .categoria-header p {
   color: #aaa;
   font-size: 15px;
   line-height: 1.5;
+  margin: 0;
 }
 
-/* GRID */
+/* 4. ÁREA DOS PRODUTOS (INTELIGENTE COM SCROLL HORIZONTAL) */
 .produtos-grid {
-  max-width: 1440px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  flex: 1;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
   gap: 20px;
-  padding: 0 20px;
+  padding: 0 20px 20px 20px;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 1440px;
+  box-sizing: border-box;
+  
+  /* Scrollbar Premium */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 166, 74, 0.5) rgba(255, 255, 255, 0.05);
 }
 
-/* PRODUTO CARD */
+.produtos-grid::-webkit-scrollbar {
+  height: 8px;
+}
+.produtos-grid::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+.produtos-grid::-webkit-scrollbar-thumb {
+  background: rgba(212, 166, 74, 0.5);
+  border-radius: 4px;
+}
+
+/* 5. CARDS COM ALTURA FLEXÍVEL */
 .produto-card {
+  flex: 0 0 auto;
+  width: calc(25% - 15px);
+  min-width: 260px;
+  max-width: 320px;
   background: #0a0a0a;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
+/* 6. IMAGEM ADAPTÁVEL */
 .produto-card img {
   width: 100%;
-  height: auto;
-  aspect-ratio: 4 / 3;
+  height: 160px;
   object-fit: cover;
+  flex-shrink: 0;
 }
 
 .produto-info {
@@ -90,6 +134,7 @@
   display: flex;
   flex-direction: column;
   flex: 1;
+  overflow: hidden;
 }
 
 .produto-info .entrega {
@@ -97,10 +142,11 @@
   color: #d4a64a;
   font-size: 10px;
   text-transform: uppercase;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   border: 1px solid rgba(212, 166, 74, 0.3);
   padding: 4px 8px;
   border-radius: 4px;
+  align-self: flex-start;
 }
 
 .produto-info h3 {
@@ -115,15 +161,19 @@
 .produto-info p {
   font-size: 12px;
   color: #888;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
   line-height: 1.4;
   flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
+.produto-info p::-webkit-scrollbar { display: none; }
 
 .preco-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-top: auto;
   margin-bottom: 15px;
   background: transparent;
   border-radius: 4px;
@@ -178,6 +228,7 @@
   cursor: pointer;
   border-radius: 4px;
   transition: all 0.3s ease;
+  flex-shrink: 0;
 }
 
 .produto-info .btn-comprar:hover {
@@ -193,31 +244,28 @@
 }
 
 /* RESPONSIVO */
-@media (max-width: 1440px) {
-  .produtos-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
 @media (max-width: 1100px) {
-  .produtos-grid {
-    grid-template-columns: repeat(3, 1fr);
+  .produto-card {
+    width: calc(33.333% - 14px);
   }
 }
 
 @media (max-width: 768px) {
-  .produtos-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .categoria-page {
+    padding-top: 20px;
   }
-
-  
   .categoria-header h1 {
-    font-size: 36px;
+    font-size: 32px;
+  }
+  .produto-card {
+    width: calc(60% - 10px);
+    min-width: 240px;
   }
 }
 
 @media (max-width: 480px) {
-  .produtos-grid {
-    grid-template-columns: 1fr;
+  .produto-card {
+    width: calc(85% - 10px);
+    min-width: 260px;
   }
 }
