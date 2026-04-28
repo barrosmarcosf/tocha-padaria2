@@ -149,7 +149,8 @@ window.openCheckoutModal = function() {
 
 window.closeCheckoutModal = function() {
     document.getElementById('checkoutModal').style.display = 'none';
-    document.getElementById('checkoutOverlay').classList.remove('active');
+    const overlay = document.getElementById('checkoutOverlay');
+    if (overlay) overlay.classList.remove('active');
 };
 
 window.validarFormulario = function() {
@@ -186,24 +187,81 @@ window.tentarFinalizar = function() {
     }
 };
 
-window.confirmarPedido = function() {
+window.syncCart = async function() {
+    const cartToSync = JSON.parse(localStorage.getItem('tocha-cart') || '[]');
+    const customer = JSON.parse(localStorage.getItem('tocha-customer') || 'null');
+    const totalAmount = cartToSync.reduce((total, item) => total + (item.price * item.qty), 0);
+    
+    let sessionId = localStorage.getItem('tocha-session-id');
+    if (!sessionId) {
+        sessionId = 'sess_' + Math.random().toString(36).substr(2, 9) + Date.now();
+        localStorage.setItem('tocha-session-id', sessionId);
+    }
+
+    if (cartToSync.length === 0) return;
+
+    try {
+        await fetch('/api/cart/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId, customer, cart: cartToSync, totalAmount })
+        });
+    } catch (e) {
+        console.warn("[SYNC] Falha ao sincronizar carrinho:", e.message);
+    }
+};
+
+window.confirmarPedido = async function() {
     const name = document.getElementById('nome').value.trim();
     const whatsapp = document.getElementById('whatsapp').value.trim();
     const email = document.getElementById('email').value.trim();
     const payment = document.querySelector('input[name="payment-method"]:checked').value;
+    const cartToCheckout = JSON.parse(localStorage.getItem('tocha-cart') || '[]');
+    const totalAmount = cartToCheckout.reduce((total, item) => total + (item.price * item.qty), 0);
+    const sessionId = localStorage.getItem('tocha-session-id');
 
-    localStorage.setItem('tocha-customer', JSON.stringify({ name, whatsapp, email }));
+    const customer = { name, whatsapp, email };
+    localStorage.setItem('tocha-customer', JSON.stringify(customer));
 
-    if (payment === 'pix') {
-        window.location.href = "/pagamento-pix";
-    } else {
-        window.location.href = "/pagamento-stripe";
+    const btn = document.querySelector('.btn-primary');
+    const originalText = btn.innerText;
+    btn.innerText = "PROCESSANDO...";
+    btn.disabled = true;
+
+    try {
+        if (payment === 'pix') {
+            const res = await fetch('/api/create-pix-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customer, cart: cartToCheckout, totalAmount, sessionId })
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+
+            localStorage.setItem('tocha-pix-data', JSON.stringify(data));
+            window.location.href = "/pagamento-pix.html";
+        } else {
+            const res = await fetch('/api/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customer, cart: cartToCheckout, totalAmount, sessionId })
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+
+            window.location.href = data.url;
+        }
+    } catch (e) {
+        alert("Erro: " + e.message);
+        btn.innerText = originalText;
+        btn.disabled = false;
     }
 };
 
 window.fecharModal = function() {
     document.getElementById('modalSuccess').style.display = 'none';
-    document.getElementById('checkoutOverlay').classList.remove('active');
+    const overlay = document.getElementById('checkoutOverlay');
+    if (overlay) overlay.classList.remove('active');
 };
 
 /* ── Injections ── */
@@ -345,6 +403,20 @@ document.addEventListener('DOMContentLoaded', () => {
     render();
     fetchStoreStatus();
 
+    // Sincronização periódica para Abandono
+    window.syncCart();
+    setInterval(() => window.syncCart(), 30000);
+
+    // Detectar sucesso do Stripe
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('status') === 'success') {
+        cart = []; 
+        save();
+        document.getElementById('modalSuccess').style.display = 'flex';
+        document.getElementById('checkoutOverlay').classList.add('active');
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+
     const closeBtn = document.getElementById('closeCart');
     if (closeBtn) closeBtn.addEventListener('click', window.closeCart);
     
@@ -391,13 +463,5 @@ document.addEventListener('DOMContentLoaded', () => {
             let x = e.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,5})(\d{0,4})/);
             e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
         });
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('status') === 'success') {
-        cart = []; save();
-        document.getElementById('modalSuccess').style.display = 'flex';
-        document.getElementById('checkoutOverlay').classList.add('active');
-        window.history.replaceState({}, '', window.location.pathname);
     }
 });

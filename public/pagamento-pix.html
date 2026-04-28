@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamento Pix | Tocha Padaria</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b0b0b;
+            --accent: #d4a857;
+            --text: #ffffff;
+            --card-bg: #151515;
+            --border: #222;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .pix-container {
+            background: var(--card-bg);
+            width: min(500px, 100%);
+            padding: 40px;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        h1 { font-family: 'Playfair Display', serif; font-size: 2rem; margin-bottom: 10px; color: var(--accent); }
+        p { color: #888; margin-bottom: 30px; font-size: 0.95rem; }
+
+        .qr-wrapper {
+            background: #fff;
+            padding: 20px;
+            border-radius: 16px;
+            display: inline-block;
+            margin-bottom: 25px;
+        }
+        .qr-wrapper img { display: block; width: 240px; height: 240px; }
+
+        .pix-code-container {
+            background: #000;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .pix-code {
+            flex: 1;
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #aaa;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: left;
+        }
+        .copy-btn {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.7rem;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 30px;
+            background: rgba(212, 168, 87, 0.1);
+            color: var(--accent);
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 30px;
+            border: 1px solid rgba(212, 168, 87, 0.2);
+        }
+
+        .loader {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--accent);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .btn-cancel {
+            display: block;
+            margin-top: 20px;
+            color: #555;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.3s;
+        }
+        .btn-cancel:hover { color: #fff; }
+
+        /* Estilo para sucesso */
+        .success-icon { font-size: 50px; color: #2ecc71; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="pix-container" id="pixContent">
+        <h1>Pagar via Pix</h1>
+        <p>Escaneie o código abaixo com o app do seu banco para finalizar o pedido.</p>
+
+        <div class="qr-wrapper">
+            <img id="qrImage" src="" alt="QR Code Pix">
+        </div>
+
+        <div class="pix-code-container">
+            <div class="pix-code" id="pixString">Carregando código...</div>
+            <button class="copy-btn" onclick="copyPix()">Copiar</button>
+        </div>
+
+        <div class="status-badge">
+            <span class="loader"></span> Aguardando pagamento...
+        </div>
+
+        <a href="/" class="btn-cancel">Voltar ao site</a>
+    </div>
+
+    <script>
+        const pixData = JSON.parse(localStorage.getItem('tocha-pix-data'));
+
+        if (!pixData) {
+            window.location.href = "/";
+        } else {
+            document.getElementById('qrImage').src = pixData.qr_code_base64;
+            document.getElementById('pixString').innerText = pixData.qr_code;
+        }
+
+        function copyPix() {
+            navigator.clipboard.writeText(pixData.qr_code);
+            const btn = document.querySelector('.copy-btn');
+            btn.innerText = "COPIADO!";
+            setTimeout(() => btn.innerText = "COPIAR", 2000);
+        }
+
+        // Polling para verificar status
+        async function checkStatus() {
+            try {
+                const res = await fetch(`/api/check-payment/${pixData.payment_id}`);
+                const data = await res.json();
+
+                if (data.status === 'approved') {
+                    showSuccess();
+                } else if (data.status === 'cancelled') {
+                    alert("O pagamento foi cancelado ou expirou.");
+                    window.location.href = "/";
+                } else {
+                    setTimeout(checkStatus, 5000);
+                }
+            } catch (e) {
+                console.warn("Erro ao checar status:", e.message);
+                setTimeout(checkStatus, 10000);
+            }
+        }
+
+        function showSuccess() {
+            // Limpa dados sensíveis
+            localStorage.removeItem('tocha-cart');
+            localStorage.removeItem('tocha-pix-data');
+            
+            document.getElementById('pixContent').innerHTML = `
+                <div class="success-icon">✓</div>
+                <h1 style="color: #2ecc71;">Pagamento Aprovado!</h1>
+                <p>Seu pedido foi recebido com sucesso. Enviamos uma confirmação para seu E-mail e WhatsApp.</p>
+                <a href="/" class="btn-primary" style="
+                    display: block;
+                    background: var(--accent);
+                    color: #000;
+                    padding: 18px;
+                    border-radius: 12px;
+                    text-decoration: none;
+                    font-weight: 800;
+                    margin-top: 30px;
+                ">VOLTAR PARA A LOJA</a>
+            `;
+        }
+
+        checkStatus();
+    </script>
+</body>
+</html>
