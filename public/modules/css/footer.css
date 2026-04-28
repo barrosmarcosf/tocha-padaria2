@@ -1,23 +1,24 @@
 footer {
     width: 100%;
-    min-height: 100vh; /* Ocupa a tela inteira para permitir a descida absoluta */
+    height: 100vh; /* Ocupa a tela cheia para servir de base para o posicionamento absoluto */
     background: #080808;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end; /* Ancora tudo na base */
-    padding-bottom: 80px; /* Ajuste fino para o retângulo vermelho */
-    padding-top: 0;
+    position: relative; /* 👈 Essencial para o absolute funcionar */
 }
 
 .footer-content {
-    max-width: 1100px;
-    margin: auto auto 40px; /* margin-top: auto empurra o conteúdo para o fundo */
+    position: absolute;
+    bottom: 120px; /* 👈 Joga o conteúdo exatamente no retângulo vermelho */
+    left: 50%;
+    transform: translateX(-50%);
     width: 100%;
+    max-width: 1100px;
+    padding: 0 40px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 40px;
+    z-index: 2;
 }
 
 .footer-logo {
@@ -88,12 +89,16 @@ footer {
 }
 
 .footer-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 40px 0;
+    padding: 30px 0;
     text-align: center;
     font-size: 0.75rem;
     color: var(--text-dim);
     width: 100%;
+    z-index: 1;
 }
 
 @media (max-width: 1024px) {
