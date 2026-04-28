@@ -7,10 +7,10 @@ footer {
 .footer-content {
     max-width: 1600px;
     margin: 0 auto;
-    padding: 60px 80px;
+    padding: 60px 80px 120px; /* Padding inferior aumentado para alinhar à "área verde" */
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
+    align-items: flex-end; /* Alinhamento na base conforme solicitado */
     gap: 40px;
 }
 
@@ -27,14 +27,14 @@ footer {
 
 .footer-info {
     text-align: right;
-    max-width: 320px;
+    max-width: 420px; /* Max-width ajustado */
 }
 
 .footer-info p {
     color: var(--text-dim);
-    font-size: 0.9rem;
+    font-size: 18px; /* Fonte aumentada para 18px */
     line-height: 1.6;
-    margin-bottom: 20px;
+    margin-bottom: 28px; /* Margem aumentada para afastar os ícones */
     opacity: 0.9;
 }
 
