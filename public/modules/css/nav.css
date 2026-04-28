@@ -63,16 +63,15 @@ body.has-status-bar .sticky-nav {
                 opacity 0.3s ease-out;
 }
 
-/* Grid de 3 colunas: Logo | Centro flexível | Icons */
+/* Grid de 3 colunas simétricas: Logo | Centro | Icons */
 .nav-content {
     max-width: 1200px;
     padding: 0 80px;
     height: auto;
     margin: 0 auto;
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    justify-content: space-between;
-    gap: 2rem;
 }
 
 .sticky-nav, .sticky-nav * {
@@ -100,7 +99,7 @@ body.has-status-bar .sticky-nav {
     align-items: center;
     flex-shrink: 0;
     text-decoration: none;
-    margin-right: 32px;
+    justify-self: start;
 }
 
 .nav-logo img {
@@ -159,14 +158,13 @@ body.has-status-bar .sticky-nav {
 }
 
 
-/* ── Zona central: Search + Links (coluna 2) ──
-   Flex-end para agrupar tudo junto aos ícones da direita */
+/* ── Zona central: Search + Links (coluna 2) ── */
 .nav-center-group {
     display: flex;
     align-items: center;
-    flex: 1;
-    justify-content: flex-end;
-    gap: 48px;
+    justify-content: center;
+    justify-self: center;
+    gap: 32px;
 }
 
 
@@ -213,6 +211,7 @@ body.has-status-bar .sticky-nav {
     align-items: center;
     gap: 24px;
     flex-shrink: 0;
+    justify-self: end;
 }
 
 .nav-socials {
@@ -300,8 +299,12 @@ body.has-status-bar .sticky-nav {
     .nav-content {
         padding: 0 40px;
     }
-    
-    .nav-center-group, .nav-links {
+
+    .nav-center-group {
+        gap: 24px;
+    }
+
+    .nav-links {
         gap: 24px;
     }
 }
@@ -325,7 +328,7 @@ body.has-status-bar .sticky-nav {
 
     .nav-content {
         padding: 0 24px;
-        justify-content: space-between;
+        grid-template-columns: 1fr auto 1fr;
     }
 
     .nav-logo img {
