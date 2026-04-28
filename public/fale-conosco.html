@@ -79,9 +79,9 @@
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label">Telefone <span class="opcional">(opcional)</span></label>
+                    <label class="field-label">Telefone <span class="obrigatorio">*</span></label>
                     <div class="input-wrapper">
-                        <input type="tel" class="fale-input" placeholder="(21) 99999-9999" autocomplete="tel">
+                        <input type="tel" class="fale-input" placeholder="(21) 99999-9999" required autocomplete="tel">
                         <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
@@ -90,8 +90,8 @@
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label">Mensagem <span class="opcional">(opcional)</span></label>
-                    <textarea class="fale-input fale-textarea" placeholder="Como podemos ajudar?"></textarea>
+                    <label class="field-label">Mensagem <span class="obrigatorio">*</span></label>
+                    <textarea class="fale-input fale-textarea" placeholder="Como podemos ajudar?" required></textarea>
                 </div>
 
                 <div class="container-botao">
@@ -138,21 +138,22 @@
         document.querySelector('.fale-form').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const nomeInput  = this.querySelector('input[type="text"]');
-            const emailInput = this.querySelector('input[type="email"]');
+            const camposObrigatorios = this.querySelectorAll('.fale-input[required]');
             let valido = true;
+            let primeiroErro = null;
 
-            [nomeInput, emailInput].forEach(input => {
+            camposObrigatorios.forEach(input => {
                 if (!input.value.trim() || !input.checkValidity()) {
                     input.classList.add('input-erro');
                     valido = false;
+                    if (!primeiroErro) primeiroErro = input;
                 } else {
                     input.classList.remove('input-erro');
                 }
             });
 
             if (!valido) {
-                nomeInput.closest('.field-group').querySelector('.fale-input.input-erro')?.focus();
+                primeiroErro.focus();
                 return;
             }
 
