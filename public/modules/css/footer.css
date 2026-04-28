@@ -62,12 +62,18 @@ footer {
     object-fit: contain;
 }
 
-.social-sq-btn.instagram {
-    /* Background agora vem da imagem */
+.social-sq-btn.instagram img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
 }
 
-.social-sq-btn.whatsapp {
-    /* Background agora vem da imagem */
+.social-sq-btn.whatsapp img {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+    filter: contrast(1.1);
 }
 
 .social-sq-btn:hover {
