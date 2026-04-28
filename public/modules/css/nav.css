@@ -54,7 +54,9 @@ body.has-status-bar .sticky-nav {
     height: auto !important;
     min-height: 0 !important;
     padding: 6px 0 !important; /* Controle fino de altura */
-    background: rgba(10, 10, 10, 0.97);
+    background: #0a0a0a;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     z-index: 1000;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }

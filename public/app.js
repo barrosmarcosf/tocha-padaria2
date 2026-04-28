@@ -24,24 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let scrollTimeout = null;
     let scrollToSection = null; 
 
-    // --- MOTOR DE SCROLL CUSTOMIZADO (ALTA PERFORMANCE) ---
-    function smoothScrollTo(targetY, duration) {
-        const startY = window.pageYOffset;
-        const diff = targetY - startY;
-        let start = null;
-
-        function step(timestamp) {
-            if (!start) start = timestamp;
-            const time = timestamp - start;
-            const percent = Math.min(time / duration, 1);
-            
-            // Easing: easeInOutQuart
-            const ease = percent < 0.5 ? 8 * percent * percent * percent * percent : 1 - Math.pow(-2 * percent + 2, 4) / 2;
-            
-            window.scrollTo(0, startY + diff * ease);
-            if (time < duration) window.requestAnimationFrame(step);
-        }
-        window.requestAnimationFrame(step);
+    // scroll nativo via scrollIntoView — roda no thread do compositor (GPU), sem reflow
+    function smoothScrollTo(targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     // --- SYNC GLOBAL STORE STATUS (ETAPA 4) ---
@@ -189,12 +174,12 @@ document.addEventListener('DOMContentLoaded', () => {
             state.isLocked = true;
             
             syncNavUI(index);
-            smoothScrollTo(sections[index].offsetTop, 450);
+            smoothScrollTo(sections[index]);
 
             clearTimeout(scrollTimeout);
             scrollTimeout = setTimeout(() => {
                 state.isLocked = false;
-            }, 500);
+            }, 700);
         }
 
         function handleNavigate(direction) {
