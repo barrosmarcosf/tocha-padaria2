@@ -9,36 +9,73 @@ async function carregarCategoria() {
     return;
   }
 
+  const CACHE_KEY = 'tocha_cfg_v2';
+  const STATUS_CACHE_KEY = 'tocha_status';
+
+  // 1. Tentar carregar do Cache imediatamente
+  const cachedData = localStorage.getItem(CACHE_KEY);
+  const cachedStatus = localStorage.getItem(STATUS_CACHE_KEY);
+
+  if (cachedData) {
+    try {
+      const data = JSON.parse(cachedData);
+      const storeStatus = cachedStatus ? JSON.parse(cachedStatus) : null;
+      renderizarComDados(data, storeStatus);
+    } catch (e) { console.error("Erro no cache:", e); }
+  }
+
+  // 2. Buscar dados frescos em background
   try {
-    // Busca configs e status da loja em paralelo
     const [configRes, statusRes] = await Promise.all([
       fetch('/api/config'),
       fetch('/api/store-status')
     ]);
     
-    const data = await configRes.json();
-    const storeStatus = statusRes.ok ? await statusRes.json() : null;
-    
-    const categoria = data.categorias.find(c => c.slug === slug);
-    const tituloEl = document.getElementById("categoriaTitulo");
-    const skeletonEl = document.getElementById("headerLoading");
+    if (configRes.ok && statusRes.ok) {
+      const data = await configRes.json();
+      const storeStatus = await statusRes.json();
+      
+      const newDataStr = JSON.stringify(data) + JSON.stringify(storeStatus);
+      const oldDataStr = cachedData + cachedStatus;
 
-    tituloEl.innerText = categoria.title || categoria.nome;
+      if (newDataStr !== oldDataStr) {
+        // Salva no cache
+        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+        localStorage.setItem(STATUS_CACHE_KEY, JSON.stringify(storeStatus));
+        
+        // Re-renderiza apenas se houver mudanças reais
+        renderizarComDados(data, storeStatus);
+      }
+    }
+  } catch (error) {
+    console.error("Erro ao carregar os dados frescos:", error);
+    if (!cachedData) {
+      document.getElementById("categoriaTitulo").innerText = "Erro ao carregar";
+    }
+  }
+}
+
+function renderizarComDados(data, storeStatus) {
+  const categoria = data.categorias.find(c => c.slug === slug);
+  const tituloEl = document.getElementById("categoriaTitulo");
+  const skeletonEl = document.getElementById("headerLoading");
+
+  if (!categoria) {
+    tituloEl.innerText = "Categoria não encontrada";
     tituloEl.style.display = 'block';
     if (skeletonEl) skeletonEl.style.display = 'none';
-
-    document.getElementById("categoriaSubtitulo").innerText = categoria.description || categoria.descricao || '';
-
-    // BUSCAR PRODUTOS
-    const produtos = data.produtos.filter(p => p.category_slug === slug);
-
-    renderProdutos(produtos, storeStatus);
-  } catch (error) {
-    console.error("Erro ao carregar os dados:", error);
-    document.getElementById("categoriaTitulo").innerText = "Erro ao carregar";
-    const skeletonEl = document.getElementById("headerLoading");
-    if (skeletonEl) skeletonEl.style.display = 'none';
+    return;
   }
+
+  tituloEl.innerText = categoria.title || categoria.nome;
+  tituloEl.style.display = 'block';
+  if (skeletonEl) skeletonEl.style.display = 'none';
+
+  document.getElementById("categoriaSubtitulo").innerText = categoria.description || categoria.descricao || '';
+
+  // BUSCAR PRODUTOS
+  const produtos = data.produtos.filter(p => p.category_slug === slug);
+  renderProdutos(produtos, storeStatus);
 }
 
 function renderProdutos(produtos, storeStatus) {
