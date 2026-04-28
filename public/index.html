@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" style="background:#0a0a0a;opacity:0">
 
 <head>
     <meta charset="UTF-8">
@@ -38,8 +38,6 @@
         (function() {
             const theme = localStorage.getItem('tocha_theme') || 'dark';
             document.documentElement.setAttribute('data-theme', theme);
-            // Esconde a página enquanto JS posiciona a seção correta
-            document.documentElement.classList.add('page-loading');
         })();
     </script>
 </head>

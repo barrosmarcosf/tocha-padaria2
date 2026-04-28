@@ -319,9 +319,10 @@ document.addEventListener('DOMContentLoaded', () => {
         window.scrollTo(0, sections[startingIndex] ? sections[startingIndex].offsetTop : 0);
         syncNavUI(startingIndex);
 
-        // Revela a página com fade-in após posicionar na seção correta
+        // Fade-in após posicionar na seção correta
         requestAnimationFrame(() => {
-            document.documentElement.classList.remove('page-loading');
+            document.documentElement.style.transition = 'opacity 0.22s ease';
+            document.documentElement.style.opacity = '1';
         });
         
         const stickyNav = document.querySelector('.sticky-nav');
@@ -341,6 +342,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (navDots[startingIndex]) navDots[startingIndex].classList.add('active');
         
     } // Fim do bloco isLanding
+
+    // --- FADE-IN UNIVERSAL (landing faz o próprio; inner pages fazem aqui) ---
+    if (!isLanding) {
+        requestAnimationFrame(() => {
+            document.documentElement.style.transition = 'opacity 0.22s ease';
+            document.documentElement.style.opacity = '1';
+        });
+    }
 
     // --- LOGICA DE NAVBAR PARA TODAS AS PAGINAS (Padrão Início) ---
     const stickyNav = document.querySelector('.sticky-nav');
@@ -412,10 +421,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const link = e.target.closest('a[href]');
         if (!link) return;
         const href = link.getAttribute('href');
-        // Só intercepta links internos que navegam para outra página (não âncoras, não externos)
         if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('mailto') || href.startsWith('tel') || link.target === '_blank') return;
         e.preventDefault();
-        document.documentElement.classList.add('page-leaving');
+        document.documentElement.style.transition = 'opacity 0.18s ease';
+        document.documentElement.style.opacity = '0';
         setTimeout(() => { window.location.href = href; }, 200);
     });
 
