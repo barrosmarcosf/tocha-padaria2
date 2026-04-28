@@ -37,6 +37,8 @@
         (function() {
             const theme = localStorage.getItem('tocha_theme') || 'dark';
             document.documentElement.setAttribute('data-theme', theme);
+            // Esconde a página enquanto JS posiciona a seção correta
+            document.documentElement.classList.add('page-loading');
         })();
     </script>
 </head>
@@ -67,7 +69,7 @@
 
                 <ul class="nav-links">
                     <li><a href="#hero" class="nav-text-item">INICIAL</a></li>
-                    <li><a href="produtos.html" class="nav-text-item">CARDÁPIO</a></li>
+                    <li><a href="#menu" class="nav-text-item">CARDÁPIO</a></li>
                     <li><a href="nossa-historia.html" class="nav-text-item">NOSSA HISTÓRIA</a></li>
                     <li><a href="fale-conosco.html" class="nav-text-item">FALE CONOSCO</a></li>
                 </ul>
@@ -123,7 +125,7 @@
                     Cada pão nasce de levain vivo, farinha de qualidade e tempo; não tem atalho, tem respeito.
                 </p>
                 <div class="hero-actions">
-                    <a href="produtos.html" class="hero-cta primary">Ver Cardápio</a>
+                    <a href="#menu" class="hero-cta primary">Ver Cardápio</a>
                     <a href="nossa-historia.html" class="hero-cta secondary">Nossa História</a>
                 </div>
                 <div class="hero-brand-mark" aria-hidden="true">

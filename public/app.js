@@ -317,6 +317,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Scroll imediato para a seção correta (sem delay perceptível)
         window.scrollTo(0, sections[startingIndex] ? sections[startingIndex].offsetTop : 0);
         syncNavUI(startingIndex);
+
+        // Revela a página com fade-in após posicionar na seção correta
+        requestAnimationFrame(() => {
+            document.documentElement.classList.remove('page-loading');
+        });
         
         const stickyNav = document.querySelector('.sticky-nav');
         if (stickyNav) {
@@ -399,6 +404,18 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.style.transform = 'scale(0.95)';
             setTimeout(() => btn.style.transform = '', 100);
         }
+    });
+
+    // --- TRANSIÇÃO DE SAÍDA ENTRE PÁGINAS ---
+    document.addEventListener('click', (e) => {
+        const link = e.target.closest('a[href]');
+        if (!link) return;
+        const href = link.getAttribute('href');
+        // Só intercepta links internos que navegam para outra página (não âncoras, não externos)
+        if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('mailto') || href.startsWith('tel') || link.target === '_blank') return;
+        e.preventDefault();
+        document.documentElement.classList.add('page-leaving');
+        setTimeout(() => { window.location.href = href; }, 200);
     });
 
     // --- INIT ---
