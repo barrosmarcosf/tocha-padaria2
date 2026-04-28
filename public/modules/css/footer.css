@@ -1,22 +1,22 @@
 footer {
     width: 100%;
-    min-height: 80vh; /* Garante que o rodapé tenha altura para o conteúdo "descer" */
+    height: 100vh; /* Ocupa a tela cheia para permitir o posicionamento no fundo */
     background: #080808;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: flex-end; /* 👈 ISSO resolve: ancora tudo no fundo */
+    padding-bottom: 120px; /* Controle fino da altura dentro da área vermelha */
 }
 
 .footer-content {
-    max-width: 1100px; /* Reduzido para 1100px conforme solicitado para equilíbrio visual */
-    margin: 0 auto;
-    padding: 60px 40px 120px; /* Padding ajustado para zona vermelha */
+    max-width: 1100px;
+    margin: 0 auto 60px; /* Margem inferior para afastar do rodapé de créditos */
+    width: 100%;
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
+    align-items: center; /* Alinha logo e texto horizontalmente */
     gap: 40px;
-    flex: 1; /* Garante que o container ocupe o espaço disponível antes do bottom */
 }
 
 .footer-logo {
