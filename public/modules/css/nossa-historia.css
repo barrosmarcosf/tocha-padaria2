@@ -10,9 +10,11 @@ body.l-nossa-historia {
 
 /* Compensa barra de status fixa + nav fixa */
 .historia-page {
-    padding: calc(var(--status-bar-height, 29px) + var(--nav-height, 85px) + 60px) 20px 80px;
+    min-height: 100vh;
+    padding: calc(var(--status-bar-height, 29px) + var(--nav-height, 85px)) 20px 80px;
     display: flex;
     justify-content: center;
+    align-items: center;
 }
 
 .historia-container {
@@ -49,7 +51,8 @@ body.l-nossa-historia {
 
 @media (max-width: 768px) {
     .historia-page {
-        padding: calc(var(--status-bar-height, 29px) + var(--nav-height, 85px) + 32px) 20px 60px;
+        padding: calc(var(--status-bar-height, 29px) + var(--nav-height, 85px)) 20px 60px;
+        align-items: flex-start;
     }
 
     .historia-title {
