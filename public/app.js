@@ -157,6 +157,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 console.log("✅ Módulos carregados e inicializados!");
+
+                // Re-snap silencioso: módulos podem ter alterado alturas de seções
+                // (ex: HeroModule.init pode crescer o hero, deslocando o cardápio)
+                if (isLanding) {
+                    requestAnimationFrame(() => {
+                        const el = document.getElementById(navSections[state.currentIndex]);
+                        if (el) {
+                            window.scrollTo(0, el.offsetTop);
+                            sessionStorage.setItem('tocha_scroll_y', Math.round(el.offsetTop));
+                        }
+                    });
+                }
             }
         } catch (err) { console.error("Erro no loadDynamicConfig:", err); }
     }
