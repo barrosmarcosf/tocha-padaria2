@@ -164,16 +164,6 @@
   height: 54px; /* Mantem a altura constante para alinhar o que vem abaixo */
 }
 
-/* AVALIAÇÕES */
-.rating-row {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-bottom: 10px;
-  color: #d4a64a;
-  font-size: 12px;
-}
-
 .preco-row {
   display: flex;
   align-items: center;

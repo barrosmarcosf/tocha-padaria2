@@ -109,10 +109,6 @@ function renderProdutos(produtos, storeStatus) {
         <div class="produto-info">
           <div><span class="entrega">⛟ ${entregaTexto}</span></div>
           <h3>${p.name}</h3>
-          <div class="rating-row">
-            <span>★★★★★</span>
-            <span style="color: #666; font-size: 10px;">(5.0)</span>
-          </div>
           <p>${p.description || ''}</p>
           <div class="preco-row">
             <div class="preco">R$ ${p.price.toFixed(2).replace('.', ',')}</div>
