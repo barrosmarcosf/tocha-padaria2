@@ -1,8 +1,7 @@
 /* ─────────────────────────────────────────────────────────
-   cart.js  –  Sistema de Carrinho (Contexto Global & Supabase)
+   cart.js  –  Sistema de Carrinho (Contexto Global & Checkout)
 ───────────────────────────────────────────────────────── */
 
-// WhatsApp do Proprietário (conforme .env)
 const OWNER_PHONE = '5521966278965';
 
 /* ── State & Persistence ── */
@@ -10,15 +9,13 @@ let cart = JSON.parse(localStorage.getItem('tocha-cart') || '[]');
 let coupon = null;
 let globalStatus = null;
 
-// Função para salvar no localStorage (Persistência)
 function save() {
     localStorage.setItem('tocha-cart', JSON.stringify(cart));
     render();
 }
 
-/* ── Global Cart Context (Functions) ── */
+/* ── Global Cart Context ── */
 window.addToCart = function(product, qty = 1) {
-    // Normalização para garantir que a comparação funcione (string vs number)
     const productId = String(product.id);
     const existing = cart.find(i => String(i.id) === productId);
 
@@ -34,31 +31,25 @@ window.addToCart = function(product, qty = 1) {
         });
     }
     save();
-    window.openCart(); // Abre o modal instantaneamente
+    window.openCart();
 };
 
 window.increase = function(id) {
-    const item = cart.find(i => i.id === id);
-    if (item) {
-        item.qty++;
-        save();
-    }
+    const item = cart.find(i => String(i.id) === String(id));
+    if (item) { item.qty++; save(); }
 };
 
 window.decrease = function(id) {
-    const item = cart.find(i => i.id === id);
+    const item = cart.find(i => String(i.id) === String(id));
     if (item) {
         item.qty--;
-        if (item.qty <= 0) {
-            window.removeItem(id);
-        } else {
-            save();
-        }
+        if (item.qty <= 0) window.removeItem(id);
+        else save();
     }
 };
 
 window.removeItem = function(id) {
-    cart = cart.filter(i => i.id !== id);
+    cart = cart.filter(i => String(i.id) !== String(id));
     save();
 };
 
@@ -66,22 +57,6 @@ window.clearCart = function() {
     cart = [];
     save();
     window.closeCart();
-};
-
-/* ── Supabase Integration (Data Fetching) ── */
-window.fetchProductsByCategory = async function(categorySlug) {
-    try {
-        // Buscamos produtos da nossa API que consome o Supabase
-        const resp = await fetch('/api/config');
-        const { produtos } = await resp.json();
-        if (categorySlug) {
-            return produtos.filter(p => p.category_slug === categorySlug);
-        }
-        return produtos;
-    } catch (e) {
-        console.error('[Supabase] Erro ao buscar produtos:', e);
-        return [];
-    }
 };
 
 /* ── UI Logic ── */
@@ -97,9 +72,8 @@ function discountAmount(sub) {
     return Math.min(coupon.value, sub);
 }
 
-/* ── Render (High Fidelity) ── */
+/* ── Render ── */
 function render() {
-    const drawer     = document.getElementById('cartDrawer');
     const itemsList  = document.getElementById('cartItemsList');
     const cartFooter = document.getElementById('cartFooter');
     const emptyState = document.getElementById('cartEmptyState');
@@ -108,7 +82,6 @@ function render() {
 
     if (countLabel) countLabel.textContent = `(${total_items} ${total_items === 1 ? 'item' : 'itens'})`;
 
-    // Botão flutuante do navbar (badge)
     const badge = document.getElementById('cart-badge');
     if (badge) {
         badge.textContent = total_items;
@@ -125,7 +98,6 @@ function render() {
     if (emptyState) emptyState.style.display = 'none';
     if (cartFooter) cartFooter.hidden = false;
 
-    // Render list
     itemsList.innerHTML = cart.map(item => `
         <div class="cart-item">
             <div class="ci-left">
@@ -146,7 +118,6 @@ function render() {
         </div>
     `).join('');
 
-    // Summary
     const sub = subtotal();
     const disc = discountAmount(sub);
     const total = sub - disc;
@@ -163,34 +134,52 @@ function render() {
     }
 }
 
-/* ── WhatsApp Finalization ── */
-window.finalizarWhatsApp = function() {
-    if (cart.length === 0) return;
-
-    let message = '🧾 *Novo Pedido:*\n\n';
+/* ── Checkout Modal Logic ── */
+window.openCheckoutModal = function() {
+    window.closeCart();
+    const modal = document.getElementById('checkoutModal');
+    const overlay = document.getElementById('checkoutOverlay');
+    if (modal) modal.style.display = 'flex';
+    if (overlay) overlay.classList.add('active');
     
-    cart.forEach(item => {
-        message += `• ${item.name} x${item.qty} - ${fmt(item.price * item.qty)}\n`;
-    });
-
-    const sub = subtotal();
-    const disc = discountAmount(sub);
-    const total = sub - disc;
-
-    if (disc > 0) {
-        message += `\nSubtotal: ${fmt(sub)}`;
-        message += `\nDesconto: -${fmt(disc)}`;
+    if (globalStatus && globalStatus.batchLabel) {
+        document.getElementById('dataFornada').textContent = globalStatus.batchLabel;
     }
-    
-    message += `\n\n*Total: ${fmt(total)}*`;
+}
 
-    const encodedMsg = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${OWNER_PHONE}?text=${encodedMsg}`;
-    
-    window.open(whatsappUrl, '_blank');
+window.closeCheckoutModal = function() {
+    document.getElementById('checkoutModal').style.display = 'none';
+    document.getElementById('checkoutOverlay').classList.remove('active');
 };
 
-/* ── Injections & Init ── */
+window.confirmarPedido = function() {
+    const name = document.getElementById('chk-name').value.trim();
+    const whatsapp = document.getElementById('chk-whatsapp').value.trim();
+    const email = document.getElementById('chk-email').value.trim();
+    const payment = document.querySelector('input[name="payment-method"]:checked').value;
+    const errorEl = document.getElementById('checkoutError');
+
+    if (!name || !whatsapp || !email) {
+        errorEl.style.display = 'block';
+        return;
+    }
+    errorEl.style.display = 'none';
+
+    localStorage.setItem('tocha-customer', JSON.stringify({ name, whatsapp, email }));
+
+    if (payment === 'pix') {
+        window.location.href = "/pagamento-pix";
+    } else {
+        window.location.href = "/pagamento-stripe";
+    }
+};
+
+window.fecharModal = function() {
+    document.getElementById('modalSuccess').style.display = 'none';
+    document.getElementById('checkoutOverlay').classList.remove('active');
+};
+
+/* ── Injections ── */
 function injectCart() {
     if (document.getElementById('cartDrawer')) return;
 
@@ -227,18 +216,54 @@ function injectCart() {
                     <div class="total-row"><span>Total</span><span id="totalLabel">R$ 0,00</span></div>
                 </div>
 
-                <button class="btn-primary" onclick="finalizarWhatsApp()">FINALIZAR VIA WHATSAPP</button>
+                <button class="btn-primary" onclick="openCheckoutModal()">FINALIZAR PEDIDO</button>
                 <button class="btn-secondary" id="continuarComprandoBtn">CONTINUAR COMPRANDO</button>
                 <a class="clear-cart-link" onclick="clearCart()">Esvaziar carrinho</a>
             </div>
         </aside>
-    `);
 
-    // Bindings
-    document.getElementById('closeCart').addEventListener('click', window.closeCart);
-    document.getElementById('cartOverlay').addEventListener('click', window.closeCart);
-    document.getElementById('verProdutosBtn').addEventListener('click', window.closeCart);
-    document.getElementById('continuarComprandoBtn').addEventListener('click', window.closeCart);
+        <div id="checkoutOverlay" class="cart-overlay"></div>
+        <div id="checkoutModal" class="modal" style="display:none">
+            <div class="modal-box" style="text-align: left; max-width: 420px; border-radius: 20px;">
+                <h2 style="color: var(--accent); font-size: 1.5rem; font-weight: 700; margin-bottom: 15px; font-family: 'Anton', sans-serif;">Finalizar Pedido</h2>
+                <p style="color: #888; font-size: 0.85rem; line-height: 1.5; margin-bottom: 20px;">
+                    Preencha seus dados corretamente. Entraremos em contato via WhatsApp no dia da fornada (<strong id="dataFornada">Sábado, 02/05</strong>) para confirmar quando seu pedido estiver pronto para retirada.
+                </p>
+
+                <div style="margin-bottom: 15px;"><input type="text" id="chk-name" placeholder="Nome completo" style="width: 100%; padding: 12px; background: #111; border: 1px solid #333; color: #fff; border-radius: 8px;"></div>
+                <div style="margin-bottom: 15px;"><input type="tel" id="chk-whatsapp" placeholder="WhatsApp" style="width: 100%; padding: 12px; background: #111; border: 1px solid #333; color: #fff; border-radius: 8px;"></div>
+                <div style="margin-bottom: 20px;"><input type="email" id="chk-email" placeholder="Email" style="width: 100%; padding: 12px; background: #111; border: 1px solid #333; color: #fff; border-radius: 8px;"></div>
+
+                <div style="margin-bottom: 25px;">
+                    <p style="color: #fff; font-weight: 600; margin-bottom: 12px; font-size: 0.9rem;">Forma de pagamento</p>
+                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; cursor: pointer; color: #aaa;">
+                        <input type="radio" name="payment-method" value="pix" checked style="accent-color: var(--accent);"> PIX (Mercado Pago)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #aaa;">
+                        <input type="radio" name="payment-method" value="card" style="accent-color: var(--accent);"> Cartão de crédito (Stripe)
+                    </label>
+                </div>
+                <p id="checkoutError" style="color: #ff4444; font-size: 0.75rem; margin-top: -15px; margin-bottom: 15px; display: none;">Preencha todos os campos corretamente.</p>
+                <button class="btn-primary" onclick="confirmarPedido()" style="border-radius: 10px; margin-bottom: 10px; width: 100%;">CONFIRMAR PEDIDO</button>
+                <button onclick="closeCheckoutModal()" style="width: 100%; background: none; border: none; color: #555; cursor: pointer; font-size: 0.85rem;">Cancelar</button>
+            </div>
+        </div>
+
+        <div id="modalSuccess" class="modal">
+            <div class="modal-box" style="border-radius: 30px; text-align: center;">
+                <div style="width: 80px; height: 80px; border: 2px solid var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; color: var(--accent);">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <h2 style="font-family: 'Anton', sans-serif; font-size: 2.2rem; color: var(--accent); margin-bottom: 10px; text-transform: uppercase;">PEDIDO CONFIRMADO!</h2>
+                <p style="color: #888; font-size: 0.95rem; line-height: 1.6; margin-bottom: 30px;">
+                    Seu pagamento foi aprovado. Avisaremos pelo WhatsApp assim que seu pedido ficar pronto para retirada.
+                </p>
+                <button onclick="fecharModal()" class="btn-primary" style="border-radius: 12px; padding: 15px; width: 100%;">CONTINUAR</button>
+            </div>
+        </div>
+    `);
 }
 
 window.openCart = function() {
@@ -263,16 +288,37 @@ window.toggleCart = function() {
     else window.openCart();
 };
 
+async function fetchStoreStatus() {
+    try {
+        const r = await fetch('/api/store-status');
+        if (r.ok) {
+            globalStatus = await r.json();
+            render(); 
+        }
+    } catch (e) { console.error(e); }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     injectCart();
     render();
+    fetchStoreStatus();
 
-    // Icone do navbar
+    const closeBtn = document.getElementById('closeCart');
+    if (closeBtn) closeBtn.addEventListener('click', window.closeCart);
+    
+    const overlay = document.getElementById('cartOverlay');
+    if (overlay) overlay.addEventListener('click', window.closeCart);
+    
+    const verProdutosBtn = document.getElementById('verProdutosBtn');
+    if (verProdutosBtn) verProdutosBtn.addEventListener('click', window.closeCart);
+    
+    const continuarBtn = document.getElementById('continuarComprandoBtn');
+    if (continuarBtn) continuarBtn.addEventListener('click', window.closeCart);
+    
     const cartIcon = document.getElementById('cartIcon') || document.getElementById('cart-toggle');
     if (cartIcon) {
         cartIcon.addEventListener('click', window.toggleCart);
     } else {
-        // Se não houver navbar, injeta botão flutuante
         document.body.insertAdjacentHTML('beforeend', `
             <div id="floatingCart" onclick="window.toggleCart()" style="position:fixed; bottom:30px; right:30px; background:var(--accent); color:#000; width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,0.5); z-index:9999;">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -283,7 +329,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span id="cart-badge-float" style="position:absolute; top:0; right:0; background:#000; color:#fff; font-size:10px; padding:2px 6px; border-radius:10px; font-weight:700;">0</span>
             </div>
         `);
-        // Atualiza badge flutuante no render
         const originalRender = render;
         render = function() {
             originalRender();
@@ -295,5 +340,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
         render();
+    }
+
+    // Mascara de WhatsApp
+    const whatsappInput = document.getElementById('chk-whatsapp');
+    if (whatsappInput) {
+        whatsappInput.addEventListener('input', (e) => {
+            let x = e.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,5})(\d{0,4})/);
+            e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
+        });
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('status') === 'success') {
+        cart = []; save();
+        document.getElementById('modalSuccess').style.display = 'flex';
+        document.getElementById('checkoutOverlay').classList.add('active');
+        window.history.replaceState({}, '', window.location.pathname);
     }
 });
