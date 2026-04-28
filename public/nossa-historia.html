@@ -29,8 +29,9 @@
             <a href="/" class="nav-logo" aria-label="Tocha Padaria – Ir para início">
                 <img src="/assets/logo.png" alt="Tocha Padaria Logo">
             </a>
-            <ul class="nav-links">
-                <li class="nav-search-item">
+
+            <div class="nav-center-group">
+                <div class="nav-search-item">
                     <div class="search-box">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="11" cy="11" r="8"></circle>
@@ -38,12 +39,17 @@
                         </svg>
                         <input type="text" id="site-search" class="site-search" placeholder="Buscar">
                     </div>
-                </li>
-                <li><a href="/#hero" class="nav-text-item">INICIAL</a></li>
-                <li><a href="/#menu" class="nav-text-item">CARDÁPIO</a></li>
-                <li><a href="/nossa-historia.html" class="nav-text-item">NOSSA HISTÓRIA</a></li>
-                <li><a href="/fale-conosco.html" class="nav-text-item">FALE CONOSCO</a></li>
-                <li class="nav-socials">
+                </div>
+                <ul class="nav-links">
+                    <li><a href="/#hero" class="nav-text-item">INICIAL</a></li>
+                    <li><a href="/#menu" class="nav-text-item">CARDÁPIO</a></li>
+                    <li><a href="/nossa-historia.html" class="nav-text-item">NOSSA HISTÓRIA</a></li>
+                    <li><a href="/fale-conosco.html" class="nav-text-item">FALE CONOSCO</a></li>
+                </ul>
+            </div>
+
+            <div class="nav-right">
+                <div class="nav-socials">
                     <a href="https://instagram.com/tocha.padaria" target="_blank" rel="noopener" class="nav-icon-link" aria-label="Instagram">
                         <svg class="nav-social-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
                             <circle cx="12" cy="12" r="11.4"/>
@@ -52,8 +58,8 @@
                             <circle cx="15.5" cy="8.5" r="0.8" fill="currentColor" stroke="none"/>
                         </svg>
                     </a>
-                </li>
-                <li class="nav-cart-item">
+                </div>
+                <div class="nav-cart-item">
                     <button id="cart-toggle" class="cart-toggle-btn" aria-label="Abrir carrinho">
                         <svg class="cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="9" cy="20" r="1.5"></circle>
@@ -62,8 +68,8 @@
                         </svg>
                         <span id="cart-badge" class="cart-badge" hidden>0</span>
                     </button>
-                </li>
-            </ul>
+                </div>
+            </div>
         </div>
     </nav>
 
