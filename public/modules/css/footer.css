@@ -56,25 +56,22 @@ footer {
     overflow: hidden; /* Garante que a imagem respeite o border-radius se necessário */
 }
 
-.social-sq-btn img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
+.social-sq-btn .icon {
+    display: block;
+    transition: all 0.3s ease;
 }
 
-.social-sq-btn.instagram img {
+.social-sq-btn .icon.insta {
     width: 28px;
     height: 28px;
-    object-fit: contain;
 }
 
-.social-sq-btn.whatsapp img {
+.social-sq-btn .icon.whats {
     width: 44px;
     height: 44px;
-    object-fit: contain;
-    mix-blend-mode: multiply;
-    filter: contrast(1.1);
 }
+
+/* As classes .insta e .whats agora controlam o tamanho diretamente nos SVGs */
 
 .social-sq-btn:hover {
     transform: translateY(-5px);
