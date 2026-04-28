@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Impede que o browser restaure scroll por conta própria
+    history.scrollRestoration = 'manual';
+
     // --- RESET STATE ON LOAD (FIX F5 BUG) ---
     document.body.classList.remove('products-active', 'in-product-list');
     
@@ -44,12 +47,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- SYNC GLOBAL STORE STATUS (ETAPA 4) ---
+    // Aplica status cacheado imediatamente (sem esperar API)
+    const cachedStatus = localStorage.getItem('tocha_status');
+    if (cachedStatus) {
+        try {
+            state.globalStoreStatus = JSON.parse(cachedStatus);
+            updateStoreUI();
+        } catch (e) {}
+    }
+
     async function syncGlobalStoreStatus() {
         try {
             const resp = await fetch('/api/store-status');
             if (resp.ok) {
                 const status = await resp.json();
                 state.globalStoreStatus = status;
+                localStorage.setItem('tocha_status', JSON.stringify(status));
                 updateStoreUI();
             }
         } catch (e) { console.error("Erro ao sincronizar status:", e); }
@@ -186,7 +199,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (index < 0 || index >= sections.length) return;
             state.currentIndex = index;
             state.isLocked = true;
-            
+            sessionStorage.setItem('tocha_section', index);
+
             syncNavUI(index);
             smoothScrollTo(sections[index]);
 
@@ -287,28 +301,22 @@ document.addEventListener('DOMContentLoaded', () => {
         // Ativar snap
         document.body.classList.add('snap-active');
         
-        // --- Setup Inicial Inteligente (Baseado em Hash ou Scroll) ---
+        // --- Setup Inicial: hash > sessionStorage > seção 0 ---
         let startingIndex = 0;
         const currentHash = window.location.hash.substring(1);
         if (currentHash && navSections.includes(currentHash)) {
             startingIndex = navSections.indexOf(currentHash);
         } else {
-            const initialScroll = window.scrollY;
-            sections.forEach((sec, i) => {
-                if (initialScroll >= sec.offsetTop - window.innerHeight / 2) {
-                    startingIndex = i;
-                }
-            });
+            const saved = parseInt(sessionStorage.getItem('tocha_section') || '0');
+            if (!isNaN(saved) && saved >= 0 && saved < sections.length) {
+                startingIndex = saved;
+            }
         }
         state.currentIndex = startingIndex;
-        
-        // Se houver um hash ou scroll inicial, forçar a sincronização via scrollToSection
-        // Isso garante que o motor de scroll e a visibilidade da navbar (Etapa 3) sejam aplicados
-        if (startingIndex >= 0) {
-            setTimeout(() => {
-                scrollToSection(startingIndex);
-            }, 800);
-        }
+
+        // Scroll imediato para a seção correta (sem delay perceptível)
+        window.scrollTo(0, sections[startingIndex] ? sections[startingIndex].offsetTop : 0);
+        syncNavUI(startingIndex);
         
         const stickyNav = document.querySelector('.sticky-nav');
         if (stickyNav) {
