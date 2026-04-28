@@ -106,6 +106,8 @@ body.has-status-bar .sticky-nav {
 .nav-logo img {
     height: 44px;
     width: auto;
+    transform: scale(1.2);
+    transform-origin: center;
 }
 
 
@@ -118,6 +120,8 @@ body.has-status-bar .sticky-nav {
     position: relative;
     display: flex;
     align-items: center;
+    transform: scale(1.05);
+    transform-origin: center;
 }
 
 .search-box svg {
@@ -190,6 +194,9 @@ body.has-status-bar .sticky-nav {
     text-transform: uppercase;
     letter-spacing: 0.12em;
     line-height: 1; /* Garante alinhamento sem expandir altura */
+    transform: scale(1.05);
+    transform-origin: center;
+    display: inline-block;
     transition: all 0.25s ease;
     white-space: nowrap;
 }
@@ -230,6 +237,8 @@ body.has-status-bar .sticky-nav {
     width: 24px;
     height: 24px;
     flex-shrink: 0;
+    transform: scale(1.2);
+    transform-origin: center;
     transition: transform 0.25s ease;
 }
 
@@ -257,6 +266,8 @@ body.has-status-bar .sticky-nav {
     width: 24px;
     height: 24px;
     color: #ffffff;
+    transform: scale(1.05);
+    transform-origin: center;
     transition: all 0.25s ease;
 }
 
@@ -295,7 +306,18 @@ body.has-status-bar .sticky-nav {
     }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 768px) {
+    .nav-logo img, 
+    .nav-social-icon {
+        transform: scale(1.1);
+    }
+
+    .nav-links a.nav-text-item,
+    .search-box,
+    .cart-icon {
+        transform: scale(1.02);
+    }
+
     .sticky-nav {
         padding: 6px 0 !important;
         height: auto !important;
