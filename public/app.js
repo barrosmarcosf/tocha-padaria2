@@ -343,10 +343,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const savedY = hasHashNav ? -1 : parseInt(sessionStorage.getItem('tocha_scroll_y') || '-1');
             const targetY = (savedY >= 0) ? savedY : (sections[idx] ? sections[idx].offsetTop : 0);
 
-            // Aplica o scroll imediatamente...
+            // Remove o cover e define o scroll no mesmo bloco síncrono.
+            // O browser processa window.scrollTo + cover.remove() antes do próximo
+            // paint — o usuário nunca vê a tela preta nem a posição errada.
             window.scrollTo(0, targetY);
+            revealPage();
 
-            // ...e reaplica no próximo frame para garantir layout estável
+            // rAF: sincroniza UI (navbar, dots, estado) sem bloquear o render
             requestAnimationFrame(() => {
                 window.scrollTo(0, targetY);
 
@@ -368,9 +371,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 navDots.forEach(d => d.classList.remove('active'));
                 if (navDots[idx]) navDots[idx].classList.add('active');
 
-                // Revela imediatamente após posicionar — config carregada em paralelo.
-                // Não bloqueia mais na API: o cache já aplicou os dados (ou a página
-                // aparece em branco por ≤ 300ms enquanto a primeira chamada retorna).
                 state.currentIndex = idx;
                 sessionStorage.setItem('tocha_section', idx);
                 const el = sections[idx];
@@ -379,7 +379,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     sessionStorage.setItem('tocha_scroll_y', Math.round(el.offsetTop));
                 }
                 state.isLocked = false;
-                revealPage();
             });
         }
 
@@ -395,13 +394,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
     } // Fim do bloco isLanding
 
-    // --- REVEAL: remove a cobertura escura (funciona para todas as páginas) ---
+    // --- REVEAL: remove a cobertura escura instantaneamente ---
     function revealPage() {
         const cover = document.getElementById('page-cover');
-        if (!cover) return;
-        cover.style.transition = 'opacity 0.06s ease';
-        cover.style.opacity = '0';
-        setTimeout(() => cover.remove(), 80);
+        if (cover) cover.remove();
     }
 
     if (!isLanding) revealPage();
