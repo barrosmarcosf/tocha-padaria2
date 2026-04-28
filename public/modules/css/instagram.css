@@ -21,7 +21,7 @@
 .nos-acompanhe h1 {
     font-size: 72px;
     line-height: 0.95;
-    font-weight: 800;
+    font-weight: 400;
     margin: 0;
     color: #fff;
     font-family: 'Anton', sans-serif;
@@ -31,6 +31,8 @@
 .nos-acompanhe h1 span {
     color: #c9a85d;
     font-size: 64px;
+    font-weight: 400;
+    font-family: 'Anton', sans-serif;
     display: block;
     font-style: italic;
 }
@@ -73,9 +75,13 @@
 
     .nos-acompanhe h1 {
         font-size: 48px;
+        font-weight: 400;
+        font-family: 'Anton', sans-serif;
     }
 
     .nos-acompanhe h1 span {
         font-size: 42px;
+        font-weight: 400;
+        font-family: 'Anton', sans-serif;
     }
 }
