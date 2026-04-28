@@ -47,7 +47,8 @@ function renderProdutos(produtos, storeStatus) {
   }
 
   container.innerHTML = produtos.map(p => {
-    const imgPath = p.image_url && p.image_url.startsWith('http') ? p.image_url : '/' + p.image_url;
+    // Forçando a imagem padrão conforme solicitado pelo mestre
+    const imgPath = '/assets/sourdough.jpg';
     
     // Lógica para Esgotado ou Loja Fechada
     const isFechado = storeStatus && storeStatus.statusMode === 'closed';
