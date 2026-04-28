@@ -60,8 +60,8 @@ module.exports = function (supabase) {
 
     // Rota para verificar status do Bot
     router.get('/bot-status', adminAuth, async (req, res) => {
-        // O status real é mantido no notification-service.
-        res.json({ ready: true }); 
+        const { botStatus } = require('../notification-service');
+        res.json({ ready: botStatus === 'READY', status: botStatus });
     });
 
     // Rota para reiniciar o Bot

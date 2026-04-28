@@ -73,7 +73,7 @@ module.exports = function (supabase) {
                         first_name: customer.name.split(' ')[0],
                         last_name: customer.name.split(' ').slice(1).join(' ') || 'Cliente',
                     },
-                    notification_url: isHttps ? `${baseUrl}/webhook/mercadopago` : undefined
+                    notification_url: isHttps ? `${baseUrl}/api/webhook/mercadopago` : undefined
                 }
             };
 

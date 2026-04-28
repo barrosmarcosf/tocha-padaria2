@@ -194,6 +194,65 @@ app.get('/comparative-audit', adminAuth, async (_req, res) => {
 
 
 // ──────────────────────────────────────────────────
+// ENDPOINT DE DIAGNÓSTICO — /api/health
+// Verifica o status de todas as integrações em tempo real
+// ──────────────────────────────────────────────────
+app.get('/api/health', async (_req, res) => {
+    const checks = {};
+
+    // 1. Supabase
+    try {
+        const { error } = await supabase.from('clientes').select('id').limit(1);
+        checks.supabase = error ? { ok: false, error: error.message } : { ok: true };
+    } catch (e) {
+        checks.supabase = { ok: false, error: e.message };
+    }
+
+    // 2. Stripe
+    try {
+        await stripe.balance.retrieve();
+        checks.stripe = { ok: true };
+    } catch (e) {
+        checks.stripe = { ok: false, error: e.message };
+    }
+
+    // 3. Mercado Pago
+    const mpToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+    if (!mpToken || mpToken === 'SEU_TOKEN_AQUI') {
+        checks.mercadopago = { ok: false, error: 'MERCADOPAGO_ACCESS_TOKEN não configurado (placeholder)' };
+    } else {
+        checks.mercadopago = { ok: true, token_prefix: mpToken.substring(0, 12) + '...' };
+    }
+
+    // 4. Webhooks
+    const baseUrl = process.env.BASE_URL || '';
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    checks.webhooks = {
+        base_url: baseUrl || '⚠️ BASE_URL não configurado',
+        stripe_endpoint: baseUrl ? `${baseUrl}/api/webhook` : '⚠️ indisponível',
+        mercadopago_endpoint: baseUrl ? `${baseUrl}/api/webhook/mercadopago` : '⚠️ indisponível',
+        stripe_secret_configured: !!webhookSecret,
+        warning: !webhookSecret ? 'STRIPE_WEBHOOK_SECRET ausente — webhook aceito sem validação de assinatura' : null,
+        localtunnel_warning: baseUrl.includes('loca.lt') ? '⚠️ URL do localtunnel detectada — expira a cada sessão. Use uma URL permanente.' : null
+    };
+
+    // 5. Email (SMTP)
+    const smtpOk = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+    checks.email = { ok: smtpOk, host: process.env.SMTP_HOST || 'não configurado' };
+
+    // 6. WhatsApp Bot
+    try {
+        const { botStatus } = require('./src/notification-service');
+        checks.whatsapp_bot = { ok: botStatus === 'READY', status: botStatus };
+    } catch (e) {
+        checks.whatsapp_bot = { ok: false, error: e.message };
+    }
+
+    const allOk = checks.supabase.ok && checks.stripe.ok && checks.mercadopago.ok && checks.email.ok;
+    res.status(allOk ? 200 : 207).json({ healthy: allOk, checks, timestamp: new Date().toISOString() });
+});
+
+// ──────────────────────────────────────────────────
 // MIDDLEWARE 404 — Fallback para SPA (Público e Admin)
 // ──────────────────────────────────────────────────
 app.use((req, res) => {

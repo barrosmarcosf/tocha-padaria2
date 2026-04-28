@@ -410,10 +410,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Detectar sucesso do Stripe
     const params = new URLSearchParams(window.location.search);
     if (params.get('status') === 'success') {
-        cart = []; 
+        cart = [];
         save();
         document.getElementById('modalSuccess').style.display = 'flex';
         document.getElementById('checkoutOverlay').classList.add('active');
+
+        // Fallback crítico: confirma o pagamento caso o webhook do Stripe não tenha chegado
+        // (URL do servidor expirada, falha de rede, etc.)
+        const stripeSessionId = params.get('session_id');
+        if (stripeSessionId) {
+            fetch('/api/confirm-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: stripeSessionId })
+            }).catch(e => console.warn('[CONFIRM] Fallback confirm-session falhou:', e.message));
+        }
+
         window.history.replaceState({}, '', window.location.pathname);
     }
 
