@@ -313,30 +313,41 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         state.currentIndex = startingIndex;
-        sessionStorage.setItem('tocha_section', startingIndex); // grava posição inicial
+        sessionStorage.setItem('tocha_section', startingIndex);
 
-        // Scroll imediato para a seção correta (sem delay perceptível)
-        window.scrollTo(0, sections[startingIndex] ? sections[startingIndex].offsetTop : 0);
-        syncNavUI(startingIndex);
+        // Posiciona na seção correta após layout completo (window.load garante
+        // que offsetTop é calculado com imagens e CSS já aplicados, e também
+        // roda DEPOIS de qualquer restauração de scroll do browser)
+        function applyStartPosition() {
+            const idx = state.currentIndex;
+            const targetEl = sections[idx];
+            if (targetEl) window.scrollTo(0, targetEl.offsetTop);
+            syncNavUI(idx);
 
-        // Remove a cobertura escura após posicionar na seção correta
-        revealPage();
-        
-        const stickyNav = document.querySelector('.sticky-nav');
-        if (stickyNav) {
-            if (startingIndex === 0) {
-                stickyNav.classList.add('navbar-visible');
-                stickyNav.classList.remove('navbar-hidden');
-                document.body.classList.add('navbar-is-visible');
-            } else {
-                stickyNav.classList.add('navbar-hidden');
-                stickyNav.classList.remove('navbar-visible');
-                document.body.classList.remove('navbar-is-visible');
+            const stickyNav = document.querySelector('.sticky-nav');
+            if (stickyNav) {
+                if (idx === 0) {
+                    stickyNav.classList.add('navbar-visible');
+                    stickyNav.classList.remove('navbar-hidden');
+                    document.body.classList.add('navbar-is-visible');
+                } else {
+                    stickyNav.classList.add('navbar-hidden');
+                    stickyNav.classList.remove('navbar-visible');
+                    document.body.classList.remove('navbar-is-visible');
+                }
             }
+
+            navDots.forEach(d => d.classList.remove('active'));
+            if (navDots[idx]) navDots[idx].classList.add('active');
+
+            revealPage();
         }
-        
-        navDots.forEach(d => d.classList.remove('active'));
-        if (navDots[startingIndex]) navDots[startingIndex].classList.add('active');
+
+        if (document.readyState === 'complete') {
+            applyStartPosition();
+        } else {
+            window.addEventListener('load', applyStartPosition, { once: true });
+        }
         
     } // Fim do bloco isLanding
 
