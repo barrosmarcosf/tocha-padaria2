@@ -44,30 +44,22 @@ module.exports = function (supabase) {
             }
 
             // 🔒 IDEMPOTÊNCIA
-            const idemKey = req.headers['x-idempotency-key'] ||
-                (req.session_id ? `session_${req.session_id}` : null);
+            const idemKey = req.headers['x-idempotency-key'] || `session_${req.session_id}`;
 
-            if (!idemKey) {
-                return res.status(400).json({ error: true, message: 'Idempotency key obrigatória.' });
+            const { data: existing, error: idemErr } = await supabase
+                .from('pedidos')
+                .select('id, items')
+                .eq('idempotency_key', idemKey)
+                .maybeSingle();
+
+            if (idemErr && idemErr.message.includes('idempotency_key')) {
+                console.error('❌ ERRO CRÍTICO: coluna idempotency_key ausente no banco. Execute a migration SQL.');
+                return res.status(500).json({ error: true, message: 'Erro de configuração do servidor.' });
             }
 
-            try {
-                const { data: existing, error: idemErr } = await supabase
-                    .from('pedidos')
-                    .select('id, items')
-                    .eq('idempotency_key', idemKey)
-                    .maybeSingle();
-
-                if (!idemErr && existing) {
-                    const items = typeof existing.items === 'string' ? JSON.parse(existing.items) : existing.items;
-                    return res.json({ payment_id: items.mp_id, order_id: existing.id });
-                }
-
-                if (idemErr && idemErr.message.includes('idempotency_key')) {
-                    console.warn('⚠️ [Idempotency] Coluna idempotency_key não encontrada. Pulando validação.');
-                }
-            } catch (e) {
-                console.warn('⚠️ [Idempotency] Erro ao verificar chave. Continuando sem idempotência.', e.message);
+            if (!idemErr && existing) {
+                const items = typeof existing.items === 'string' ? JSON.parse(existing.items) : existing.items;
+                return res.json({ payment_id: items.mp_id, order_id: existing.id });
             }
 
             // Validar status da loja e estoque (mesma lógica do Stripe)
@@ -155,16 +147,11 @@ module.exports = function (supabase) {
                 const { data, error } = await supabase.from('pedidos').insert([orderData]).select().single();
                 
                 if (error) {
-                    // Fallback se a coluna não existir
                     if (error.message.includes('idempotency_key')) {
-                        console.warn('⚠️ [DB] Coluna idempotency_key ausente. Inserindo sem idempotência.');
-                        delete orderData.idempotency_key;
-                        const { data: retryData, error: retryErr } = await supabase.from('pedidos').insert([orderData]).select().single();
-                        if (retryErr) throw retryErr;
-                        newOrder = retryData;
-                    } else {
-                        throw error;
+                        console.error('❌ ERRO CRÍTICO: coluna idempotency_key ausente no banco. Execute a migration SQL.');
+                        return res.status(500).json({ error: true, message: 'Erro de configuração do servidor.' });
                     }
+                    throw error;
                 } else {
                     newOrder = data;
                 }
@@ -270,25 +257,21 @@ module.exports = function (supabase) {
             }
 
             // 🔒 IDEMPOTÊNCIA
-            const idemKey = req.headers['x-idempotency-key'] ||
-                (req.session_id ? `session_${req.session_id}` : null);
+            const idemKey = req.headers['x-idempotency-key'] || `session_${req.session_id}`;
 
-            if (!idemKey) {
-                return res.status(400).json({ error: true, message: 'Idempotency key obrigatória.' });
+            const { data: existingCard, error: idemCardErr } = await supabase
+                .from('pedidos')
+                .select('id')
+                .eq('idempotency_key', idemKey)
+                .maybeSingle();
+
+            if (idemCardErr && idemCardErr.message.includes('idempotency_key')) {
+                console.error('❌ ERRO CRÍTICO: coluna idempotency_key ausente no banco. Execute a migration SQL.');
+                return res.status(500).json({ error: true, message: 'Erro de configuração do servidor.' });
             }
 
-            try {
-                const { data: existing, error: idemErr } = await supabase
-                    .from('pedidos')
-                    .select('id, items')
-                    .eq('idempotency_key', idemKey)
-                    .maybeSingle();
-
-                if (!idemErr && existing) {
-                    return res.json({ order_id: existing.id });
-                }
-            } catch (e) {
-                console.warn('⚠️ [Idempotency] Erro ao verificar chave no MP. Continuando.', e.message);
+            if (!idemCardErr && existingCard) {
+                return res.json({ order_id: existingCard.id });
             }
 
             // 🔒 VALIDAÇÃO DE MÉTODO ATIVO
@@ -340,14 +323,10 @@ module.exports = function (supabase) {
                 
                 if (error) {
                     if (error.message.includes('idempotency_key')) {
-                        console.warn('⚠️ [DB] Coluna idempotency_key ausente no MP Prepare. Inserindo sem ela.');
-                        delete orderData.idempotency_key;
-                        const { data: retryData, error: retryErr } = await supabase.from('pedidos').insert([orderData]).select().single();
-                        if (retryErr) throw retryErr;
-                        newOrder = retryData;
-                    } else {
-                        throw error;
+                        console.error('❌ ERRO CRÍTICO: coluna idempotency_key ausente no banco. Execute a migration SQL.');
+                        return res.status(500).json({ error: true, message: 'Erro de configuração do servidor.' });
                     }
+                    throw error;
                 } else {
                     newOrder = data;
                 }
