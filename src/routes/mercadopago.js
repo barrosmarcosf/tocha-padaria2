@@ -117,6 +117,7 @@ module.exports = function (supabase) {
                         last_name: customer.name.split(' ').slice(1).join(' ') || 'Cliente',
                     },
                     external_reference: idemKey,
+                    date_of_expiration: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
                     notification_url: isHttps ? `${baseUrl}/api/mercadopago/webhook` : undefined
                 }
             };
@@ -175,6 +176,8 @@ module.exports = function (supabase) {
                 }
                 throw err;
             }
+
+            console.log(`[MP FLOW] idemKey=${idemKey} mpId=${mpId} orderId=${newOrder?.id}`);
 
             res.json({
                 payment_id: mpId,
@@ -501,13 +504,20 @@ module.exports = function (supabase) {
 
             if (action === 'payment.updated' || req.query.type === 'payment') {
                 const mpId = data?.id || req.query['data.id'];
-                if (mpId) {
-                    const mpPayment = await payment.get({ id: mpId });
-                    if (mpPayment.status === 'approved') {
-                        await processPaidMPOrder(supabase, String(mpId), mpPayment);
-                    } else {
-                        console.log(`[MP Webhook] Pagamento ${mpId} ignorado. Status: ${mpPayment.status}`);
-                    }
+                if (!mpId) return;
+
+                const mpPayment = await payment.get({ id: mpId });
+
+                // 🔒 Valida que o evento veio do MP de verdade — evita simular pagamento
+                if (!mpPayment || !mpPayment.id) {
+                    console.warn(`[MP Webhook] Evento inválido ignorado (mpId=${mpId})`);
+                    return;
+                }
+
+                if (mpPayment.status === 'approved' && mpPayment.status_detail !== 'rejected') {
+                    await processPaidMPOrder(supabase, String(mpId), mpPayment);
+                } else {
+                    console.log(`[MP Webhook] Pagamento ${mpId} ignorado. Status: ${mpPayment.status} / ${mpPayment.status_detail}`);
                 }
             }
         } catch (error) {
@@ -525,11 +535,17 @@ module.exports = function (supabase) {
 
             if (action === 'payment.updated' || req.query.type === 'payment') {
                 const mpId = data?.id || req.query['data.id'];
-                if (mpId) {
-                    const mpPayment = await payment.get({ id: mpId });
-                    if (mpPayment.status === 'approved') {
-                        await processPaidMPOrder(supabase, String(mpId), mpPayment);
-                    }
+                if (!mpId) return;
+
+                const mpPayment = await payment.get({ id: mpId });
+
+                if (!mpPayment || !mpPayment.id) {
+                    console.warn(`[MP Webhook Legacy] Evento inválido ignorado (mpId=${mpId})`);
+                    return;
+                }
+
+                if (mpPayment.status === 'approved' && mpPayment.status_detail !== 'rejected') {
+                    await processPaidMPOrder(supabase, String(mpId), mpPayment);
                 }
             }
         } catch (error) {
@@ -587,8 +603,7 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
     }
 
     if (!order) {
-        // 0 linhas atualizadas: pedido não existe OU já foi marcado como paid anteriormente
-        console.log(`[MP] Pagamento ${mpId} ignorado — pedido não encontrado ou já processado.`);
+        console.log(`[MP] DUPLICADO IGNORADO: mpId=${mpId} — pedido não encontrado ou já processado.`);
         return;
     }
 
