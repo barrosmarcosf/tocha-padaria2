@@ -19,7 +19,12 @@
       "Bash(VPS_PASS='Romeudodeserto12-' node fix-chrome-deps.js)",
       "Bash(rm fix-chrome-deps.js)",
       "Bash(VPS_PASS='Romeudodeserto12-' node check-bot.js)",
-      "Bash(rm check-bot.js)"
+      "Bash(rm check-bot.js)",
+      "Bash(nslookup www.tochapadaria.com)",
+      "Bash(nslookup tochapadaria.com)",
+      "Bash(node setup-ssl.js)",
+      "Bash(VPS_PASS='Romeudodeserto12-' node check-https.js)",
+      "Bash(rm setup-ssl.js check-https.js)"
     ],
     "additionalDirectories": [
       "\\tmp\\vps-deploy",
