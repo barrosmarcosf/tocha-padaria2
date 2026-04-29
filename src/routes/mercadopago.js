@@ -250,6 +250,9 @@ module.exports = function (supabase) {
     // 5. WEBHOOK MERCADO PAGO — rota principal
     // Único ponto onde pagamentos são confirmados, estoque é baixado e notificações são enviadas.
     router.post('/mercadopago/webhook', async (req, res) => {
+        // Responde 200 imediatamente para evitar retentativas por timeout do MP
+        res.status(200).send('OK');
+
         try {
             const { action, data } = req.body;
             console.log(`[MP Webhook] Action: ${action}`, data);
@@ -265,16 +268,15 @@ module.exports = function (supabase) {
                     }
                 }
             }
-
-            res.status(200).send('OK');
         } catch (error) {
             console.error('Erro no Webhook MP:', error);
-            res.status(500).send('Error');
         }
     });
 
     // Alias para compatibilidade com pagamentos PIX criados antes da mudança de rota
     router.post('/webhook/mercadopago', async (req, res) => {
+        res.status(200).send('OK');
+
         try {
             const { action, data } = req.body;
             console.log(`[MP Webhook Legacy] Action: ${action}`, data);
@@ -288,11 +290,8 @@ module.exports = function (supabase) {
                     }
                 }
             }
-
-            res.status(200).send('OK');
         } catch (error) {
             console.error('Erro no Webhook MP Legacy:', error);
-            res.status(500).send('Error');
         }
     });
 
@@ -323,31 +322,30 @@ async function recalcularTotal(supabase, cart) {
 async function processPaidMPOrder(supabase, mpId, _mpPayment) {
     const externalId = `mp_${mpId}`;
 
-    // Idempotência — ignora se já processado
-    const { data: order } = await supabase
+    // UPDATE atômico com condição: só atualiza se status ainda for 'pending'.
+    // Equivale a: UPDATE pedidos SET status='paid' WHERE stripe_session_id=X AND status='pending' RETURNING *
+    // PostgreSQL garante que apenas um processo concorrente vence — elimina a race condition
+    // sem precisar de SELECT prévio.
+    const { data: order, error: updateErr } = await supabase
         .from('pedidos')
-        .select('*, clientes(*)')
+        .update({ status: 'paid' })
         .eq('stripe_session_id', externalId)
+        .eq('status', 'pending')
+        .select('*, clientes(*)')
         .maybeSingle();
 
-    if (!order) {
-        console.warn(`[MP] Pedido não encontrado para ${externalId}. Ignorando.`);
-        return;
-    }
-
-    if (order.status !== 'pending') {
-        console.log(`[MP] Pedido ${order.id} já processado (status: ${order.status}). Ignorando.`);
-        return;
-    }
-
-    console.log(`✅ [MP] Processando pagamento aprovado: ${mpId}`);
-
-    // Atualizar para Pago
-    const { error: updateErr } = await supabase.from('pedidos').update({ status: 'paid' }).eq('id', order.id);
     if (updateErr) {
-        console.error(`❌ [MP] Erro ao atualizar pedido ${order.id}:`, updateErr.message);
+        console.error(`❌ [MP] Erro ao processar pedido ${externalId}:`, updateErr.message);
         return;
     }
+
+    if (!order) {
+        // 0 linhas atualizadas: pedido não existe OU já foi processado anteriormente
+        console.log(`[MP] Pagamento ${mpId} ignorado — pedido não encontrado ou já processado.`);
+        return;
+    }
+
+    console.log(`✅ [MP] Processando pagamento aprovado: ${mpId} (pedido ${order.id})`);
 
     const itemsData = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
     const cart = itemsData.actual_items || [];
