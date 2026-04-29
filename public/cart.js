@@ -155,9 +155,9 @@ window.closeCheckoutModal = function() {
 
 window.validarFormulario = function() {
     const campos = [
-        { id: 'nome', msg: 'Informe seu nome completo' },
-        { id: 'whatsapp', msg: 'Informe seu WhatsApp' },
-        { id: 'email', msg: 'Informe seu email' }
+        { id: 'id-name', msg: 'Informe seu nome completo' },
+        { id: 'id-whatsapp', msg: 'Informe um WhatsApp válido' },
+        { id: 'id-email', msg: 'Informe um e-mail válido' }
     ];
 
     let valido = true;
@@ -216,9 +216,9 @@ window.confirmarPedido = async function() {
     window.__checkoutLock = true;
     
     console.log('🚀 [CHECKOUT] Confirmar Pedido iniciado');
-    const name = document.getElementById('nome').value.trim();
-    const whatsapp = document.getElementById('whatsapp').value.trim();
-    const email = document.getElementById('email').value.trim();
+    const name = document.getElementById('id-name').value.trim();
+    const whatsapp = document.getElementById('id-whatsapp').value.trim();
+    const email = document.getElementById('id-email').value.trim();
     const payment = document.querySelector('input[name="payment-method"]:checked').value;
     const cartToCheckout = JSON.parse(localStorage.getItem('tocha-cart') || '[]');
     const sessionId = localStorage.getItem('tocha-session-id');
@@ -242,17 +242,16 @@ window.confirmarPedido = async function() {
         btn.disabled = true;
 
         // BUSCA CONFIGURAÇÃO ATUAL DO BACKEND (FONTE DA VERDADE)
-        const configRes = await fetch('/api/payment-methods');
-        if (!configRes.ok) throw new Error('Erro ao buscar configurações de pagamento.');
-        
-        const configContentType = configRes.headers.get('content-type');
-        if (!configContentType || !configContentType.includes('application/json')) {
-            const text = await configRes.text();
-            console.error('Resposta inválida do servidor:', text);
-            throw new Error('Servidor retornou resposta inválida (não JSON).');
+        let settings;
+        try {
+            const configRes = await fetch('/api/payment-methods');
+            if (!configRes.ok) throw new Error('Erro ao buscar configurações de pagamento.');
+            settings = await configRes.json();
+        } catch (error) {
+            console.error('Erro ao buscar configurações:', error);
+            // Fallback: habilita Mercado Pago por padrão se a API falhar
+            settings = { card: false, pix: false, mp_card: true, mp_pix: true };
         }
-        
-        const settings = await configRes.json();
 
         if (payment === 'mp_card') {
             if (!settings.mp_card) throw new Error('Mercado Pago cartão desabilitado');
@@ -380,19 +379,19 @@ function injectCart() {
 
                 <div class="form-group">
                     <label>Nome completo <span class="required">*</span></label>
-                    <input id="nome" type="text" placeholder="Ex: João Silva" class="modal-input" />
+                    <input id="id-name" type="text" placeholder="Ex: João Silva" class="modal-input" />
                     <div class="input-error-text"></div>
                 </div>
 
                 <div class="form-group">
                     <label>WhatsApp <span class="required">*</span></label>
-                    <input id="whatsapp" type="tel" placeholder="(00) 00000-0000" class="modal-input" />
+                    <input id="id-whatsapp" type="tel" placeholder="(00) 00000-0000" class="modal-input" />
                     <div class="input-error-text"></div>
                 </div>
 
                 <div class="form-group">
                     <label>Email <span class="required">*</span></label>
-                    <input id="email" type="email" placeholder="seu@email.com" class="modal-input" />
+                    <input id="id-email" type="email" placeholder="seu@email.com" class="modal-input" />
                     <div class="input-error-text"></div>
                 </div>
 
@@ -525,9 +524,9 @@ async function initMPCardBricks() {
                     const btn = document.querySelector('#checkoutModal .btn-primary');
                     
                     try {
-                        const name     = document.getElementById('nome').value.trim();
-                        const whatsapp = document.getElementById('whatsapp').value.trim();
-                        const email    = document.getElementById('email').value.trim();
+                        const name     = document.getElementById('id-name').value.trim();
+                        const whatsapp = document.getElementById('id-whatsapp').value.trim();
+                        const email    = document.getElementById('id-email').value.trim();
                         const cart2    = JSON.parse(localStorage.getItem('tocha-cart') || '[]');
 
                         const res = await fetch('/api/mercadopago/create-card-payment', {

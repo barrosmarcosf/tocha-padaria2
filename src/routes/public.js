@@ -1,10 +1,10 @@
 const express = require('express');
-const router = express.Router();
 const { sendContactEmail } = require('../notification-service');
 const { getCurrentStoreStatus } = require('../services/storeStatusService');
 const { getUnifiedProductList } = require('../services/stockService');
 
 module.exports = function (supabase) {
+    const router = express.Router();
 
     // ──────────────────────────────────────────────────
     // CONFIGURAÇÃO PÚBLICA (Categorias, Produtos, Conteúdo)

@@ -4,7 +4,7 @@
  * Arquivo orquestrador: inicializa Express, Supabase, Stripe,
  * monta as rotas modulares e inicia o worker de abandono.
  */
-console.log("🚀 [SERVER] Iniciando processo...");
+console.log("🚀 [SERVER] REINICIADO COM LOG DE DEPURACAO v999");
 require('dotenv').config();
 
 // CAPTURA DE ERROS TOTAIS (Para diagnosticar exit code 1)
@@ -69,7 +69,8 @@ app.use((req, res, next) => {
 });
 
 // O redirecionamento de /admin para /admin/ é feito automaticamente pelo express.static
-app.use(express.static(path.join(__dirname, 'public')));
+// Todas as outras rotas usam JSON
+app.use(express.json());
 
 // O webhook do Stripe precisa do body RAW, então tratamos antes do express.json()
 // Rota de webhook com raw body
@@ -109,7 +110,7 @@ app.use((req, res, next) => {
 });
 
 // ──────────────────────────────────────────────────
-// ROTAS MODULARES
+// ROTAS MODULARES (Priorizadas para evitar 404)
 // ──────────────────────────────────────────────────
 const adminRoutes = require('./src/routes/admin')(supabase);
 const checkoutRoutes = require('./src/routes/checkout')(supabase, stripe);
@@ -118,10 +119,14 @@ const publicRoutes = require('./src/routes/public')(supabase);
 const { startBot } = require('./src/notification-service');
 
 app.use('/api/admin', adminRoutes);
-app.use('/api', checkoutRoutes);
 app.use('/api/mercadopago', mercadopagoRoutes);
-
+app.use('/api', checkoutRoutes);
 app.use('/api', publicRoutes);
+
+// ──────────────────────────────────────────────────
+// MIDDLEWARES GLOBAIS (Arquivos Estáticos após API)
+// ──────────────────────────────────────────────────
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ──────────────────────────────────────────────────
 // SISTEMA DE ATUALIZAÇÃO EM TEMPO REAL (SSE)

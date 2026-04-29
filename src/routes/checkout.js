@@ -1,9 +1,9 @@
 const express = require('express');
-const router = express.Router();
 const { sendOrderEmails, sendOrderWhatsApp } = require('../notification-service');
 const { getUnifiedAvailableStock } = require('../services/stockService');
 
 module.exports = function (supabase, stripe) {
+    const router = express.Router();
 
     const PORT = process.env.PORT || 3333;
 

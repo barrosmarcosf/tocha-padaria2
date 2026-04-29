@@ -241,6 +241,13 @@
     </div>
 
     <div class="checkout-wrapper">
+        <!-- Painel de Erro Crítico -->
+        <div id="error-panel" style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); width:90%; max-width:600px; background:#ff4444; color:white; padding:25px; border-radius:15px; z-index:9999; box-shadow:0 10px 30px rgba(0,0,0,0.5); font-weight:500;">
+            <h2 style="margin-bottom:10px;">❌ Erro na Inicialização</h2>
+            <p id="error-msg" style="font-family:monospace; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px;"></p>
+            <button onclick="window.location.href='/'" style="margin-top:20px; background:white; color:#ff4444; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">Voltar para a Loja</button>
+        </div>
+
         <div class="checkout-grid">
             <!-- Coluna Esquerda: Resumo -->
             <aside class="summary-col">
@@ -288,99 +295,127 @@
         let orderData = null;
 
         async function init() {
+            console.log("🚀 CHECKOUT VERSION 3");
             const urlParams = new URLSearchParams(window.location.search);
             const orderId = urlParams.get('order_id');
+            console.log('🌐 [URL Check] order_id recebido:', orderId);
+            console.log("INIT MP");
 
             if (!orderId) {
-                alert('Pedido não encontrado.');
-                window.location.href = '/';
+                console.error('❌ order_id está ausente na URL');
+                showError('Erro: O ID do pedido não foi enviado para a página de pagamento.');
                 return;
             }
 
             try {
+                console.log('🔍 [Checkout] Iniciando para pedido:', orderId);
                 // 1. Buscar dados do pedido
                 const res = await fetch(`/api/mercadopago/order-summary/${orderId}`);
-                if (!res.ok) throw new Error('Não foi possível carregar os dados do pedido.');
+                if (!res.ok) {
+                    const errTxt = await res.text();
+                    console.error('❌ Erro no sumário:', errTxt);
+                    throw new Error('Não foi possível carregar os dados do pedido: ' + errTxt);
+                }
                 
                 orderData = await res.json();
+                console.log('📦 [Checkout] Dados do pedido carregados:', orderData);
                 renderSummary(orderData);
 
                 // 2. Buscar chave pública
                 const pkRes = await fetch('/api/mercadopago/public-key');
+                if (!pkRes.ok) throw new Error('Erro ao buscar chave pública do Mercado Pago.');
                 const pkData = await pkRes.json();
+                console.log('🔑 [Checkout] Chave pública carregada.');
+
+                if (!pkData.publicKey) throw new Error('Chave pública não configurada no servidor.');
 
                 // 3. Inicializar Bricks
+                console.log("🔑 [MP] Inicializando com chave:", pkData.publicKey);
                 const mp = new MercadoPago(pkData.publicKey, { locale: 'pt-BR' });
                 const bricks = mp.bricks();
 
-                cardPaymentBrickController = await bricks.create('cardPayment', 'mp-card-bricks', {
+                cardPaymentBrickController = await bricks.create("cardPayment", "mp-card-bricks", {
                     initialization: {
                         amount: orderData.total,
+                        payer: {
+                            email: orderData.customer.email
+                        }
                     },
                     customization: {
-                        paymentMethods: {
-                            minInstallments: 1,
-                            maxInstallments: 1,
-                        },
                         visual: {
-                            hideFormTitle: true,
                             style: {
-                                theme: 'dark',
-                                customVariables: {
-                                    formBackgroundColor: '#141414',
-                                    baseColor: '#EBB43B',
-                                    inputBackgroundColor: '#1E2229',
-                                    inputBorderColor: 'rgba(255,255,255,0.05)',
-                                    outlinePrimaryColor: '#EBB43B',
-                                    buttonBackgroundColor: '#EBB43B',
-                                    buttonTextColor: '#000000',
-                                    inputTextColor: '#FFFFFF',
-                                    placeholderColor: 'rgba(255,255,255,0.3)',
-                                    borderRadiusMedium: '8px'
-                                }
+                                theme: "default" // Alterado para default conforme sugestão para garantir carga
                             }
-                        },
-                        texts: {
-                            payButton: 'Pagar'
                         }
                     },
                     callbacks: {
                         onReady: () => {
-                            document.getElementById('loader').style.opacity = '0';
-                            setTimeout(() => document.getElementById('loader').remove(), 500);
+                            console.log("✅ Bricks pronto");
+                            const loader = document.getElementById('loader');
+                            if (loader) loader.style.opacity = '0';
+                            setTimeout(() => { if(loader) loader.remove(); }, 500);
                         },
-                        onSubmit: async (formData) => {
+                        onSubmit: async (cardFormData) => {
+                            console.log("📤 [MP] onSubmit disparado");
                             try {
-                                const payRes = await fetch('/api/mercadopago/create-card-payment', {
+                                const res = await fetch('/api/mercadopago/create-card-payment', {
                                     method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
                                     body: JSON.stringify({
-                                        customer: {
-                                            name: orderData.customer.name,
-                                            email: orderData.customer.email,
-                                            whatsapp: orderData.customer.whatsapp
-                                        },
-                                        cart: orderData.items,
+                                        ...cardFormData,
                                         order_id: orderData.id,
-                                        ...formData
+                                        customer: orderData.customer,
+                                        cart: orderData.items
                                     })
                                 });
 
-                                const result = await payRes.json();
-                                if (!payRes.ok) throw new Error(result.error || 'Erro no pagamento');
+                                const data = await res.json();
 
-                                window.location.href = `/?status=success&order_id=${orderData.id}`;
-                            } catch (e) {
-                                alert(e.message);
+                                if (!res.ok) {
+                                    throw new Error(data.error || 'Erro no pagamento');
+                                }
+
+                                console.log("✅ Pagamento OK", data);
+                                window.location.href = `/?status=success&order_id=${data.order_id || orderData.id}`;
+
+                            } catch (err) {
+                                console.error("❌ Erro no processamento:", err);
+                                alert(err.message);
                             }
+                        },
+                        onError: (error) => {
+                            console.error("❌ Erro no Brick:", error);
+                            showError("Erro ao carregar pagamento. Tente novamente.");
                         }
                     }
                 });
 
             } catch (e) {
-                console.error(e);
-                alert('Erro crítico: ' + e.message);
-                window.location.href = '/';
+                console.error('💥 [Checkout Error]:', e);
+                const errPanel = document.getElementById('error-panel');
+                const errMsg = document.getElementById('error-msg');
+                if (errPanel && errMsg) {
+                    errMsg.innerText = e.message;
+                    errPanel.style.display = 'block';
+                    document.getElementById('loader').style.display = 'none';
+                } else {
+                    alert('Erro Crítico: ' + e.message);
+                }
+            }
+        }
+
+        function showError(msg) {
+            const errPanel = document.getElementById('error-panel');
+            const errMsg = document.getElementById('error-msg');
+            if (errPanel && errMsg) {
+                errMsg.innerText = msg;
+                errPanel.style.display = 'block';
+                const loader = document.getElementById('loader');
+                if (loader) loader.style.display = 'none';
+            } else {
+                alert(msg);
             }
         }
 
