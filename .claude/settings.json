@@ -28,7 +28,8 @@
       "Bash(stripe --version)",
       "Read(//c/stripe//**)",
       "Bash(VPS_PASS='Romeudodeserto12-' node test-webhook.js)",
-      "Bash(rm test-webhook.js)"
+      "Bash(rm test-webhook.js)",
+      "Bash(node create-rpc.js)"
     ],
     "additionalDirectories": [
       "\\tmp\\vps-deploy",
