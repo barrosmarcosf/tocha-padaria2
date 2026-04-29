@@ -1,4 +1,27 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import paramiko; print\\('paramiko ok'\\)\")",
+      "Bash(ssh -V)",
+      "PowerShell(Test-NetConnection -ComputerName 187.127.251.209 -Port 22)",
+      "Bash(sshpass -V)",
+      "PowerShell($r = Test-NetConnection -ComputerName 187.127.251.209 -Port 22 -WarningAction SilentlyContinue; Write-Output \"TCP 22: $\\($r.TcpTestSucceeded\\)\")",
+      "Bash(mkdir -p /tmp/vps-deploy)",
+      "Read(//tmp/**)",
+      "Bash(npm init *)",
+      "Bash(npm install *)",
+      "Bash(node deploy.js)",
+      "Bash(node deploy-vps.js)",
+      "Bash(node -e ' *)",
+      "Bash(VPS_PASS='Romeudodeserto12-' node check-logs.js)",
+      "Bash(rm deploy-vps.js check-logs.js)",
+      "Bash(npm uninstall *)"
+    ],
+    "additionalDirectories": [
+      "\\tmp\\vps-deploy",
+      "c:\\tmp\\vps-deploy"
+    ]
+  },
   "hooks": {
     "Stop": [
       {
