@@ -17,7 +17,9 @@
       "Bash(rm deploy-vps.js check-logs.js)",
       "Bash(npm uninstall *)",
       "Bash(VPS_PASS='Romeudodeserto12-' node fix-chrome-deps.js)",
-      "Bash(rm fix-chrome-deps.js)"
+      "Bash(rm fix-chrome-deps.js)",
+      "Bash(VPS_PASS='Romeudodeserto12-' node check-bot.js)",
+      "Bash(rm check-bot.js)"
     ],
     "additionalDirectories": [
       "\\tmp\\vps-deploy",
