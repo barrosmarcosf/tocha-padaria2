@@ -22,83 +22,12 @@ module.exports = function (supabase) {
     });
     const payment = new Payment(client);
 
-    // --- ROTA UNIFICADA DE PAGAMENTO (Tarefa 3) ---
-    router.post('/process-payment', async (req, res) => {
-        console.log("🚀 [MP] BODY RECEBIDO:", JSON.stringify(req.body, null, 2));
-
-        try {
-            const { method, customer, cart, amount, token: cardToken, payment_method_id, issuer_id, installments } = req.body;
-
-            // 1. Validação básica (Tarefa 2)
-            if (!method) return res.status(400).json({ error: true, message: "Método de pagamento não especificado." });
-            if (!customer?.email) return res.status(400).json({ error: true, message: "Email do cliente é obrigatório." });
-            
-            // Garantir que amount é número (Tarefa 2/5)
-            const transactionAmount = Number(amount);
-            if (isNaN(transactionAmount) || transactionAmount <= 0) {
-                return res.status(400).json({ error: true, message: "Valor de pagamento inválido." });
-            }
-
-            // 2. Roteamento por método (Tarefa 3)
-            if (method === "pix") {
-                console.log("💎 [MP] Iniciando fluxo PIX...");
-                
-                const paymentData = {
-                    body: {
-                        transaction_amount: transactionAmount,
-                        description: 'Pedido Tocha Padaria',
-                        payment_method_id: 'pix',
-                        payer: { email: customer.email }
-                    }
-                };
-
-                const mpResponse = await payment.create(paymentData);
-                return res.json({
-                    success: true,
-                    method: "pix",
-                    payment_id: String(mpResponse.id),
-                    qr_code: mpResponse.point_of_interaction.transaction_data.qr_code,
-                    qr_code_base64: await QRCode.toDataURL(mpResponse.point_of_interaction.transaction_data.qr_code)
-                });
-            } 
-
-            if (method === "card") {
-                console.log("💳 [MP] Iniciando fluxo CARTÃO...");
-                
-                if (!cardToken) return res.status(400).json({ error: true, message: "Token do cartão é obrigatório para este método." });
-                if (!payment_method_id) return res.status(400).json({ error: true, message: "Payment Method ID é obrigatório." });
-
-                const paymentData = {
-                    body: {
-                        transaction_amount: transactionAmount,
-                        token: cardToken,
-                        description: 'Pedido Tocha Padaria',
-                        installments: Number(installments) || 1,
-                        payment_method_id,
-                        issuer_id,
-                        payer: { email: customer.email }
-                    }
-                };
-
-                const mpResponse = await payment.create(paymentData);
-                return res.json({
-                    success: true,
-                    method: "card",
-                    status: mpResponse.status,
-                    payment_id: String(mpResponse.id),
-                    status_detail: mpResponse.status_detail
-                });
-            }
-
-            return res.status(400).json({ error: true, message: "Método de pagamento não suportado." });
-
-        } catch (error) {
-            console.error("❌ [MP] ERRO PAGAMENTO:", error.response?.data || error);
-            return res.status(500).json({
-                error: true,
-                message: error.response?.data?.message || error.message || "Erro interno ao processar pagamento."
-            });
-        }
+    // Rota legada desabilitada — não salva pedido no banco, nunca use.
+    router.post('/process-payment', (_req, res) => {
+        return res.status(410).json({
+            error: true,
+            message: 'Rota descontinuada. Use /create-pix-payment ou /create-card-payment.'
+        });
     });
 
     // 1. CRIAR PAGAMENTO PIX
@@ -114,9 +43,14 @@ module.exports = function (supabase) {
                 return res.status(400).json({ error: 'Dados incompletos do carrinho ou cliente.' });
             }
 
-            // 🔒 IDEMPOTÊNCIA (Resiliente a colunas ausentes)
-            const idemKey = req.headers['x-idempotency-key'] || `fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            
+            // 🔒 IDEMPOTÊNCIA
+            const idemKey = req.headers['x-idempotency-key'] ||
+                (req.session_id ? `session_${req.session_id}` : null);
+
+            if (!idemKey) {
+                return res.status(400).json({ error: true, message: 'Idempotency key obrigatória.' });
+            }
+
             try {
                 const { data: existing, error: idemErr } = await supabase
                     .from('pedidos')
@@ -182,6 +116,7 @@ module.exports = function (supabase) {
                         first_name: customer.name.split(' ')[0],
                         last_name: customer.name.split(' ').slice(1).join(' ') || 'Cliente',
                     },
+                    external_reference: idemKey,
                     notification_url: isHttps ? `${baseUrl}/api/mercadopago/webhook` : undefined
                 }
             };
@@ -331,9 +266,14 @@ module.exports = function (supabase) {
                 return res.status(400).json({ error: 'Dados incompletos do carrinho ou cliente.' });
             }
 
-            // 🔒 IDEMPOTÊNCIA (Resiliente a colunas ausentes)
-            const idemKey = req.headers['x-idempotency-key'] || `fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            
+            // 🔒 IDEMPOTÊNCIA
+            const idemKey = req.headers['x-idempotency-key'] ||
+                (req.session_id ? `session_${req.session_id}` : null);
+
+            if (!idemKey) {
+                return res.status(400).json({ error: true, message: 'Idempotency key obrigatória.' });
+            }
+
             try {
                 const { data: existing, error: idemErr } = await supabase
                     .from('pedidos')
@@ -502,6 +442,16 @@ module.exports = function (supabase) {
             // atualiza o pedido existente em vez de criar um duplicado.
             let newOrder;
             if (order_id) {
+                const { data: existingOrder } = await supabase
+                    .from('pedidos')
+                    .select('status')
+                    .eq('id', order_id)
+                    .maybeSingle();
+
+                if (!existingOrder || existingOrder.status !== 'pending') {
+                    return res.status(400).json({ error: 'Pedido inválido ou já processado.' });
+                }
+
                 const { data, error: updateErr } = await supabase
                     .from('pedidos')
                     .update({ stripe_session_id: `mp_${mpId}`, items: itemsJson })
@@ -621,7 +571,7 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
     const { data: order, error: updateErr } = await supabase
         .from('pedidos')
         .update({ status: 'paid', mp_payment_id: mpId })
-        .eq('stripe_session_id', externalId)
+        .or(`stripe_session_id.eq.${externalId},mp_payment_id.eq.${mpId}`)
         .eq('status', 'pending')
         .select('*, clientes(*)')
         .maybeSingle();
