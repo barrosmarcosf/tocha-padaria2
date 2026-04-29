@@ -250,60 +250,66 @@ module.exports = function (supabase, stripe) {
 async function processPaidSession(supabase, stripe, session) {
     console.log(`\n--- 💳 INICIANDO PROCESSAMENTO DE SESSÃO PAGA: ${session.id} ---`);
     try {
-        // Idempotência: verificar se já foi processado via status no banco
-        const { data: existingOrder, error: checkErr } = await supabase
-            .from('pedidos')
-            .select('status, items, customer_id')
-            .eq('stripe_session_id', session.id)
-            .maybeSingle();
-
-        if (checkErr) {
-            console.error("❌ [CHECK] Erro ao verificar idempotência no Supabase:", checkErr.message);
-            return;
-        }
-
-        if (existingOrder && existingOrder.status !== 'pending') {
-            console.log(`⚠️ [CHECK] Sessão ${session.id} ignorada. Status atual: ${existingOrder.status}`);
-            return;
-        }
-
         const paymentMethod = session.payment_method_types?.[0] === 'card' ? 'Crédito' :
             session.payment_method_types?.[0] === 'pix' ? 'Pix' : 'Cartão/Stripe';
 
         console.log(`📝 [INFO] Método detectado: ${paymentMethod} | Cliente: ${session.customer_email || 'N/A'}`);
 
-        // Extrair itens originais para não perdê-los no update
+        // Buscar itens do pedido para incluí-los no UPDATE (SELECT só para dados, não para guarda)
+        const { data: existingOrder, error: checkErr } = await supabase
+            .from('pedidos')
+            .select('items')
+            .eq('stripe_session_id', session.id)
+            .maybeSingle();
+
+        if (checkErr) {
+            console.error("❌ [CHECK] Erro ao buscar pedido no Supabase:", checkErr.message);
+            return;
+        }
+
+        if (!existingOrder) {
+            console.warn(`⚠️ [CHECK] Pedido não encontrado para sessão ${session.id}. Ignorando.`);
+            return;
+        }
+
         let originalItems = {};
         try {
-            originalItems = typeof existingOrder.items === 'string' 
-                ? JSON.parse(existingOrder.items) 
+            originalItems = typeof existingOrder.items === 'string'
+                ? JSON.parse(existingOrder.items)
                 : (existingOrder.items || {});
         } catch (e) {
-            console.warn("⚠️ [PARSE] Erro ao parsear itens do pedido existente:", e.message);
+            console.warn("⚠️ [PARSE] Erro ao parsear itens:", e.message);
             originalItems = { raw: existingOrder.items };
         }
 
-        // Atualizar Supabase (Marcar como pago)
-        console.log(`[Supabase] Atualizando pedido para 'paid'...`);
+        // UPDATE atômico com condição: só atualiza se status ainda for 'pending'.
+        // Equivale a: UPDATE pedidos SET ... WHERE stripe_session_id=X AND status='pending' RETURNING *
+        // PostgreSQL serializa chamadas concorrentes — apenas uma vence o lock da linha.
         const { data: orderUpdate, error: updateErr } = await supabase
             .from('pedidos')
-            .update({ 
+            .update({
                 status: 'paid',
-                items: JSON.stringify({ 
-                    ...originalItems,
-                    payment_method: paymentMethod 
-                })
+                stripe_payment_intent: session.payment_intent || null,
+                items: JSON.stringify({ ...originalItems, payment_method: paymentMethod })
             })
             .eq('stripe_session_id', session.id)
+            .eq('status', 'pending')
             .select()
             .maybeSingle();
 
         if (updateErr) {
-            console.error("❌ [UPDATE] Erro fatal ao atualizar status no Supabase:", updateErr.message);
+            if (updateErr.code === '23505') {
+                // UNIQUE violation em stripe_payment_intent: outro processo já processou
+                console.log(`⚠️ [UPDATE] Sessão ${session.id} ignorada — UNIQUE violation (já processada).`);
+            } else {
+                console.error("❌ [UPDATE] Erro fatal ao atualizar status no Supabase:", updateErr.message);
+            }
             return;
         }
+
         if (!orderUpdate) {
-            console.error("❌ [UPDATE] Pedido não encontrado para o session_id:", session.id);
+            // 0 linhas atualizadas: já estava paid (segunda chamada do webhook ou polling)
+            console.log(`⚠️ [UPDATE] Sessão ${session.id} ignorada — pedido já processado.`);
             return;
         }
 

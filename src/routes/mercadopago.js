@@ -328,19 +328,24 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
     // sem precisar de SELECT prévio.
     const { data: order, error: updateErr } = await supabase
         .from('pedidos')
-        .update({ status: 'paid' })
+        .update({ status: 'paid', mp_payment_id: mpId })
         .eq('stripe_session_id', externalId)
         .eq('status', 'pending')
         .select('*, clientes(*)')
         .maybeSingle();
 
     if (updateErr) {
-        console.error(`❌ [MP] Erro ao processar pedido ${externalId}:`, updateErr.message);
+        if (updateErr.code === '23505') {
+            // UNIQUE violation em mp_payment_id: outro processo já gravou este pagamento
+            console.log(`[MP] Pagamento ${mpId} ignorado — UNIQUE violation (race condition resolvida pelo banco).`);
+        } else {
+            console.error(`❌ [MP] Erro ao processar pedido ${externalId}:`, updateErr.message);
+        }
         return;
     }
 
     if (!order) {
-        // 0 linhas atualizadas: pedido não existe OU já foi processado anteriormente
+        // 0 linhas atualizadas: pedido não existe OU já foi marcado como paid anteriormente
         console.log(`[MP] Pagamento ${mpId} ignorado — pedido não encontrado ou já processado.`);
         return;
     }
