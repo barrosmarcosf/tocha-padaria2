@@ -469,10 +469,11 @@ async function initMPCardBricks() {
     const container = document.getElementById('mp-card-bricks');
     if (!container) return;
 
-    if (_mpBricks) {
-        try { _mpBricks.unmount(); } catch(e) {}
-        _mpBricks = null;
+    if (window.cardPaymentBrickController) {
+        try { await window.cardPaymentBrickController.unmount(); } catch(e) {}
+        window.cardPaymentBrickController = null;
     }
+    _mpBricks = null;
 
     const cartItems = JSON.parse(localStorage.getItem('tocha-cart') || '[]');
     const totalAmount = cartItems.reduce((t, i) => t + i.price * i.qty, 0);
@@ -505,7 +506,7 @@ async function initMPCardBricks() {
         const mp = new MercadoPago(pkData.publicKey, { locale: 'pt-BR' });
         const bricks = mp.bricks();
 
-        window.cardPaymentBrickController = await bricks.create('cardPayment', 'mp-card-bricks', {
+        _mpBricks = window.cardPaymentBrickController = await bricks.create('cardPayment', 'mp-card-bricks', {
             initialization: { amount: totalAmount },
             customization: { 
                 paymentMethods: { minInstallments: 1, maxInstallments: 1 },

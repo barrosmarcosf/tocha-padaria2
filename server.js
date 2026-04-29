@@ -126,6 +126,7 @@ app.use('/api', publicRoutes);
 // ──────────────────────────────────────────────────
 // MIDDLEWARES GLOBAIS (Arquivos Estáticos após API)
 // ──────────────────────────────────────────────────
+app.get('/', (_req, res) => res.status(200).sendFile(path.join(__dirname, 'public', 'index.html')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ──────────────────────────────────────────────────
@@ -298,14 +299,14 @@ app.use((req, res) => {
         return res.status(200).sendFile(path.join(__dirname, 'public', 'admin', 'index.html'));
     }
     
-    // Caso contrário, serve o storefront normal
-    res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+    // Caso contrário, serve o storefront normal (SPA — sempre 200)
+    res.status(200).sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ──────────────────────────────────────────────────
 // INICIAR SERVIDOR
 // ──────────────────────────────────────────────────
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`\nTOCHA PADARIA: Sistema Ativo e Protegido!`);
     console.log(`PORTA: ${PORT}`);
     console.log(`ACESSE: http://localhost:${PORT}`);
