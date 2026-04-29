@@ -29,7 +29,9 @@
       "Read(//c/stripe//**)",
       "Bash(VPS_PASS='Romeudodeserto12-' node test-webhook.js)",
       "Bash(rm test-webhook.js)",
-      "Bash(node create-rpc.js)"
+      "Bash(node create-rpc.js)",
+      "Bash(node -e \"require\\('./src/routes/mercadopago.js'\\)\")",
+      "Bash(node -e \"require\\('./src/routes/public.js'\\)\")"
     ],
     "additionalDirectories": [
       "\\tmp\\vps-deploy",

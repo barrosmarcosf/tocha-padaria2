@@ -90,6 +90,18 @@ module.exports = function (supabase) {
     });
 
     // ──────────────────────────────────────────────────
+    // MÉTODOS DE PAGAMENTO ATIVOS (público)
+    // ──────────────────────────────────────────────────
+    router.get('/payment-methods', async (req, res) => {
+        try {
+            const { data } = await supabase.from('site_content').select('value').eq('key', 'payment_methods').maybeSingle();
+            res.json(data?.value || { card: true, pix: true, mp_card: false });
+        } catch (e) {
+            res.json({ card: true, pix: true, mp_card: false });
+        }
+    });
+
+    // ──────────────────────────────────────────────────
     // FALE CONOSCO
     // ──────────────────────────────────────────────────
     router.post('/contact', async (req, res) => {

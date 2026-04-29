@@ -138,7 +138,117 @@ module.exports = function (supabase) {
         }
     });
 
-    // 3. WEBHOOK MERCADO PAGO
+    // 3. CHAVE PÚBLICA (para o Bricks no frontend)
+    router.get('/mercadopago/public-key', (req, res) => {
+        const pubKey = process.env.MERCADOPAGO_PUBLIC_KEY;
+        if (!pubKey) return res.status(503).json({ error: 'Chave pública MP não configurada. Adicione MERCADOPAGO_PUBLIC_KEY no .env' });
+        res.json({ publicKey: pubKey });
+    });
+
+    // 4. CHECKOUT TRANSPARENTE — CARTÃO (Bricks)
+    router.post('/mercadopago/create-card-payment', async (req, res) => {
+        try {
+            const { customer, cart: cartItems, totalAmount, token, issuer_id, payment_method_id, installments } = req.body;
+
+            if (!customer?.email || !cartItems?.length || !token) {
+                return res.status(400).json({ error: 'Dados incompletos.' });
+            }
+
+            const storeStatusResult = await getUnifiedStoreStatus(supabase);
+            if (!storeStatusResult.isOpen && !storeStatusResult.allowNextBatch) {
+                return res.status(403).json({ error: storeStatusResult.message || 'Loja fechada.' });
+            }
+
+            const batchDate = storeStatusResult.batchDate || storeStatusResult.nextBatchDate;
+            if (batchDate) {
+                for (const item of cartItems) {
+                    const available = await getUnifiedAvailableStock(supabase, item.id);
+                    if (available < item.qty) {
+                        return res.status(400).json({ error: `Estoque insuficiente para ${item.name}.` });
+                    }
+                }
+            }
+
+            // Registrar/Atualizar Cliente
+            let customerId;
+            const { data: existingCustomer } = await supabase.from('clientes').select('id').eq('email', customer.email).maybeSingle();
+            if (existingCustomer) {
+                customerId = existingCustomer.id;
+                await supabase.from('clientes').update({ name: customer.name, whatsapp: customer.whatsapp }).eq('id', customerId);
+            } else {
+                const { data: newCustomer, error: insertErr } = await supabase.from('clientes').insert([{ name: customer.name, email: customer.email, whatsapp: customer.whatsapp }]).select().single();
+                if (insertErr) throw insertErr;
+                customerId = newCustomer.id;
+            }
+
+            // Criar pagamento no Mercado Pago
+            const nameParts = (customer.name || '').split(' ');
+            const mpResponse = await payment.create({
+                body: {
+                    transaction_amount: Number(totalAmount),
+                    token,
+                    description: 'Pedido Tocha Padaria',
+                    installments: Number(installments) || 1,
+                    payment_method_id,
+                    issuer_id,
+                    payer: {
+                        email: customer.email,
+                        first_name: nameParts[0] || 'Cliente',
+                        last_name: nameParts.slice(1).join(' ') || 'Cliente'
+                    }
+                }
+            });
+
+            const mpId = String(mpResponse.id);
+            const mpStatus = mpResponse.status;
+            console.log(`💳 [MP Card] Pagamento ${mpId}: ${mpStatus} (${mpResponse.status_detail})`);
+
+            const { data: newOrder, error: orderError } = await supabase.from('pedidos').insert([{
+                customer_id: customerId,
+                stripe_session_id: `mp_${mpId}`,
+                total_amount: totalAmount,
+                status: mpStatus === 'approved' ? 'paid' : 'pending',
+                items: JSON.stringify({
+                    actual_items: cartItems,
+                    order_type: storeStatusResult.orderType,
+                    batch_date: batchDate,
+                    payment_method: 'Cartão (Mercado Pago)',
+                    mp_id: mpId
+                })
+            }]).select().single();
+
+            if (orderError) throw orderError;
+
+            if (mpStatus === 'approved') {
+                if (batchDate) {
+                    for (const item of cartItems) {
+                        await supabase.rpc('processar_venda_estoque', {
+                            p_id: String(item.id),
+                            f_date: String(batchDate),
+                            amount: parseInt(item.qty)
+                        }).catch(() => null);
+                    }
+                }
+                await Promise.allSettled([
+                    sendOrderEmails(supabase, newOrder, customer, 'Cartão (Mercado Pago)'),
+                    sendOrderWhatsApp(supabase, newOrder, customer, 'Cartão (Mercado Pago)')
+                ]);
+                return res.json({ success: true, status: 'approved', order_id: newOrder.id });
+            }
+
+            if (mpStatus === 'in_process' || mpStatus === 'pending') {
+                return res.json({ success: true, status: 'pending', order_id: newOrder.id });
+            }
+
+            res.status(400).json({ error: `Pagamento recusado: ${mpResponse.status_detail || mpStatus}` });
+
+        } catch (error) {
+            console.error('❌ [MP Card] Erro:', error);
+            res.status(500).json({ error: error.message || 'Erro ao processar pagamento.' });
+        }
+    });
+
+    // 5. WEBHOOK MERCADO PAGO
     router.post('/webhook/mercadopago', async (req, res) => {
         try {
             const { action, data } = req.body;

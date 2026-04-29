@@ -240,6 +240,10 @@ window.confirmarPedido = async function() {
 
             localStorage.setItem('tocha-pix-data', JSON.stringify(data));
             window.location.href = "/pagamento-pix.html";
+        } else if (payment === 'mp_card') {
+            // Bricks cuida da submissão; este botão não deve ser acessível quando mp_card está ativo
+            btn.innerText = originalText;
+            btn.disabled = false;
         } else {
             const res = await fetch('/api/checkout', {
                 method: 'POST',
@@ -342,6 +346,10 @@ function injectCart() {
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #aaa;">
                         <input type="radio" name="payment-method" value="card" style="accent-color: var(--accent);"> Cartão de crédito (Stripe)
                     </label>
+                    <label id="label-mp-card" style="display: none; align-items: center; gap: 10px; margin-top: 12px; cursor: pointer; color: #aaa;">
+                        <input type="radio" name="payment-method" value="mp_card" style="accent-color: var(--accent);"> Cartão (Mercado Pago)
+                    </label>
+                    <div id="mp-card-bricks" style="display:none; margin-top:16px;"></div>
                 </div>
                 
                 <button class="btn-primary" onclick="window.tentarFinalizar()" style="border-radius: 10px; margin-bottom: 10px; width: 100%;">CONFIRMAR PEDIDO</button>
@@ -398,6 +406,106 @@ async function fetchStoreStatus() {
     } catch (e) { console.error(e); }
 }
 
+/* ── Mercado Pago Bricks (Cartão Transparente) ── */
+let _mpBricks = null;
+
+async function initMPCardBricks() {
+    const container = document.getElementById('mp-card-bricks');
+    if (!container) return;
+
+    if (_mpBricks) {
+        try { _mpBricks.unmount(); } catch(e) {}
+        _mpBricks = null;
+    }
+
+    const cartItems = JSON.parse(localStorage.getItem('tocha-cart') || '[]');
+    const totalAmount = cartItems.reduce((t, i) => t + i.price * i.qty, 0);
+    if (totalAmount <= 0) {
+        container.innerHTML = '<p style="color:#ef4444;font-size:0.85rem;padding:12px;">Carrinho vazio.</p>';
+        return;
+    }
+
+    container.innerHTML = '<p style="color:#aaa;font-size:0.85rem;text-align:center;padding:20px;">Carregando formulário…</p>';
+
+    try {
+        const pkRes = await fetch('/api/mercadopago/public-key');
+        const pkData = await pkRes.json();
+        if (!pkData.publicKey) throw new Error('Chave pública MP não configurada no servidor.');
+
+        if (!window.MercadoPago) {
+            await new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = 'https://sdk.mercadopago.com/js/v2';
+                s.onload = resolve;
+                s.onerror = () => reject(new Error('Falha ao carregar SDK do Mercado Pago.'));
+                document.head.appendChild(s);
+            });
+        }
+
+        const mp = new MercadoPago(pkData.publicKey, { locale: 'pt-BR' });
+        const bricks = mp.bricks();
+
+        _mpBricks = await bricks.create('cardPayment', 'mp-card-bricks', {
+            initialization: { amount: totalAmount },
+            customization: { paymentMethods: { minInstallments: 1, maxInstallments: 1 } },
+            callbacks: {
+                onReady: () => {},
+                onSubmit: async (formData) => {
+                    if (!window.validarFormulario()) {
+                        throw new Error('Preencha seus dados acima antes de pagar.');
+                    }
+                    const name     = document.getElementById('nome').value.trim();
+                    const whatsapp = document.getElementById('whatsapp').value.trim();
+                    const email    = document.getElementById('email').value.trim();
+                    const cart2    = JSON.parse(localStorage.getItem('tocha-cart') || '[]');
+                    const total2   = cart2.reduce((t, i) => t + i.price * i.qty, 0);
+
+                    const res = await fetch('/api/mercadopago/create-card-payment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ customer: { name, whatsapp, email }, cart: cart2, totalAmount: total2, ...formData })
+                    });
+                    const data = await res.json();
+                    if (data.error) throw new Error(data.error);
+
+                    cart = [];
+                    save();
+                    window.closeCheckoutModal();
+                    document.getElementById('modalSuccess').style.display = 'flex';
+                    document.getElementById('checkoutOverlay').classList.add('active');
+                },
+                onError: (err) => { console.error('[MP Bricks]', err); }
+            }
+        });
+    } catch(e) {
+        if (container) container.innerHTML = `<p style="color:#ef4444;font-size:0.85rem;padding:12px;">Erro: ${e.message}</p>`;
+    }
+}
+
+async function applyPaymentMethodSettings() {
+    try {
+        const r = await fetch('/api/payment-methods');
+        if (!r.ok) return;
+        const s = await r.json();
+
+        const pixInput  = document.querySelector('input[value="pix"]');
+        const cardInput = document.querySelector('input[value="card"]');
+        const mpLabel   = document.getElementById('label-mp-card');
+
+        if (pixInput)  pixInput.closest('label').style.display  = s.pix  !== false ? 'flex' : 'none';
+        if (cardInput) cardInput.closest('label').style.display = (s.card && !s.mp_card) ? 'flex' : 'none';
+        if (mpLabel)   mpLabel.style.display = s.mp_card ? 'flex' : 'none';
+
+        // Auto-select first visible option
+        document.querySelectorAll('input[name="payment-method"]').forEach((opt, i) => {
+            const visible = opt.closest('label')?.style.display !== 'none';
+            if (i === 0 || visible) opt.checked = visible && i === 0 ? true : opt.checked;
+        });
+        const first = [...document.querySelectorAll('input[name="payment-method"]')].find(o => o.closest('label')?.style.display !== 'none');
+        if (first) first.checked = true;
+    } catch(e) {}
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     injectCart();
     render();
@@ -428,6 +536,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.history.replaceState({}, '', window.location.pathname);
     }
+
+    applyPaymentMethodSettings();
+
+    // Mostrar/ocultar Bricks quando o método de pagamento muda
+    document.addEventListener('change', function(e) {
+        if (e.target.name !== 'payment-method') return;
+        const bricksContainer = document.getElementById('mp-card-bricks');
+        const confirmBtn = document.querySelector('#checkoutModal .btn-primary');
+        if (e.target.value === 'mp_card') {
+            if (bricksContainer) bricksContainer.style.display = 'block';
+            if (confirmBtn) confirmBtn.style.display = 'none';
+            initMPCardBricks();
+        } else {
+            if (bricksContainer) bricksContainer.style.display = 'none';
+            if (confirmBtn) confirmBtn.style.display = '';
+        }
+    });
 
     const closeBtn = document.getElementById('closeCart');
     if (closeBtn) closeBtn.addEventListener('click', window.closeCart);

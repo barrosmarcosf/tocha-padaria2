@@ -2917,7 +2917,8 @@ let state = {
         
         const settings = {
             card: document.getElementById('toggle-card').checked,
-            pix: document.getElementById('toggle-pix').checked
+            pix: document.getElementById('toggle-pix').checked,
+            mp_card: document.getElementById('toggle-mp-card')?.checked || false
         };
         
         try {
@@ -3024,6 +3025,50 @@ let state = {
                         </div>
                     </div>
 
+                    <!-- Mercado Pago -->
+                    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 2.5rem; border: 1px solid #e2e8f0; border-radius: 16px; background: #fff; position:relative; overflow:hidden;">
+                            <div style="position:absolute; top:0; left:0; width:4px; height:100%; background:#009ee3;"></div>
+                            <div style="display: flex; align-items: center; gap: 2rem;">
+                                <div style="width: 72px; height: 72px; background: #009ee3; border-radius: 18px; display: flex; align-items: center; justify-content: center; color: #fff; box-shadow: 0 8px 30px rgba(0,158,227,0.3);">
+                                    <i data-lucide="banknote" style="width:36px; height:36px;"></i>
+                                </div>
+                                <div>
+                                    <h4 style="margin: 0; font-weight: 950; font-size: 1.525rem; color: #1e293b; letter-spacing:-0.5px;">Mercado Pago</h4>
+                                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-top:0.6rem;">
+                                        <div style="width: 10px; height: 10px; background: #10b981; border-radius: 50%; box-shadow: 0 0 10px rgba(16,185,129,0.5);"></div>
+                                        <span style="font-size: 0.975rem; color: #10b981; font-weight: 900; text-transform: uppercase; letter-spacing:1px;">Gateway Conectado</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onclick="window.open('https://www.mercadopago.com.br/developers/panel/credentials', '_blank')" style="padding: 1rem 2rem; background: #f1f5f9; border: 1.5px solid #e2e8f0; border-radius: 12px; font-size: 1.025rem; font-weight: 900; color: #009ee3; cursor: pointer; transition: 0.2s; text-transform:uppercase; letter-spacing:0.5px;" onmouseover="this.style.background='#009ee3'; this.style.color='#fff';" onmouseout="this.style.background='#f1f5f9'; this.style.color='#009ee3';">Ajustes no MP</button>
+                        </div>
+
+                        <h4 style="font-size: 0.975rem; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: 1.5px; margin: 0.5rem 0;">Métodos Mercado Pago</h4>
+
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 1.5rem; border: 1px solid #e2e8f0; border-radius: 14px; background: #f8fafc;">
+                            <div style="display: flex; align-items: center; gap: 1.25rem;">
+                                <div style="width:44px; height:44px; background:#fff; border:1px solid #e2e8f0; border-radius:10px; display:flex; align-items:center; justify-content:center;">
+                                    <i data-lucide="credit-card" style="width:20px; height:20px; color: #009ee3;"></i>
+                                </div>
+                                <div style="display:flex; flex-direction:column;">
+                                   <span style="font-weight: 800; color: #1e293b; font-size: 1.125rem;">Cartão de Crédito/Débito</span>
+                                   <span style="font-size: 0.925rem; color: #64748b; font-weight: 500;">Checkout transparente · Desativa Stripe automaticamente</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="toggle-mp-card" ${settings.mp_card ? 'checked' : ''}>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div style="padding: 1rem 1.25rem; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; font-size: 0.975rem; color: #0369a1; font-weight: 600; line-height: 1.5;">
+                            ℹ️ PIX (Mercado Pago) é controlado pelo toggle acima. Cartão MP e Stripe são mutuamente exclusivos — ativar um desativa o outro automaticamente.
+                        </div>
+                    </div>
+
                     <!-- Aviso de Segurança -->
                     <div style="margin-top: 1rem; padding: 2rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 20px; display: flex; gap: 1.75rem; align-items: flex-start;">
                         <div style="width:48px; height:48px; border-radius:12px; background:rgba(59, 130, 246, 0.1); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
@@ -3040,6 +3085,12 @@ let state = {
             </div>
         `;
         if (window.lucide) lucide.createIcons();
+        const _tCard = document.getElementById('toggle-card');
+        const _tMpCard = document.getElementById('toggle-mp-card');
+        if (_tCard && _tMpCard) {
+            _tCard.addEventListener('change', function() { if (this.checked) _tMpCard.checked = false; });
+            _tMpCard.addEventListener('change', function() { if (this.checked) _tCard.checked = false; });
+        }
     }
 
     window.setCustomerPriorityFilter = (f) => { state.customerPriorityFilter = f; state.customerPage = 1; renderCustomers(); };
