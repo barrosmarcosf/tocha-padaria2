@@ -2918,7 +2918,8 @@ let state = {
         const settings = {
             card: document.getElementById('toggle-card').checked,
             pix: document.getElementById('toggle-pix').checked,
-            mp_card: document.getElementById('toggle-mp-card')?.checked || false
+            mp_card: document.getElementById('toggle-mp-card')?.checked || false,
+            mp_pix: document.getElementById('toggle-mp-pix')?.checked ?? true
         };
         
         try {
@@ -3064,8 +3065,26 @@ let state = {
                             </div>
                         </div>
 
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 1.5rem; border: 1px solid #e2e8f0; border-radius: 14px; background: #f8fafc;">
+                            <div style="display: flex; align-items: center; gap: 1.25rem;">
+                                <div style="width:44px; height:44px; background:#fff; border:1px solid #e2e8f0; border-radius:10px; display:flex; align-items:center; justify-content:center;">
+                                    <i data-lucide="qr-code" style="width:20px; height:20px; color: #009ee3;"></i>
+                                </div>
+                                <div style="display:flex; flex-direction:column;">
+                                   <span style="font-weight: 800; color: #1e293b; font-size: 1.125rem;">PIX</span>
+                                   <span style="font-size: 0.925rem; color: #64748b; font-weight: 500;">QR Code automático via Mercado Pago</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="toggle-mp-pix" ${settings.mp_pix !== false ? 'checked' : ''}>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
                         <div style="padding: 1rem 1.25rem; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; font-size: 0.975rem; color: #0369a1; font-weight: 600; line-height: 1.5;">
-                            ℹ️ PIX (Mercado Pago) é controlado pelo toggle acima. Cartão MP e Stripe são mutuamente exclusivos — ativar um desativa o outro automaticamente.
+                            ℹ️ Cartão MP e Stripe são mutuamente exclusivos — ativar um desativa o outro automaticamente. PIX usa QR Code gerado pelo Mercado Pago.
                         </div>
                     </div>
 

@@ -95,9 +95,9 @@ module.exports = function (supabase) {
     router.get('/payment-methods', async (req, res) => {
         try {
             const { data } = await supabase.from('site_content').select('value').eq('key', 'payment_methods').maybeSingle();
-            res.json(data?.value || { card: true, pix: true, mp_card: false });
+            res.json(data?.value || { card: true, pix: true, mp_card: false, mp_pix: true });
         } catch (e) {
-            res.json({ card: true, pix: true, mp_card: false });
+            res.json({ card: true, pix: true, mp_card: false, mp_pix: true });
         }
     });
 

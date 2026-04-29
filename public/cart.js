@@ -492,7 +492,8 @@ async function applyPaymentMethodSettings() {
         const cardInput = document.querySelector('input[value="card"]');
         const mpLabel   = document.getElementById('label-mp-card');
 
-        if (pixInput)  pixInput.closest('label').style.display  = s.pix  !== false ? 'flex' : 'none';
+        const pixEnabled = s.mp_pix !== undefined ? s.mp_pix : s.pix;
+        if (pixInput)  pixInput.closest('label').style.display  = pixEnabled !== false ? 'flex' : 'none';
         if (cardInput) cardInput.closest('label').style.display = (s.card && !s.mp_card) ? 'flex' : 'none';
         if (mpLabel)   mpLabel.style.display = s.mp_card ? 'flex' : 'none';
 
