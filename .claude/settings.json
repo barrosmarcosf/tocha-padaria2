@@ -24,7 +24,11 @@
       "Bash(nslookup tochapadaria.com)",
       "Bash(node setup-ssl.js)",
       "Bash(VPS_PASS='Romeudodeserto12-' node check-https.js)",
-      "Bash(rm setup-ssl.js check-https.js)"
+      "Bash(rm setup-ssl.js check-https.js)",
+      "Bash(stripe --version)",
+      "Read(//c/stripe//**)",
+      "Bash(VPS_PASS='Romeudodeserto12-' node test-webhook.js)",
+      "Bash(rm test-webhook.js)"
     ],
     "additionalDirectories": [
       "\\tmp\\vps-deploy",
