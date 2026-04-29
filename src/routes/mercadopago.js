@@ -205,7 +205,7 @@ module.exports = function (supabase) {
     });
 
     // 3. CHAVE PÚBLICA (para o Bricks no frontend)
-    router.get('/mercadopago/public-key', (_req, res) => {
+    router.get('/public-key', (_req, res) => {
         const pubKey = process.env.MERCADOPAGO_PUBLIC_KEY;
         if (!pubKey) return res.status(503).json({ error: 'Chave pública MP não configurada. Adicione MERCADOPAGO_PUBLIC_KEY no .env' });
         res.json({ publicKey: pubKey });
