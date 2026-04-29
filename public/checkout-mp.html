@@ -334,12 +334,14 @@
                 const mp = new MercadoPago(pkData.publicKey, { locale: 'pt-BR' });
                 const bricks = mp.bricks();
 
+                const payerEmail = orderData.customer && orderData.customer.email
+                    ? String(orderData.customer.email).trim()
+                    : null;
+
                 cardPaymentBrickController = await bricks.create("cardPayment", "mp-card-bricks", {
                     initialization: {
                         amount: orderData.total,
-                        payer: {
-                            email: orderData.customer.email
-                        }
+                        ...(payerEmail ? { payer: { email: payerEmail } } : {})
                     },
                     customization: {
                         visual: {
@@ -396,10 +398,12 @@
                 console.error('💥 [Checkout Error]:', e);
                 const errPanel = document.getElementById('error-panel');
                 const errMsg = document.getElementById('error-msg');
+                const loaderEl = document.getElementById('loader');
+                if (loaderEl) loaderEl.style.display = 'none';
+
                 if (errPanel && errMsg) {
                     errMsg.innerText = e.message;
                     errPanel.style.display = 'block';
-                    document.getElementById('loader').style.display = 'none';
                 } else {
                     alert('Erro Crítico: ' + e.message);
                 }
