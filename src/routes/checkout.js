@@ -18,6 +18,37 @@ module.exports = function (supabase, stripe) {
                 return res.status(400).json({ error: 'Dados incompletos do carrinho ou cliente.' });
             }
 
+            // 🔒 IDEMPOTÊNCIA: Evita duplicidade em cliques múltiplos ou refresh
+            const idemKey = req.headers['x-idempotency-key'] || `fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            
+            try {
+                const { data: existing, error: idemErr } = await supabase
+                    .from('pedidos')
+                    .select('id, stripe_session_id, items')
+                    .eq('idempotency_key', idemKey)
+                    .maybeSingle();
+
+                if (!idemErr && existing) {
+                    const items = typeof existing.items === 'string' ? JSON.parse(existing.items) : existing.items;
+                    if (items.client_session_id && items.client_session_id !== req.session_id) {
+                        return res.status(403).json({ error: 'Acesso negado: ID de sessão inválido.' });
+                    }
+                    return res.json({ url: `https://checkout.stripe.com/pay/${existing.stripe_session_id}` }); 
+                }
+            } catch (e) {
+                console.warn('⚠️ [Idempotency] Erro ao verificar chave. Continuando.', e.message);
+            }
+
+            // 🔒 VALIDAÇÃO DE MÉTODOS ATIVOS (BACKEND É A FONTE DA VERDADE)
+            const { data: paySettings } = await supabase.from('site_content').select('value').eq('key', 'payment_methods').maybeSingle();
+            const s = paySettings?.value || {};
+            
+            // O frontend do Stripe sempre manda session.payment_method_types = ['card', 'pix'] ou similar
+            // Aqui validamos se a configuração global permite Stripe (card)
+            if (s.mp_card === true || s.card === false) {
+                return res.status(403).json({ error: 'Stripe desabilitado' });
+            }
+
             // 0. AVALIAR STATUS DA LOJA ANTES DO CHECKOUT
             const { getUnifiedStoreStatus } = require('../services/storeStatusService');
             const storeStatusResult = await getUnifiedStoreStatus(supabase);
@@ -144,21 +175,51 @@ module.exports = function (supabase, stripe) {
             console.log(`Checkout iniciado para ${customer.name}: ${session.id}`);
 
             // 4. REGISTRAR PEDIDO PENDENTE
-            const { data: newOrder, error: orderError } = await supabase.from('pedidos').insert([{
-                customer_id: customerId,
-                stripe_session_id: session.id,
-                total_amount: totalAmount,
-                status: 'pending',
-                items: JSON.stringify({ 
-                    actual_items: cart, 
-                    order_type: storeStatusResult.orderType, 
-                    cycle_type: storeStatusResult.cycleType,
-                    batch_date: storeStatusResult.batchDate || storeStatusResult.nextBatchDate,
-                    batch_label: storeStatusResult.batchLabel || storeStatusResult.nextBatchLabel
-                })
-            }]).select().single();
+            let newOrder;
+            try {
+                const orderData = {
+                    customer_id: customerId,
+                    stripe_session_id: session.id,
+                    total_amount: totalAmount,
+                    status: 'pending',
+                    items: JSON.stringify({ 
+                        actual_items: cart, 
+                        order_type: storeStatusResult.orderType, 
+                        cycle_type: storeStatusResult.cycleType,
+                        batch_date: storeStatusResult.batchDate || storeStatusResult.nextBatchDate,
+                        batch_label: storeStatusResult.batchLabel || storeStatusResult.nextBatchLabel,
+                        client_session_id: req.session_id 
+                    })
+                };
 
-            if (orderError) throw orderError;
+                if (idemKey && !idemKey.startsWith('fallback_')) {
+                    orderData.idempotency_key = idemKey;
+                }
+
+                const { data, error } = await supabase.from('pedidos').insert([orderData]).select().single();
+                
+                if (error) {
+                    if (error.message.includes('idempotency_key')) {
+                        console.warn('⚠️ [DB] Coluna idempotency_key ausente no Stripe checkout. Inserindo sem ela.');
+                        delete orderData.idempotency_key;
+                        const { data: retryData, error: retryErr } = await supabase.from('pedidos').insert([orderData]).select().single();
+                        if (retryErr) throw retryErr;
+                        newOrder = retryData;
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    newOrder = data;
+                }
+            } catch (err) {
+                if (err.code === '23505' || err.message?.includes('duplicate key')) {
+                    const { data: existing } = await supabase.from('pedidos').select('id, stripe_session_id').eq('idempotency_key', idemKey).single();
+                    return res.json({ url: `https://checkout.stripe.com/pay/${existing.stripe_session_id}` }); 
+                }
+                throw err;
+            }
+
+            if (!newOrder) throw new Error('Falha ao registrar pedido.');
 
             // 5. RETORNO PARA O FRONTEND
             res.json({ url: session.url });
@@ -310,6 +371,14 @@ async function processPaidSession(supabase, stripe, session) {
         if (!orderUpdate) {
             // 0 linhas atualizadas: já estava paid (segunda chamada do webhook ou polling)
             console.log(`⚠️ [UPDATE] Sessão ${session.id} ignorada — pedido já processado.`);
+            return;
+        }
+
+        // 🔒 VALIDAÇÃO DE VALOR (Tarefa 5 - Robusta)
+        const diff = Math.abs((session.amount_total / 100) - orderUpdate.total_amount);
+        if (diff > 0.01) {
+            console.error('❌ [STRIPE] Valor divergente detectado! Esperado:', orderUpdate.total_amount, 'Recebido:', session.amount_total / 100);
+            await supabase.from('pedidos').update({ status: 'error' }).eq('id', orderUpdate.id);
             return;
         }
 

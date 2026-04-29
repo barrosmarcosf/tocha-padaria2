@@ -18,9 +18,88 @@ module.exports = function (supabase) {
 
     const client = new MercadoPagoConfig({
         accessToken: token,
-        options: { timeout: 5000 }
+        options: { timeout: 10000 } // Aumentado para evitar timeouts em conexões lentas
     });
     const payment = new Payment(client);
+
+    // --- ROTA UNIFICADA DE PAGAMENTO (Tarefa 3) ---
+    router.post('/process-payment', async (req, res) => {
+        console.log("🚀 [MP] BODY RECEBIDO:", JSON.stringify(req.body, null, 2));
+
+        try {
+            const { method, customer, cart, amount, token: cardToken, payment_method_id, issuer_id, installments } = req.body;
+
+            // 1. Validação básica (Tarefa 2)
+            if (!method) return res.status(400).json({ error: true, message: "Método de pagamento não especificado." });
+            if (!customer?.email) return res.status(400).json({ error: true, message: "Email do cliente é obrigatório." });
+            
+            // Garantir que amount é número (Tarefa 2/5)
+            const transactionAmount = Number(amount);
+            if (isNaN(transactionAmount) || transactionAmount <= 0) {
+                return res.status(400).json({ error: true, message: "Valor de pagamento inválido." });
+            }
+
+            // 2. Roteamento por método (Tarefa 3)
+            if (method === "pix") {
+                console.log("💎 [MP] Iniciando fluxo PIX...");
+                
+                const paymentData = {
+                    body: {
+                        transaction_amount: transactionAmount,
+                        description: 'Pedido Tocha Padaria',
+                        payment_method_id: 'pix',
+                        payer: { email: customer.email }
+                    }
+                };
+
+                const mpResponse = await payment.create(paymentData);
+                return res.json({
+                    success: true,
+                    method: "pix",
+                    payment_id: String(mpResponse.id),
+                    qr_code: mpResponse.point_of_interaction.transaction_data.qr_code,
+                    qr_code_base64: await QRCode.toDataURL(mpResponse.point_of_interaction.transaction_data.qr_code)
+                });
+            } 
+
+            if (method === "card") {
+                console.log("💳 [MP] Iniciando fluxo CARTÃO...");
+                
+                if (!cardToken) return res.status(400).json({ error: true, message: "Token do cartão é obrigatório para este método." });
+                if (!payment_method_id) return res.status(400).json({ error: true, message: "Payment Method ID é obrigatório." });
+
+                const paymentData = {
+                    body: {
+                        transaction_amount: transactionAmount,
+                        token: cardToken,
+                        description: 'Pedido Tocha Padaria',
+                        installments: Number(installments) || 1,
+                        payment_method_id,
+                        issuer_id,
+                        payer: { email: customer.email }
+                    }
+                };
+
+                const mpResponse = await payment.create(paymentData);
+                return res.json({
+                    success: true,
+                    method: "card",
+                    status: mpResponse.status,
+                    payment_id: String(mpResponse.id),
+                    status_detail: mpResponse.status_detail
+                });
+            }
+
+            return res.status(400).json({ error: true, message: "Método de pagamento não suportado." });
+
+        } catch (error) {
+            console.error("❌ [MP] ERRO PAGAMENTO:", error.response?.data || error);
+            return res.status(500).json({
+                error: true,
+                message: error.response?.data?.message || error.message || "Erro interno ao processar pagamento."
+            });
+        }
+    });
 
     // 1. CRIAR PAGAMENTO PIX
     router.post('/create-pix-payment', async (req, res) => {
@@ -32,7 +111,29 @@ module.exports = function (supabase) {
             const { customer, cart } = req.body;
 
             if (!customer || !cart || cart.length === 0) {
-                return res.status(400).json({ error: 'Dados incompletos.' });
+                return res.status(400).json({ error: 'Dados incompletos do carrinho ou cliente.' });
+            }
+
+            // 🔒 IDEMPOTÊNCIA (Resiliente a colunas ausentes)
+            const idemKey = req.headers['x-idempotency-key'] || `fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            
+            try {
+                const { data: existing, error: idemErr } = await supabase
+                    .from('pedidos')
+                    .select('id, items')
+                    .eq('idempotency_key', idemKey)
+                    .maybeSingle();
+
+                if (!idemErr && existing) {
+                    const items = typeof existing.items === 'string' ? JSON.parse(existing.items) : existing.items;
+                    return res.json({ payment_id: items.mp_id, order_id: existing.id });
+                }
+
+                if (idemErr && idemErr.message.includes('idempotency_key')) {
+                    console.warn('⚠️ [Idempotency] Coluna idempotency_key não encontrada. Pulando validação.');
+                }
+            } catch (e) {
+                console.warn('⚠️ [Idempotency] Erro ao verificar chave. Continuando sem idempotência.', e.message);
             }
 
             // Validar status da loja e estoque (mesma lógica do Stripe)
@@ -93,21 +194,52 @@ module.exports = function (supabase) {
             const qrCodeBase64 = await QRCode.toDataURL(qrCode);
 
             // Registrar Pedido Pendente no Banco
-            const { data: newOrder, error: orderError } = await supabase.from('pedidos').insert([{
-                customer_id: customerId,
-                stripe_session_id: `mp_${mpId}`,
-                total_amount: totalAmount,
-                status: 'pending',
-                items: JSON.stringify({
-                    actual_items: cart,
-                    order_type: storeStatusResult.orderType,
-                    batch_date: batchDate,
-                    payment_method: 'Pix (Mercado Pago)',
-                    mp_id: mpId
-                })
-            }]).select().single();
+            let newOrder;
+            try {
+                const orderData = {
+                    customer_id: customerId,
+                    stripe_session_id: `mp_${mpId}`,
+                    total_amount: totalAmount,
+                    status: 'pending',
+                    items: JSON.stringify({
+                        actual_items: cart,
+                        order_type: storeStatusResult.orderType,
+                        batch_date: batchDate,
+                        payment_method: 'Pix (Mercado Pago)',
+                        mp_id: mpId,
+                        client_session_id: req.session_id
+                    })
+                };
 
-            if (orderError) throw orderError;
+                // Tenta incluir idempotency_key se não for um fallback
+                if (idemKey && !idemKey.startsWith('fallback_')) {
+                    orderData.idempotency_key = idemKey;
+                }
+
+                const { data, error } = await supabase.from('pedidos').insert([orderData]).select().single();
+                
+                if (error) {
+                    // Fallback se a coluna não existir
+                    if (error.message.includes('idempotency_key')) {
+                        console.warn('⚠️ [DB] Coluna idempotency_key ausente. Inserindo sem idempotência.');
+                        delete orderData.idempotency_key;
+                        const { data: retryData, error: retryErr } = await supabase.from('pedidos').insert([orderData]).select().single();
+                        if (retryErr) throw retryErr;
+                        newOrder = retryData;
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    newOrder = data;
+                }
+            } catch (err) {
+                if (err.code === '23505' || err.message?.includes('duplicate key')) {
+                    const { data: existing } = await supabase.from('pedidos').select('id, items').eq('idempotency_key', idemKey).single();
+                    const items = typeof existing.items === 'string' ? JSON.parse(existing.items) : existing.items;
+                    return res.json({ payment_id: items.mp_id, order_id: existing.id });
+                }
+                throw err;
+            }
 
             res.json({
                 payment_id: mpId,
@@ -117,8 +249,11 @@ module.exports = function (supabase) {
             });
 
         } catch (error) {
-            console.error('Erro ao criar Pix:', error);
-            res.status(500).json({ error: 'Erro ao gerar pagamento Pix.' });
+            console.error('❌ [PIX] Erro Crítico:', error.response?.data || error);
+            res.status(error.response?.status || 500).json({ 
+                error: true,
+                message: error.response?.data?.message || error.message || 'Erro ao gerar pagamento Pix.' 
+            });
         }
     });
 
@@ -151,15 +286,152 @@ module.exports = function (supabase) {
         res.json({ publicKey: pubKey });
     });
 
+    // 3.1 BUSCAR RESUMO DO PEDIDO (Para a página de checkout dedicada)
+    router.get('/order-summary/:id', async (req, res) => {
+        try {
+            const sid = req.cookies.session_id; // 🔒 Uso exclusivo de cookies
+            
+            const { data: order, error } = await supabase
+                .from('pedidos')
+                .select('*, clientes(*)')
+                .eq('id', req.params.id)
+                .single();
+
+            if (error || !order) return res.status(404).json({ error: 'Pedido não encontrado.' });
+
+            const itemsData = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+
+            // 🔒 VALIDAÇÕES DE SEGURANÇA
+            if (order.status !== 'pending') {
+                return res.status(400).json({ error: 'Este pedido já foi processado ou expirou.' });
+            }
+            if (itemsData.client_session_id && itemsData.client_session_id !== sid) {
+                return res.status(403).json({ error: 'Acesso negado: ID de sessão inválido.' });
+            }
+
+            res.json({
+                id: order.id,
+                total: order.total_amount,
+                items: itemsData.actual_items || [],
+                customer: order.clientes,
+                batch_date: itemsData.batch_date
+            });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    // 3.2 PREPARAR PEDIDO DE CARTÃO (Cria o pedido pendente antes de ir para a página de checkout)
+    router.post('/prepare-card-order', async (req, res) => {
+        console.log("🚀 [MP Prepare] BODY RECEBIDO:", JSON.stringify(req.body, null, 2));
+        try {
+            const { customer, cart: cartItems } = req.body;
+
+            if (!customer || !cartItems || cartItems.length === 0) {
+                return res.status(400).json({ error: 'Dados incompletos do carrinho ou cliente.' });
+            }
+
+            // 🔒 IDEMPOTÊNCIA (Resiliente a colunas ausentes)
+            const idemKey = req.headers['x-idempotency-key'] || `fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            
+            try {
+                const { data: existing, error: idemErr } = await supabase
+                    .from('pedidos')
+                    .select('id, items')
+                    .eq('idempotency_key', idemKey)
+                    .maybeSingle();
+
+                if (!idemErr && existing) {
+                    return res.json({ order_id: existing.id });
+                }
+            } catch (e) {
+                console.warn('⚠️ [Idempotency] Erro ao verificar chave no MP. Continuando.', e.message);
+            }
+
+            // 🔒 VALIDAÇÃO DE MÉTODO ATIVO
+            const { data: paySettings } = await supabase.from('site_content').select('value').eq('key', 'payment_methods').maybeSingle();
+            const s = paySettings?.value || {};
+            if (!s.mp_card) {
+                return res.status(403).json({ error: 'Mercado Pago cartão desabilitado' });
+            }
+
+            const storeStatusResult = await getUnifiedStoreStatus(supabase);
+            const batchDate = storeStatusResult.batchDate || storeStatusResult.nextBatchDate;
+
+            // Recalcular total
+            const totalAmount = await recalcularTotal(supabase, cartItems);
+
+            // Registrar/Atualizar Cliente
+            let customerId;
+            const { data: existingCustomer } = await supabase.from('clientes').select('id').eq('email', customer.email).maybeSingle();
+            if (existingCustomer) {
+                customerId = existingCustomer.id;
+                await supabase.from('clientes').update({ name: customer.name, whatsapp: customer.whatsapp }).eq('id', customerId);
+            } else {
+                const { data: newCustomer } = await supabase.from('clientes').insert([{ name: customer.name, email: customer.email, whatsapp: customer.whatsapp }]).select().single();
+                customerId = newCustomer.id;
+            }
+
+            // Criar Pedido Pendente
+            let newOrder;
+            try {
+                const orderData = {
+                    customer_id: customerId,
+                    stripe_session_id: `mp_pending_${Date.now()}`,
+                    total_amount: totalAmount,
+                    status: 'pending',
+                    items: JSON.stringify({
+                        actual_items: cartItems,
+                        order_type: storeStatusResult.orderType,
+                        batch_date: batchDate,
+                        payment_method: 'Cartão (Mercado Pago)',
+                        client_session_id: req.session_id
+                    })
+                };
+
+                if (idemKey && !idemKey.startsWith('fallback_')) {
+                    orderData.idempotency_key = idemKey;
+                }
+
+                const { data, error } = await supabase.from('pedidos').insert([orderData]).select().single();
+                
+                if (error) {
+                    if (error.message.includes('idempotency_key')) {
+                        console.warn('⚠️ [DB] Coluna idempotency_key ausente no MP Prepare. Inserindo sem ela.');
+                        delete orderData.idempotency_key;
+                        const { data: retryData, error: retryErr } = await supabase.from('pedidos').insert([orderData]).select().single();
+                        if (retryErr) throw retryErr;
+                        newOrder = retryData;
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    newOrder = data;
+                }
+            } catch (err) {
+                if (err.code === '23505' || err.message?.includes('duplicate key')) {
+                    const { data: existing } = await supabase.from('pedidos').select('id').eq('idempotency_key', idemKey).single();
+                    return res.json({ order_id: existing.id });
+                }
+                throw err;
+            }
+
+            res.json({ order_id: newOrder.id });
+        } catch (e) {
+            console.error('❌ [MP Prepare] Erro:', e);
+            res.status(500).json({ error: e.message });
+        }
+    });
+
     // 4. CHECKOUT TRANSPARENTE — CARTÃO (Bricks)
-    // Cria pagamento e pedido pendente. Confirmação acontece SOMENTE via webhook.
-    router.post('/mercadopago/create-card-payment', async (req, res) => {
+    router.post('/create-card-payment', async (req, res) => {
+        console.log("🚀 [CARD] BODY RECEBIDO:", JSON.stringify(req.body, null, 2));
         try {
             if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
                 return res.status(503).json({ error: 'Integração Mercado Pago não configurada.' });
             }
 
-            const { customer, cart: cartItems, token: cardToken, issuer_id, payment_method_id, installments } = req.body;
+            const { customer, cart: cartItems, token: cardToken, issuer_id, payment_method_id, installments, order_id } = req.body;
 
             if (!customer?.email || !cartItems?.length || !cardToken) {
                 return res.status(400).json({ error: 'Dados incompletos.' });
@@ -218,22 +490,40 @@ module.exports = function (supabase) {
             const mpStatus = mpResponse.status;
             console.log(`💳 [MP Card] Pagamento ${mpId}: ${mpStatus} (${mpResponse.status_detail})`);
 
-            // Pedido sempre salvo como 'pending'. Confirmação ocorre somente no webhook.
-            const { data: newOrder, error: orderError } = await supabase.from('pedidos').insert([{
-                customer_id: customerId,
-                stripe_session_id: `mp_${mpId}`,
-                total_amount: totalAmount,
-                status: 'pending',
-                items: JSON.stringify({
-                    actual_items: cartItems,
-                    order_type: storeStatusResult.orderType,
-                    batch_date: batchDate,
-                    payment_method: 'Cartão (Mercado Pago)',
-                    mp_id: mpId
-                })
-            }]).select().single();
+            const itemsJson = JSON.stringify({
+                actual_items: cartItems,
+                order_type: storeStatusResult.orderType,
+                batch_date: batchDate,
+                payment_method: 'Cartão (Mercado Pago)',
+                mp_id: mpId
+            });
 
-            if (orderError) throw orderError;
+            // Se order_id vier do checkout-mp.html (criado por prepare-card-order),
+            // atualiza o pedido existente em vez de criar um duplicado.
+            let newOrder;
+            if (order_id) {
+                const { data, error: updateErr } = await supabase
+                    .from('pedidos')
+                    .update({ stripe_session_id: `mp_${mpId}`, items: itemsJson })
+                    .eq('id', order_id)
+                    .eq('status', 'pending')
+                    .select()
+                    .single();
+                if (updateErr) throw updateErr;
+                newOrder = data;
+            } else {
+                const { data, error: insertErr } = await supabase.from('pedidos').insert([{
+                    customer_id: customerId,
+                    stripe_session_id: `mp_${mpId}`,
+                    total_amount: totalAmount,
+                    status: 'pending',
+                    items: itemsJson
+                }]).select().single();
+                if (insertErr) throw insertErr;
+                newOrder = data;
+            }
+
+            if (!newOrder) throw new Error('Falha ao registrar pedido de cartão.');
 
             if (mpStatus === 'approved' || mpStatus === 'in_process' || mpStatus === 'pending') {
                 return res.json({ success: true, status: mpStatus, order_id: newOrder.id });
@@ -242,14 +532,16 @@ module.exports = function (supabase) {
             res.status(400).json({ error: `Pagamento recusado: ${mpResponse.status_detail || mpStatus}` });
 
         } catch (error) {
-            console.error('❌ [MP Card] Erro:', error);
-            res.status(500).json({ error: error.message || 'Erro ao processar pagamento.' });
+            console.error('❌ [CARD] Erro Crítico:', error.response?.data || error);
+            res.status(error.response?.status || 500).json({ 
+                error: true,
+                message: error.response?.data?.message || error.message || 'Erro ao processar pagamento.' 
+            });
         }
     });
 
     // 5. WEBHOOK MERCADO PAGO — rota principal
-    // Único ponto onde pagamentos são confirmados, estoque é baixado e notificações são enviadas.
-    router.post('/mercadopago/webhook', async (req, res) => {
+    router.post('/webhook', async (req, res) => {
         // Responde 200 imediatamente para evitar retentativas por timeout do MP
         res.status(200).send('OK');
 
@@ -347,6 +639,14 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
     if (!order) {
         // 0 linhas atualizadas: pedido não existe OU já foi marcado como paid anteriormente
         console.log(`[MP] Pagamento ${mpId} ignorado — pedido não encontrado ou já processado.`);
+        return;
+    }
+
+    // 🔒 VALIDAÇÃO DE VALOR (Tarefa 5 - Robusta)
+    const diff = Math.abs(Number(_mpPayment.transaction_amount) - Number(order.total_amount));
+    if (diff > 0.01) {
+        console.error('❌ [MP Webhook] Valor divergente detectado! Esperado:', order.total_amount, 'Recebido:', _mpPayment.transaction_amount);
+        await supabase.from('pedidos').update({ status: 'error' }).eq('id', order.id);
         return;
     }
 

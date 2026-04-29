@@ -78,6 +78,36 @@ app.use('/api/webhook', express.raw({ type: 'application/json' }));
 // Todas as outras rotas usam JSON
 app.use(express.json());
 
+// Middleware MANUAL de Cookie Parser (para evitar novas dependências)
+app.use((req, res, next) => {
+    const list = {};
+    const rc = req.headers.cookie;
+    rc && rc.split(';').forEach(cookie => {
+        const parts = cookie.split('=');
+        list[parts.shift().trim()] = decodeURI(parts.join('='));
+    });
+    req.cookies = list;
+    next();
+});
+
+// Middleware de SESSÃO SEGURA (Cookie HttpOnly)
+app.use((req, res, next) => {
+    let sid = req.cookies.session_id;
+    if (!sid) {
+        sid = require('crypto').randomUUID();
+        res.cookie('session_id', sid, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Strict',
+            maxAge: 3600000 * 24 // 24h
+        });
+        // Seta o header para a resposta atual também
+        res.setHeader('Set-Cookie', `session_id=${sid}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400`);
+    }
+    req.session_id = sid;
+    next();
+});
+
 // ──────────────────────────────────────────────────
 // ROTAS MODULARES
 // ──────────────────────────────────────────────────
@@ -89,7 +119,7 @@ const { startBot } = require('./src/notification-service');
 
 app.use('/api/admin', adminRoutes);
 app.use('/api', checkoutRoutes);
-app.use('/api', mercadopagoRoutes);
+app.use('/api/mercadopago', mercadopagoRoutes);
 
 app.use('/api', publicRoutes);
 

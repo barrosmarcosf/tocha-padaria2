@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout Premium | Tocha Padaria</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <style>
+        :root {
+            --bg-deep: #0B0B0B;
+            --bg-card: #141414;
+            --bg-input: #1E2229;
+            --accent: #EBB43B;
+            --text-main: #FFFFFF;
+            --text-muted: rgba(255, 255, 255, 0.5);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+
+        .checkout-wrapper {
+            width: 100%;
+            max-width: 1100px;
+            padding: 40px 20px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .checkout-grid {
+            display: grid;
+            grid-template-columns: 38% 62%;
+            width: 100%;
+            gap: 60px;
+        }
+
+        /* --- Coluna Esquerda: Resumo --- */
+        .summary-col {
+            padding-top: 20px;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 30px;
+            transition: opacity 0.2s;
+        }
+
+        .back-link:hover {
+            opacity: 0.8;
+        }
+
+        .col-title {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .order-id {
+            display: block;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 40px;
+            word-break: break-all;
+        }
+
+        .item-list {
+            margin-bottom: 30px;
+        }
+
+        .product-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .product-info .name {
+            display: block;
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .product-info .qty {
+            display: block;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .product-price {
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 30px 0;
+            position: relative;
+        }
+
+        .divider-accent {
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, var(--accent) 0%, transparent 100%);
+            opacity: 0.8;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 20px;
+            font-weight: 500;
+            margin-bottom: 40px;
+        }
+
+        .batch-box {
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 3px solid var(--accent);
+            padding: 16px 20px;
+            font-size: 14px;
+            color: var(--text-main);
+            letter-spacing: 0.2px;
+        }
+
+        /* --- Coluna Direita: Pagamento --- */
+        .payment-col {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 50px;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .payment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .payment-header .col-title {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: var(--text-main);
+            margin: 0;
+        }
+
+        .mp-logo-right {
+            height: 32px;
+            filter: brightness(0) invert(1);
+            opacity: 0.9;
+        }
+
+        /* Customização dos Bricks */
+        #mp-card-bricks {
+            width: 100%;
+        }
+
+        .trust-footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .trust-footer p {
+            margin-bottom: 4px;
+        }
+
+        /* Loader */
+        #loader {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-deep);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.5s;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Responsividade */
+        @media (max-width: 900px) {
+            .checkout-wrapper {
+                padding: 20px 0;
+            }
+            .checkout-grid {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+            .summary-col {
+                padding: 0 20px;
+            }
+            .payment-col {
+                padding: 40px 20px;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loader">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="checkout-wrapper">
+        <div class="checkout-grid">
+            <!-- Coluna Esquerda: Resumo -->
+            <aside class="summary-col">
+                <a href="/" class="back-link">← Voltar para a loja</a>
+                <h1 class="col-title">Seu pedido</h1>
+                <span class="order-id" id="order-id-label">Carregando...</span>
+                
+                <div id="item-list-container" class="item-list">
+                    <!-- Itens via JS -->
+                </div>
+                
+                <div class="divider">
+                    <div class="divider-accent"></div>
+                </div>
+                
+                <div class="total-row">
+                    <span>Total</span>
+                    <span id="total-amount">R$ 0,00</span>
+                </div>
+                
+                <div class="batch-box" id="batch-info-container">
+                    <span id="batch-date-label">Fornada: Carregando...</span>
+                </div>
+            </aside>
+
+            <!-- Coluna Direita: Pagamento -->
+            <main class="payment-col">
+                <div class="payment-header">
+                    <h2 class="col-title">DADOS DO CARTÃO</h2>
+                    <img src="https://logodownload.org/wp-content/uploads/2019/06/mercado-pago-logo.png" alt="Mercado Pago" class="mp-logo-right">
+                </div>
+                
+                <div id="mp-card-bricks"></div>
+                
+                <footer class="trust-footer">
+                    <p>Sua compra é processada com segurança pelo Mercado Pago.</p>
+                    <p>Os dados são protegidos por criptografia durante a transação.</p>
+                </footer>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        let cardPaymentBrickController;
+        let orderData = null;
+
+        async function init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderId = urlParams.get('order_id');
+
+            if (!orderId) {
+                alert('Pedido não encontrado.');
+                window.location.href = '/';
+                return;
+            }
+
+            try {
+                // 1. Buscar dados do pedido
+                const res = await fetch(`/api/mercadopago/order-summary/${orderId}`);
+                if (!res.ok) throw new Error('Não foi possível carregar os dados do pedido.');
+                
+                orderData = await res.json();
+                renderSummary(orderData);
+
+                // 2. Buscar chave pública
+                const pkRes = await fetch('/api/mercadopago/public-key');
+                const pkData = await pkRes.json();
+
+                // 3. Inicializar Bricks
+                const mp = new MercadoPago(pkData.publicKey, { locale: 'pt-BR' });
+                const bricks = mp.bricks();
+
+                cardPaymentBrickController = await bricks.create('cardPayment', 'mp-card-bricks', {
+                    initialization: {
+                        amount: orderData.total,
+                    },
+                    customization: {
+                        paymentMethods: {
+                            minInstallments: 1,
+                            maxInstallments: 1,
+                        },
+                        visual: {
+                            hideFormTitle: true,
+                            style: {
+                                theme: 'dark',
+                                customVariables: {
+                                    formBackgroundColor: '#141414',
+                                    baseColor: '#EBB43B',
+                                    inputBackgroundColor: '#1E2229',
+                                    inputBorderColor: 'rgba(255,255,255,0.05)',
+                                    outlinePrimaryColor: '#EBB43B',
+                                    buttonBackgroundColor: '#EBB43B',
+                                    buttonTextColor: '#000000',
+                                    inputTextColor: '#FFFFFF',
+                                    placeholderColor: 'rgba(255,255,255,0.3)',
+                                    borderRadiusMedium: '8px'
+                                }
+                            }
+                        },
+                        texts: {
+                            payButton: 'Pagar'
+                        }
+                    },
+                    callbacks: {
+                        onReady: () => {
+                            document.getElementById('loader').style.opacity = '0';
+                            setTimeout(() => document.getElementById('loader').remove(), 500);
+                        },
+                        onSubmit: async (formData) => {
+                            try {
+                                const payRes = await fetch('/api/mercadopago/create-card-payment', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        customer: {
+                                            name: orderData.customer.name,
+                                            email: orderData.customer.email,
+                                            whatsapp: orderData.customer.whatsapp
+                                        },
+                                        cart: orderData.items,
+                                        order_id: orderData.id,
+                                        ...formData
+                                    })
+                                });
+
+                                const result = await payRes.json();
+                                if (!payRes.ok) throw new Error(result.error || 'Erro no pagamento');
+
+                                window.location.href = `/?status=success&order_id=${orderData.id}`;
+                            } catch (e) {
+                                alert(e.message);
+                            }
+                        }
+                    }
+                });
+
+            } catch (e) {
+                console.error(e);
+                alert('Erro crítico: ' + e.message);
+                window.location.href = '/';
+            }
+        }
+
+        function renderSummary(data) {
+            document.getElementById('order-id-label').innerText = `#${data.id}`;
+            document.getElementById('total-amount').innerText = `R$ ${data.total.toFixed(2).replace('.', ',')}`;
+            
+            // Formatar data da fornada
+            const batchLabel = data.batch_date || 'A confirmar';
+            document.getElementById('batch-date-label').innerText = `Fornada: ${batchLabel}`;
+
+            const container = document.getElementById('item-list-container');
+            container.innerHTML = '';
+
+            data.items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'product-row';
+                div.innerHTML = `
+                    <div class="product-info">
+                        <span class="name">${item.name}</span>
+                        <span class="qty">${item.qty}x</span>
+                    </div>
+                    <span class="product-price">R$ ${(item.price * item.qty).toFixed(2).replace('.', ',')}</span>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
