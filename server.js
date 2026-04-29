@@ -230,7 +230,7 @@ app.get('/api/health', async (_req, res) => {
     checks.webhooks = {
         base_url: baseUrl || '⚠️ BASE_URL não configurado',
         stripe_endpoint: baseUrl ? `${baseUrl}/api/webhook` : '⚠️ indisponível',
-        mercadopago_endpoint: baseUrl ? `${baseUrl}/api/webhook/mercadopago` : '⚠️ indisponível',
+        mercadopago_endpoint: baseUrl ? `${baseUrl}/api/mercadopago/webhook` : '⚠️ indisponível',
         stripe_secret_configured: !!webhookSecret,
         warning: !webhookSecret ? 'STRIPE_WEBHOOK_SECRET ausente — webhook aceito sem validação de assinatura' : null,
         localtunnel_warning: baseUrl.includes('loca.lt') ? '⚠️ URL do localtunnel detectada — expira a cada sessão. Use uma URL permanente.' : null
