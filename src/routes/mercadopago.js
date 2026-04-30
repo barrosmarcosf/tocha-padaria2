@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const { MercadoPagoConfig, Payment } = require('mercadopago');
+const { secLog: fileSecLog } = require('../utils/secLogger');
 const QRCode = require('qrcode');
 const { sendOrderEmails, sendOrderWhatsApp } = require('../notification-service');
 const { getUnifiedAvailableStock } = require('../services/stockService');
@@ -519,26 +520,25 @@ module.exports = function (supabase) {
     // 5. WEBHOOK MERCADO PAGO — rota principal
     router.post('/webhook', async (req, res) => {
         const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
-        const ts = new Date().toISOString();
         const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
 
         if (webhookSecret) {
             try {
                 if (!verifyMPWebhookSignature(req, webhookSecret)) {
-                    console.warn(`[SECURITY] ${ts} | WEBHOOK_MP_ASSINATURA_INVALIDA | IP: ${ip}`);
+                    fileSecLog('WEBHOOK_MP_ASSINATURA_INVALIDA', ip, req.path);
                     return res.status(401).send('Assinatura inválida.');
                 }
             } catch (_) {
-                console.warn(`[SECURITY] ${ts} | WEBHOOK_MP_ERRO_VERIFICACAO | IP: ${ip}`);
+                fileSecLog('WEBHOOK_MP_ERRO_VERIFICACAO', ip, req.path);
                 return res.status(401).send('Erro ao verificar assinatura.');
             }
         } else if (process.env.NODE_ENV === 'production') {
-            console.error(`[SECURITY] ${ts} | WEBHOOK_MP_SEM_SECRET_PRODUCAO | IP: ${ip}`);
+            fileSecLog('WEBHOOK_MP_SEM_SECRET_PRODUCAO', ip, req.path);
             return res.status(401).send('Webhook não configurado.');
         }
 
         res.status(200).send('OK');
-        console.log(`[SECURITY] ${ts} | WEBHOOK_MP_VALIDO | IP: ${ip} | Action: ${req.body?.action}`);
+        fileSecLog('WEBHOOK_MP_VALIDO', ip, req.path, `Action: ${req.body?.action}`);
         handleMPWebhookPayload(req, payment, supabase).catch(err => {
             console.error('Erro no Webhook MP:', err);
         });
@@ -547,22 +547,22 @@ module.exports = function (supabase) {
     // Alias legado — mesmo handler com idempotência garantida no banco
     router.post('/webhook/mercadopago', async (req, res) => {
         const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
-        const ts = new Date().toISOString();
         const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
 
         if (webhookSecret) {
             try {
                 if (!verifyMPWebhookSignature(req, webhookSecret)) {
-                    console.warn(`[SECURITY] ${ts} | WEBHOOK_MP_LEGACY_ASSINATURA_INVALIDA | IP: ${ip}`);
+                    fileSecLog('WEBHOOK_MP_LEGACY_ASSINATURA_INVALIDA', ip, req.path);
                     return res.status(401).send('Assinatura inválida.');
                 }
             } catch (_) {
+                fileSecLog('WEBHOOK_MP_LEGACY_ERRO_VERIFICACAO', ip, req.path);
                 return res.status(401).send('Erro ao verificar assinatura.');
             }
         }
 
         res.status(200).send('OK');
-        console.log(`[SECURITY] ${ts} | WEBHOOK_MP_LEGACY_VALIDO | IP: ${ip} | Action: ${req.body?.action}`);
+        fileSecLog('WEBHOOK_MP_LEGACY_VALIDO', ip, req.path, `Action: ${req.body?.action}`);
         handleMPWebhookPayload(req, payment, supabase).catch(err => {
             console.error('Erro no Webhook MP Legacy:', err);
         });

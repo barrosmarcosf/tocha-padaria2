@@ -67,6 +67,25 @@ app.use((req, _res, next) => {
 
 app.use(cors());
 
+// Security headers (noSniff, frameguard, xssFilter, basic CSP)
+app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Content-Security-Policy', [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://sdk.mercadopago.com https://http2.mlstatic.com",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com",
+        "img-src 'self' data: https: blob:",
+        "connect-src 'self' https://api.mercadopago.com https://*.supabase.co wss://*.supabase.co",
+        "frame-src https://sdk.mercadopago.com https://*.mercadopago.com",
+        "object-src 'none'"
+    ].join('; '));
+    next();
+});
+
 // Middleware de Cache-Busting para área administrativa PREMIUM V2
 app.use((req, res, next) => {
     // Aplica a regra a qualquer recurso dentro da /admin/ ou arquivos admin antigos

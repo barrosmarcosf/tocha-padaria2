@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { secLog: _fileLog } = require('../utils/secLogger');
 
 const JWT_SECRET = process.env.JWT_SECRET || (() => {
     if (process.env.NODE_ENV === 'production') {
@@ -16,7 +17,7 @@ const SESSION_VERSION = process.env.SESSION_VERSION || '1';
 
 function secLog(event, req, extra = '') {
     const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
-    console.warn(`[SECURITY] ${new Date().toISOString()} | ${event} | IP: ${ip} | ${req.path}${extra ? ' | ' + extra : ''}`);
+    _fileLog(event, ip, req.path, extra);
 }
 
 const adminAuth = (req, res, next) => {

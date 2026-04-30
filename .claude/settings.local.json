@@ -12,7 +12,8 @@
       "Bash(node --check src/routes/checkout.js)",
       "Bash(node --check src/routes/mercadopago.js)",
       "Bash(node --check src/routes/admin.js)",
-      "Bash(node --check src/middleware/csrf.js)"
+      "Bash(node --check src/middleware/csrf.js)",
+      "Bash(node --check src/utils/secLogger.js)"
     ]
   }
 }

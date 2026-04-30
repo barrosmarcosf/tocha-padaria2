@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { adminAuth, authorize, bcrypt, jwt, JWT_SECRET, SESSION_VERSION, secLog } = require('../middleware/auth');
 const { generateCsrfToken, csrfProtection } = require('../middleware/csrf');
+const { secLog: fileSecLog } = require('../utils/secLogger');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -33,21 +34,45 @@ setInterval(() => {
     loginAttempts.forEach((rec, ip) => { if (rec.first < cutoff) loginAttempts.delete(ip); });
 }, 10 * 60 * 1000);
 
+// Rate limiting para /csrf-token (máx 30 req/min por IP)
+const csrfRateMap = new Map();
+function rateLimitCsrfToken(req, res, next) {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
+    const now = Date.now();
+    const window = 60 * 1000;
+    const max = 30;
+    const rec = csrfRateMap.get(ip);
+    if (!rec || now - rec.first > window) {
+        csrfRateMap.set(ip, { count: 1, first: now });
+        return next();
+    }
+    if (rec.count >= max) {
+        return res.status(429).json({ error: 'Muitas requisições. Tente novamente em 1 minuto.' });
+    }
+    rec.count++;
+    next();
+}
+setInterval(() => {
+    const cutoff = Date.now() - 60 * 1000;
+    csrfRateMap.forEach((rec, ip) => { if (rec.first < cutoff) csrfRateMap.delete(ip); });
+}, 5 * 60 * 1000);
+
 module.exports = function (supabase) {
 
     // Proteção CSRF em todas as rotas POST/PUT/DELETE (exceto /login)
     router.use(csrfProtection(JWT_SECRET));
 
-    // Retorna token CSRF para a sessão atual
-    router.get('/csrf-token', (req, res) => {
-        const token = generateCsrfToken(req.session_id, JWT_SECRET);
+    // Retorna token CSRF para a sessão atual (exige sessão válida + rate limit)
+    router.get('/csrf-token', rateLimitCsrfToken, (req, res) => {
+        if (!req.session_id) return res.status(401).json({ error: 'Sessão não iniciada.' });
+        const ua = req.headers['user-agent'] || '';
+        const token = generateCsrfToken(req.session_id, ua, JWT_SECRET);
         res.json({ token });
     });
 
     // Rota de Login
     router.post('/login', rateLimitLogin, async (req, res) => {
         const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
-        const ts = new Date().toISOString();
         try {
             const { email, password } = req.body;
 
@@ -72,7 +97,7 @@ module.exports = function (supabase) {
             }
 
             if (!authenticated) {
-                console.warn(`[SECURITY] ${ts} | LOGIN_FALHA | IP: ${ip} | Email: ${email}`);
+                fileSecLog('LOGIN_FALHA', ip, req.path, `Email: ${email}`);
                 return res.status(401).json({ error: 'Credenciais inválidas!' });
             }
 
@@ -81,7 +106,7 @@ module.exports = function (supabase) {
             }
 
             const token = jwt.sign({ ...userData, sv: SESSION_VERSION }, JWT_SECRET, { expiresIn: '8h' });
-            console.log(`[SECURITY] ${ts} | LOGIN_SUCESSO | IP: ${ip} | Email: ${email}`);
+            fileSecLog('LOGIN_SUCESSO', ip, req.path, `Email: ${email}`);
             res.json({ success: true, token, user: userData });
 
         } catch (e) {
