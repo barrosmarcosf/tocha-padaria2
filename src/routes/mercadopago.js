@@ -34,6 +34,7 @@ async function handleMPWebhookPayload(req, payment, supabase) {
             console.warn(`[MP Webhook] Evento inválido ignorado (mpId=${mpId})`);
             return;
         }
+        console.log(`[MP FLOW] source=webhook payment_id=${mpId} status=${mpPayment.status} status_detail=${mpPayment.status_detail}`);
         if (mpPayment.status === 'approved' && mpPayment.status_detail !== 'rejected') {
             await processPaidMPOrder(supabase, String(mpId), mpPayment);
         } else {
@@ -227,7 +228,7 @@ module.exports = function (supabase) {
                 throw err;
             }
 
-            console.log(`[MP FLOW] idemKey=${idemKey} mpId=${mpId} orderId=${newOrder?.id}`);
+            console.log(`[MP FLOW] source=pix order_id=${newOrder?.id} payment_id=${mpId} status=pending`);
 
             res.json({
                 payment_id: mpId,
@@ -538,8 +539,13 @@ module.exports = function (supabase) {
                 }
             }
 
+            console.log(`[MP FLOW] source=card order_id=${order_id} payment_id=${mpId} status=${responseData.status}`);
             if (responseData.status === 'approved') {
-                await processPaidMPOrder(supabase, mpId, responseData);
+                try {
+                    await processPaidMPOrder(supabase, mpId, responseData);
+                } catch (procErr) {
+                    console.error(`❌ [MP Card] processPaidMPOrder falhou (mpId=${mpId}):`, procErr.message);
+                }
             } else if (responseData.status === 'rejected' || responseData.status === 'cancelled') {
                 if (order_id) {
                     await supabase.from('pedidos')
