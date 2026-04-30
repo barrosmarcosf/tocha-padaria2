@@ -158,10 +158,21 @@ module.exports = function (supabase) {
                         email: customer.email,
                         first_name: customer.name.split(' ')[0],
                         last_name: customer.name.split(' ').slice(1).join(' ') || 'Cliente',
+                        ...(customer.cpf ? { identification: { type: 'CPF', number: String(customer.cpf).replace(/\D/g, '') } } : {}),
+                        ...(customer.whatsapp ? { phone: { area_code: String(customer.whatsapp).replace(/\D/g, '').slice(0, 2), number: String(customer.whatsapp).replace(/\D/g, '').slice(2) } } : {}),
                     },
                     external_reference: idemKey,
                     date_of_expiration: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-                    notification_url: isHttps ? `${baseUrl}/api/mercadopago/webhook` : undefined
+                    notification_url: isHttps ? `${baseUrl}/api/mercadopago/webhook` : undefined,
+                    additional_info: {
+                        items: cart.map(item => ({
+                            id: String(item.id || item._id || ''),
+                            title: item.name,
+                            quantity: item.qty,
+                            unit_price: item.price,
+                            category_id: 'food'
+                        }))
+                    }
                 }
             };
 
@@ -427,29 +438,61 @@ module.exports = function (supabase) {
                 return res.status(400).json({ error: 'payer.email obrigatório.' });
             }
 
-            console.log('MP PAYMENT PAYLOAD:', {
-                transaction_amount: Number(req.body.amount),
-                token: req.body.token,
-                description: 'Pedido Tocha',
-                installments: Number(req.body.installments),
-                payment_method_id: req.body.payment_method_id,
-                issuer_id: req.body.issuer_id,
-                payer: {
-                    email: req.body.payer?.email
-                }
-            });
+            // Fetch order items + customer for payload enrichment (fail-safe)
+            let orderItems = [];
+            let orderCustomer = null;
+            if (order_id) {
+                try {
+                    const { data: orderRow } = await supabase
+                        .from('pedidos')
+                        .select('items, clientes(name, whatsapp)')
+                        .eq('id', order_id)
+                        .maybeSingle();
+                    if (orderRow) {
+                        let parsed = orderRow.items;
+                        try { if (typeof parsed === 'string') parsed = JSON.parse(parsed); } catch (_) {}
+                        orderItems = parsed?.actual_items || [];
+                        orderCustomer = orderRow.clientes;
+                    }
+                } catch (_) {}
+            }
 
             const paymentData = {
                 transaction_amount: Number(req.body.amount),
                 token: req.body.token,
-                description: 'Pedido Tocha',
+                description: 'Pedido Tocha Padaria',
                 installments: Number(req.body.installments || 1),
                 payment_method_id: req.body.payment_method_id,
                 issuer_id: req.body.issuer_id,
+                external_reference: order_id ? String(order_id) : undefined,
                 payer: {
-                    email: req.body.payer?.email
-                }
+                    ...req.body.payer,
+                    email: req.body.payer?.email,
+                    ...(orderCustomer?.name ? {
+                        first_name: orderCustomer.name.split(' ')[0],
+                        last_name: orderCustomer.name.split(' ').slice(1).join(' ') || 'Padaria'
+                    } : {}),
+                    ...(orderCustomer?.whatsapp ? {
+                        phone: {
+                            area_code: String(orderCustomer.whatsapp).replace(/\D/g, '').slice(0, 2),
+                            number: String(orderCustomer.whatsapp).replace(/\D/g, '').slice(2)
+                        }
+                    } : {})
+                },
+                ...(orderItems.length > 0 ? {
+                    additional_info: {
+                        items: orderItems.map(item => ({
+                            id: String(item.id || item._id || ''),
+                            title: item.name,
+                            quantity: item.qty,
+                            unit_price: item.price,
+                            category_id: 'food'
+                        }))
+                    }
+                } : {})
             };
+
+            console.log('MP PAYMENT PAYLOAD:', JSON.stringify({ ...paymentData, token: '[REDACTED]' }, null, 2));
 
             const idempotencyKey = `order-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
