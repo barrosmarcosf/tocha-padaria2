@@ -424,14 +424,15 @@
                                     token: cardFormData.token,
                                     payment_method_id: cardFormData.payment_method_id,
                                     issuer_id: cardFormData.issuer_id,
-                                    installments: Number(cardFormData.installments || 1),
+                                    installments: cardFormData.installments,
                                     payer: {
-                                        email: cardFormData.payer?.email || 'test@test.com'
+                                        email: payerEmail || 'test@test.com'
                                     },
                                     amount: Number(orderData.total)
                                 };
 
                                 console.log('ENVIANDO PARA BACKEND:', payload);
+                                console.log('🔥 PAYLOAD FINAL:', payload);
                                 console.log('🔥 VOU ENVIAR REQUEST');
 
                                 let res;

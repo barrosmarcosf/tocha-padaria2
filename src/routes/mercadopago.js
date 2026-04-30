@@ -389,25 +389,22 @@ module.exports = function (supabase) {
 
     // 4. CHECKOUT TRANSPARENTE — CARTÃO (Bricks)
     router.post('/create-card-payment', async (req, res) => {
-        console.log('HEADERS:', req.headers);
-        console.log('RAW BODY:', req.body);
+        console.log('🔥 HEADERS:', req.headers);
+        console.log('🔥 BODY RECEBIDO:', req.body);
         try {
             if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
                 return res.status(503).json({ error: 'Integração Mercado Pago não configurada.' });
             }
 
-            if (!req.body || typeof req.body !== 'object') {
-                return res.status(400).json({ error: 'Body ausente ou Content-Type inválido.' });
+            if (!req.body || !req.body.token) {
+                console.error('❌ TOKEN NÃO CHEGOU NO BACKEND');
+                return res.status(400).json({ error: 'Token não recebido no backend' });
             }
 
             console.log('TOKEN BACKEND:', req.body.token);
             console.log('BODY COMPLETO:', req.body);
 
             const { token, amount, payer, order_id } = req.body;
-
-            if (!req.body.token) {
-                return res.status(400).json({ error: 'Token não recebido' });
-            }
             if (!token || typeof token !== 'string' || token.length < 10) {
                 return res.status(400).json({ error: 'token obrigatório e deve ser válido.' });
             }
