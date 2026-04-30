@@ -437,25 +437,25 @@ module.exports = function (supabase) {
 
             // Criar pagamento no Mercado Pago
             const nameParts = (customer.name || '').split(' ');
-            const mpResponse = await payment.create({
-                body: {
-                    transaction_amount: totalAmount,
-                    token: cardToken,
-                    description: 'Pedido Tocha Padaria',
-                    installments: Number(installments) || 1,
-                    payment_method_id,
-                    issuer_id,
-                    payer: {
-                        email: customer.email,
-                        first_name: nameParts[0] || 'Cliente',
-                        last_name: nameParts.slice(1).join(' ') || 'Cliente'
-                    }
+            const payload = {
+                transaction_amount: totalAmount,
+                token: cardToken,
+                description: 'Pedido Tocha Padaria',
+                installments: Number(installments) || 1,
+                payment_method_id,
+                issuer_id,
+                payer: {
+                    email: customer.email,
+                    first_name: nameParts[0] || 'Cliente',
+                    last_name: nameParts.slice(1).join(' ') || 'Cliente'
                 }
-            });
+            };
+            console.log('PAYLOAD MP:', payload);
+            const response = await payment.create({ body: payload });
 
-            const mpId = String(mpResponse.id);
-            const mpStatus = mpResponse.status;
-            console.log(`💳 [MP Card] Pagamento ${mpId}: ${mpStatus} (${mpResponse.status_detail})`);
+            const mpId = String(response.id);
+            const mpStatus = response.status;
+            console.log(`💳 [MP Card] Pagamento ${mpId}: ${mpStatus} (${response.status_detail})`);
 
             const itemsJson = JSON.stringify({
                 actual_items: cartItems,
@@ -502,17 +502,14 @@ module.exports = function (supabase) {
 
             if (!newOrder) throw new Error('Falha ao registrar pedido de cartão.');
 
-            if (mpStatus === 'approved' || mpStatus === 'in_process' || mpStatus === 'pending') {
-                return res.json({ success: true, status: mpStatus, order_id: newOrder.id });
-            }
-
-            res.status(400).json({ error: `Pagamento recusado: ${mpResponse.status_detail || mpStatus}` });
+            res.json(response.data);
 
         } catch (error) {
-            console.error('❌ [CARD] Erro Crítico:', error.response?.data || error);
-            res.status(error.response?.status || 500).json({ 
-                error: true,
-                message: error.response?.data?.message || error.message || 'Erro ao processar pagamento.' 
+            console.error('MP ERROR:', error.response?.data || error.message);
+
+            return res.status(500).json({
+                error: 'Erro ao criar pagamento',
+                details: error.response?.data || error.message
             });
         }
     });
