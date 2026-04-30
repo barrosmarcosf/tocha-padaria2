@@ -11,31 +11,35 @@ const JWT_SECRET = process.env.JWT_SECRET || (() => {
     return fallback;
 })();
 
-/**
- * Middleware de Autenticação Admin
- * Verifica o token JWT no header Authorization
- */
+// Incrementar para invalidar todas as sessões ativas (ex: após troca de senha)
+const SESSION_VERSION = process.env.SESSION_VERSION || '1';
+
+function secLog(event, req, extra = '') {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
+    console.warn(`[SECURITY] ${new Date().toISOString()} | ${event} | IP: ${ip} | ${req.path}${extra ? ' | ' + extra : ''}`);
+}
+
 const adminAuth = (req, res, next) => {
     const token = req.headers['authorization']?.split(' ')[1];
     if (!token) {
-        console.warn(">>> [AUTH] Token ausente.");
+        secLog('AUTH_REJEITADO', req, 'Token ausente');
         return res.status(401).json({ error: 'Acesso não autorizado. Faça login.' });
     }
 
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
         if (err) {
-            console.error(">>> [AUTH] JWT Error:", err.message);
+            secLog('AUTH_REJEITADO', req, err.message);
             return res.status(403).json({ error: 'Sessão expirada. Faça login novamente.' });
+        }
+        if (decoded.sv !== SESSION_VERSION) {
+            secLog('SESSION_INVALIDADA', req, `sv=${decoded.sv} esperado=${SESSION_VERSION}`);
+            return res.status(403).json({ error: 'Sessão invalidada. Faça login novamente.' });
         }
         req.user = decoded;
         next();
     });
 };
 
-/**
- * Middleware para verificar Roles
- * @param {string[]} allowedRoles - Roles permitidas (ex: ['admin'])
- */
 const authorize = (allowedRoles = ['admin']) => {
     return (req, res, next) => {
         if (!allowedRoles.includes(req.user.role)) {
@@ -45,4 +49,4 @@ const authorize = (allowedRoles = ['admin']) => {
     };
 };
 
-module.exports = { adminAuth, authorize, JWT_SECRET, jwt, bcrypt };
+module.exports = { adminAuth, authorize, JWT_SECRET, SESSION_VERSION, secLog, jwt, bcrypt };

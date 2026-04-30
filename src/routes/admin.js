@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { adminAuth, authorize, bcrypt, jwt, JWT_SECRET } = require('../middleware/auth');
+const { adminAuth, authorize, bcrypt, jwt, JWT_SECRET, SESSION_VERSION, secLog } = require('../middleware/auth');
+const { generateCsrfToken, csrfProtection } = require('../middleware/csrf');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -34,18 +35,25 @@ setInterval(() => {
 
 module.exports = function (supabase) {
 
+    // Proteção CSRF em todas as rotas POST/PUT/DELETE (exceto /login)
+    router.use(csrfProtection(JWT_SECRET));
+
+    // Retorna token CSRF para a sessão atual
+    router.get('/csrf-token', (req, res) => {
+        const token = generateCsrfToken(req.session_id, JWT_SECRET);
+        res.json({ token });
+    });
+
     // Rota de Login
     router.post('/login', rateLimitLogin, async (req, res) => {
-        console.log(`>>> [AUTH] Login attempt: ${req.body?.email}`);
+        const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
+        const ts = new Date().toISOString();
         try {
             const { email, password } = req.body;
-            
-            // 1. Tenta buscar na tabela 'usuarios'
-            console.log(`>>> [AUTH] Querying usuarios for: ${email}`);
+
             const { data: user, error } = await supabase.from('usuarios').select('*').eq('email', email).maybeSingle();
-            
             if (error) console.error(">>> [AUTH] Supabase error:", error);
-            
+
             let authenticated = false;
             let userData = null;
 
@@ -56,28 +64,29 @@ module.exports = function (supabase) {
                     userData = { id: user.id, nome: user.nome, email: user.email, role: user.role };
                 }
             }
-            
-            // 2. Fallback para Credenciais do .env (Se a tabela estiver vazia ou credenciais baterem)
+
+            // Fallback para credenciais do .env
             if (!authenticated && email === process.env.ADMIN_USER && password === process.env.ADMIN_PASS) {
                 authenticated = true;
                 userData = { id: 0, nome: 'Administrador', email: process.env.ADMIN_USER, role: 'admin' };
             }
 
             if (!authenticated) {
+                console.warn(`[SECURITY] ${ts} | LOGIN_FALHA | IP: ${ip} | Email: ${email}`);
                 return res.status(401).json({ error: 'Credenciais inválidas!' });
             }
 
-            // Atualiza último login se for usuário do banco
             if (user && user.id) {
                 await supabase.from('usuarios').update({ ultimo_login: new Date().toISOString() }).eq('id', user.id);
             }
 
-            const token = jwt.sign(userData, JWT_SECRET, { expiresIn: '8h' });
+            const token = jwt.sign({ ...userData, sv: SESSION_VERSION }, JWT_SECRET, { expiresIn: '8h' });
+            console.log(`[SECURITY] ${ts} | LOGIN_SUCESSO | IP: ${ip} | Email: ${email}`);
             res.json({ success: true, token, user: userData });
-            
-        } catch (e) { 
+
+        } catch (e) {
             console.error("Erro no login:", e);
-            res.status(500).json({ error: "Erro interno no servidor." }); 
+            res.status(500).json({ error: "Erro interno no servidor." });
         }
     });
 

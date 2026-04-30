@@ -7,6 +7,7 @@ console.log(">>> [ADMIN] Overlay detectado:", !!loginOverlay, "| Botao Login:", 
 let state = {
         token: localStorage.getItem('tocha_admin_token'),
         user: JSON.parse(localStorage.getItem('tocha_admin_user') || '{}'),
+        csrfToken: null,
         categories: [],
         products: [],
         content: {},
@@ -81,6 +82,25 @@ let state = {
         preOrders: [],
         preVendaSummary: null
     };
+
+    // Intercepta fetch para injetar x-csrf-token em rotas admin que modificam estado
+    const _origFetch = window.fetch.bind(window);
+    window.fetch = function(url, opts = {}) {
+        if (typeof url === 'string' && url.startsWith('/api/admin/') && state.csrfToken) {
+            const method = (opts.method || 'GET').toUpperCase();
+            if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+                opts = { ...opts, headers: { ...opts.headers, 'x-csrf-token': state.csrfToken } };
+            }
+        }
+        return _origFetch(url, opts);
+    };
+
+    async function fetchCsrfToken() {
+        try {
+            const r = await _origFetch('/api/admin/csrf-token');
+            if (r.ok) { const d = await r.json(); state.csrfToken = d.token; }
+        } catch (_) {}
+    }
 
     window.showToast = function(msg) {
         console.log("Toast:", msg);
@@ -169,13 +189,14 @@ let state = {
             });
             const data = await resp.json();
             
-            if (data.success) { 
-                state.token = data.token; 
-                state.user = data.user; 
-                localStorage.setItem('tocha_admin_token', data.token); 
-                localStorage.setItem('tocha_admin_user', JSON.stringify(data.user)); 
-                loginOverlay.style.display = 'none'; 
-                await initAdmin(); 
+            if (data.success) {
+                state.token = data.token;
+                state.user = data.user;
+                localStorage.setItem('tocha_admin_token', data.token);
+                localStorage.setItem('tocha_admin_user', JSON.stringify(data.user));
+                await fetchCsrfToken();
+                loginOverlay.style.display = 'none';
+                await initAdmin();
             } else {
                 showToast(data.error || 'Credenciais inválidas!');
             }
@@ -4586,11 +4607,12 @@ let state = {
 
     // --- INICIALIZAÇÃO ---
 
-    if (state.token) { 
-        loginOverlay.style.display = 'none'; 
-        fetch('/api/admin/config', { headers: { 'Authorization': `Bearer ${state.token}` }})
+    if (state.token) {
+        loginOverlay.style.display = 'none';
+        _origFetch('/api/admin/config', { headers: { 'Authorization': `Bearer ${state.token}` } })
         .then(async res => {
             if (!res.ok) throw new Error('Token inválido ou expirado');
+            await fetchCsrfToken();
             await initAdmin();
         })
         .catch(err => {

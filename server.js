@@ -7,6 +7,17 @@
 console.log("🚀 [SERVER] REINICIADO COM LOG DE DEPURACAO v999");
 require('dotenv').config();
 
+// Validação de segredos críticos obrigatórios em produção
+if (process.env.NODE_ENV === 'production') {
+    const required = ['JWT_SECRET', 'STRIPE_WEBHOOK_SECRET', 'MERCADOPAGO_WEBHOOK_SECRET', 'ADMIN_PASS'];
+    const missing = required.filter(k => !process.env[k]);
+    if (missing.length) {
+        console.error(`❌ [STARTUP] Segredos obrigatórios ausentes: ${missing.join(', ')}. Configure no .env e reinicie.`);
+        process.exit(1);
+    }
+    console.log('✅ [STARTUP] Validação de segredos críticos: OK');
+}
+
 // CAPTURA DE ERROS TOTAIS (Para diagnosticar exit code 1)
 process.on('uncaughtException', (err) => {
     console.error(`\n💥 [CRITICAL ERROR] UNCAUGHT EXCEPTION: ${err.message}`);
@@ -91,7 +102,7 @@ app.use((req, _res, next) => {
     next();
 });
 
-// Middleware de SESSÃO SEGURA (Cookie HttpOnly)
+// Middleware de SESSÃO SEGURA (Cookie HttpOnly + Secure em produção)
 app.use((req, res, next) => {
     let sid = req.cookies.session_id;
     if (!sid) {
@@ -100,10 +111,9 @@ app.use((req, res, next) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'Strict',
+            path: '/',
             maxAge: 3600000 * 24 // 24h
         });
-        // Seta o header para a resposta atual também
-        res.setHeader('Set-Cookie', `session_id=${sid}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400`);
     }
     req.session_id = sid;
     next();
