@@ -402,10 +402,9 @@
                         },
                         onSubmit: async (cardFormData) => {
                             console.log("📤 [MP] onSubmit disparado");
-                            const { token, payment_method_id, issuer_id, installments, payer } = cardFormData;
-                            console.log('TOKEN MP:', token);
+                            console.log('TOKEN MP FRONT:', cardFormData.token);
                             try {
-                                if (!token) throw new Error('TOKEN NÃO GERADO');
+                                if (!cardFormData.token) throw new Error('TOKEN NÃO GERADO');
 
                                 const res = await fetch('/api/mercadopago/create-card-payment', {
                                     method: 'POST',
@@ -413,14 +412,15 @@
                                         'Content-Type': 'application/json'
                                     },
                                     body: JSON.stringify({
-                                        token,
-                                        payment_method_id,
-                                        issuer_id,
-                                        installments,
-                                        payer: { email: payer?.email },
-                                        order_id: orderData.id,
-                                        customer: orderData.customer,
-                                        cart: orderData.items
+                                        token: cardFormData.token,
+                                        payment_method_id: cardFormData.payment_method_id,
+                                        issuer_id: cardFormData.issuer_id,
+                                        installments: Number(cardFormData.installments || 1),
+                                        payer: {
+                                            email: cardFormData.payer?.email || 'test@test.com'
+                                        },
+                                        amount: Number(orderData.total),
+                                        order_id: orderData.id
                                     })
                                 });
 

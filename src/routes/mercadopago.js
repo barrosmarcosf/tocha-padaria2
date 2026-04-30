@@ -394,9 +394,14 @@ module.exports = function (supabase) {
                 return res.status(503).json({ error: 'Integração Mercado Pago não configurada.' });
             }
 
+            console.log('TOKEN BACKEND:', req.body.token);
+            console.log('BODY COMPLETO:', req.body);
+
             const { token, amount, installments, payment_method_id, issuer_id, payer, order_id } = req.body;
 
-            // Validar obrigatórios
+            if (!req.body.token) {
+                return res.status(400).json({ error: 'Token não recebido' });
+            }
             if (!token || typeof token !== 'string' || token.length < 10) {
                 return res.status(400).json({ error: 'token obrigatório e deve ser válido.' });
             }
@@ -456,7 +461,7 @@ module.exports = function (supabase) {
 
                     await supabase
                         .from('pedidos')
-                        .update({ stripe_session_id: `mp_${mpId}`, items: JSON.stringify(itemsData) })
+                        .update({ mp_payment_id: mpId, items: JSON.stringify(itemsData) })
                         .eq('id', order_id)
                         .eq('status', 'pending');
                 }
