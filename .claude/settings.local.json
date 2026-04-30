@@ -3,7 +3,8 @@
     "allow": [
       "Bash(chmod +x .git/hooks/post-commit)",
       "WebFetch(domain:www.tochapadaria.com)",
-      "Bash(grep -E \"\\\\.\\(json|toml|yml|yaml\\)$\")"
+      "Bash(grep -E \"\\\\.\\(json|toml|yml|yaml\\)$\")",
+      "Bash(find c:\\\\\\\\Users\\\\\\\\tocha\\\\\\\\.gemini\\\\\\\\antigravity\\\\\\\\scratch\\\\\\\\tocha-padaria -name \".env\" -o -name \".env.local\")"
     ]
   }
 }

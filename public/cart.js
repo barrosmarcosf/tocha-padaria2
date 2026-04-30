@@ -98,6 +98,7 @@ function render() {
     if (emptyState) emptyState.style.display = 'none';
     if (cartFooter) cartFooter.hidden = false;
 
+    if (!itemsList) return;
     itemsList.innerHTML = cart.map(item => `
         <div class="cart-item">
             <div class="ci-left">
@@ -122,15 +123,20 @@ function render() {
     const disc = discountAmount(sub);
     const total = sub - disc;
 
-    document.getElementById('subtotalLabel').textContent = fmt(sub);
-    document.getElementById('totalLabel').textContent = fmt(total);
+    const subtotalEl = document.getElementById('subtotalLabel');
+    const totalEl    = document.getElementById('totalLabel');
+    if (subtotalEl) subtotalEl.textContent = fmt(sub);
+    if (totalEl)    totalEl.textContent    = fmt(total);
 
-    const discRow = document.getElementById('discountRow');
-    if (disc > 0) {
-        discRow.hidden = false;
-        document.getElementById('discountLabel').textContent = '− ' + fmt(disc);
-    } else {
-        discRow.hidden = true;
+    const discRow   = document.getElementById('discountRow');
+    const discLabel = document.getElementById('discountLabel');
+    if (discRow) {
+        if (disc > 0) {
+            discRow.hidden = false;
+            if (discLabel) discLabel.textContent = '− ' + fmt(disc);
+        } else {
+            discRow.hidden = true;
+        }
     }
 }
 
@@ -143,49 +149,18 @@ window.openCheckoutModal = function() {
     if (overlay) overlay.classList.add('active');
     
     if (globalStatus && globalStatus.batchLabel) {
-        document.getElementById('dataFornada').textContent = globalStatus.batchLabel;
+        const dataFornada = document.getElementById('dataFornada');
+        if (dataFornada) dataFornada.textContent = globalStatus.batchLabel;
     }
 }
 
 window.closeCheckoutModal = function() {
-    document.getElementById('checkoutModal').style.display = 'none';
+    const modal = document.getElementById('checkoutModal');
+    if (modal) modal.style.display = 'none';
     const overlay = document.getElementById('checkoutOverlay');
     if (overlay) overlay.classList.remove('active');
 };
 
-window.validarFormulario = function() {
-    const campos = [
-        { id: 'id-name', msg: 'Informe seu nome completo' },
-        { id: 'id-whatsapp', msg: 'Informe um WhatsApp válido' },
-        { id: 'id-email', msg: 'Informe um e-mail válido' }
-    ];
-
-    let valido = true;
-
-    campos.forEach(campo => {
-        const input = document.getElementById(campo.id);
-        const erro = input.nextElementSibling;
-
-        if (!input.value.trim()) {
-            input.classList.add('input-error');
-            erro.innerText = campo.msg;
-            erro.style.display = 'block';
-            if (valido) input.focus();
-            valido = false;
-        } else {
-            input.classList.remove('input-error');
-            erro.style.display = 'none';
-        }
-    });
-
-    return valido;
-};
-
-window.tentarFinalizar = function() {
-    if (window.validarFormulario()) {
-        window.confirmarPedido();
-    }
-};
 
 window.syncCart = async function() {
     const cartToSync = JSON.parse(localStorage.getItem('tocha-cart') || '[]');
@@ -216,10 +191,14 @@ window.confirmarPedido = async function() {
     window.__checkoutLock = true;
     
     console.log('🚀 [CHECKOUT] Confirmar Pedido iniciado');
-    const name = document.getElementById('id-name').value.trim();
-    const whatsapp = document.getElementById('id-whatsapp').value.trim();
-    const email = document.getElementById('id-email').value.trim();
-    const payment = document.querySelector('input[name="payment-method"]:checked').value;
+    const nameEl = document.getElementById('id-name');
+    const whatsappEl = document.getElementById('id-whatsapp');
+    const emailEl = document.getElementById('id-email');
+    const name = nameEl ? nameEl.value.trim() : '';
+    const whatsapp = whatsappEl ? whatsappEl.value.trim() : '';
+    const email = emailEl ? emailEl.value.trim() : '';
+    const paymentEl = document.querySelector('input[name="payment-method"]:checked');
+    const payment = paymentEl ? paymentEl.value : 'pix';
     const cartToCheckout = JSON.parse(localStorage.getItem('tocha-cart') || '[]');
     const sessionId = localStorage.getItem('tocha-session-id');
 
@@ -232,14 +211,13 @@ window.confirmarPedido = async function() {
     localStorage.setItem('tocha-customer', JSON.stringify(customer));
 
     const btn = document.querySelector('#checkoutModal .btn-primary');
-    const originalText = btn.innerText;
+    const originalText = btn ? btn.innerText : 'CONFIRMAR PEDIDO';
 
     // GERA CHAVE DE IDEMPOTÊNCIA PARA ESTA TENTATIVA
     const idempotencyKey = self.crypto.randomUUID();
 
     try {
-        btn.innerText = "PROCESSANDO...";
-        btn.disabled = true;
+        if (btn) { btn.innerText = "PROCESSANDO..."; btn.disabled = true; }
 
         // BUSCA CONFIGURAÇÃO ATUAL DO BACKEND (FONTE DA VERDADE)
         let settings;
@@ -312,15 +290,15 @@ window.confirmarPedido = async function() {
     } catch (e) {
         console.error('❌ [CHECKOUT] Erro:', e.message);
         alert("Erro: " + e.message);
-        btn.innerText = originalText;
-        btn.disabled = false;
+        if (btn) { btn.innerText = originalText; btn.disabled = false; }
     } finally {
         window.__checkoutLock = false;
     }
 };
 
 window.fecharModal = function() {
-    document.getElementById('modalSuccess').style.display = 'none';
+    const modalSuccess = document.getElementById('modalSuccess');
+    if (modalSuccess) modalSuccess.style.display = 'none';
     const overlay = document.getElementById('checkoutOverlay');
     if (overlay) overlay.classList.remove('active');
 };
@@ -408,7 +386,7 @@ function injectCart() {
                     </label>
                 </div>
                 
-                <button class="btn-primary" onclick="window.tentarFinalizar()" style="border-radius: 10px; margin-bottom: 10px; width: 100%;">CONFIRMAR PEDIDO</button>
+                <button class="btn-primary" onclick="window.confirmarPedido()" style="border-radius: 10px; margin-bottom: 10px; width: 100%;">CONFIRMAR PEDIDO</button>
                 <button class="modal-cancel" onclick="closeCheckoutModal()">Cancelar</button>
             </div>
         </div>
@@ -460,127 +438,6 @@ async function fetchStoreStatus() {
             render(); 
         }
     } catch (e) { console.error(e); }
-}
-
-/* ── Mercado Pago Bricks (Cartão Transparente) ── */
-let _mpBricks = null;
-
-async function initMPCardBricks() {
-    const container = document.getElementById('mp-card-bricks');
-    if (!container) return;
-
-    if (window.cardPaymentBrickController) {
-        try { await window.cardPaymentBrickController.unmount(); } catch(e) {}
-        window.cardPaymentBrickController = null;
-    }
-    _mpBricks = null;
-
-    const cartItems = JSON.parse(localStorage.getItem('tocha-cart') || '[]');
-    const totalAmount = cartItems.reduce((t, i) => t + i.price * i.qty, 0);
-    if (totalAmount <= 0) {
-        container.innerHTML = '<p style="color:#ef4444;font-size:0.85rem;padding:12px;">Carrinho vazio.</p>';
-        return;
-    }
-
-    container.innerHTML = '<p style="color:#aaa;font-size:0.85rem;text-align:center;padding:20px;">Carregando formulário…</p>';
-
-    try {
-        const pkRes = await fetch('/api/mercadopago/public-key');
-        if (!pkRes.ok) {
-            throw new Error(`Erro ao buscar configuração de pagamento (Status: ${pkRes.status})`);
-        }
-        const pkData = await pkRes.json();
-        if (!pkData.publicKey) throw new Error('Chave pública não encontrada.');
-        if (!pkData.publicKey) throw new Error('Chave pública MP não configurada no servidor.');
-
-        if (!window.MercadoPago) {
-            await new Promise((resolve, reject) => {
-                const s = document.createElement('script');
-                s.src = 'https://sdk.mercadopago.com/js/v2';
-                s.onload = resolve;
-                s.onerror = () => reject(new Error('Falha ao carregar SDK do Mercado Pago.'));
-                document.head.appendChild(s);
-            });
-        }
-
-        const mp = new MercadoPago(pkData.publicKey, { locale: 'pt-BR' });
-        const bricks = mp.bricks();
-
-        _mpBricks = window.cardPaymentBrickController = await bricks.create('cardPayment', 'mp-card-bricks', {
-            initialization: { amount: totalAmount },
-            customization: { 
-                paymentMethods: { minInstallments: 1, maxInstallments: 1 },
-                visual: { 
-                    hideFormTitle: true, 
-                    hidePaymentButton: true,
-                    style: { theme: 'dark' }
-                }
-            },
-            callbacks: {
-                onReady: () => {
-                    console.log('✅ [MP Bricks] Pronto');
-                },
-                onSubmit: async (formData) => {
-                    console.log('📤 [MP] onSubmit disparado, processando pagamento...');
-                    const btn = document.querySelector('#checkoutModal .btn-primary');
-                    
-                    try {
-                        const name     = document.getElementById('id-name').value.trim();
-                        const whatsapp = document.getElementById('id-whatsapp').value.trim();
-                        const email    = document.getElementById('id-email').value.trim();
-                        const cart2    = JSON.parse(localStorage.getItem('tocha-cart') || '[]');
-
-                        const res = await fetch('/api/mercadopago/create-card-payment', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ 
-                                customer: { name, whatsapp, email }, 
-                                cart: cart2, 
-                                ...formData 
-                            })
-                        });
-                        
-                        const responseText = await res.text();
-                        let data;
-                        try {
-                            data = JSON.parse(responseText);
-                        } catch(e) {
-                            console.error('❌ Erro ao parsear resposta:', responseText);
-                            throw new Error('Servidor retornou resposta inválida (HTML em vez de JSON).');
-                        }
-
-                        if (!res.ok) {
-                            throw new Error(data.error || 'Erro ao processar pagamento.');
-                        }
-
-                        console.log('✅ Pagamento aprovado:', data);
-                        cart = [];
-                        save();
-                        window.closeCheckoutModal();
-                        document.getElementById('modalSuccess').style.display = 'flex';
-                        document.getElementById('checkoutOverlay').classList.add('active');
-                    } catch(e) {
-                        console.error('❌ Erro no submit:', e.message);
-                        alert("Erro no pagamento: " + e.message);
-                        if (btn) {
-                            btn.innerText = "CONFIRMAR PEDIDO";
-                            btn.disabled = false;
-                        }
-                    }
-                },
-                onError: (err) => { 
-                    console.error('[MP Bricks Error]', err); 
-                    const btn = document.querySelector('#checkoutModal .btn-primary');
-                    if (btn) {
-                        btn.innerText = "CONFIRMAR PEDIDO";
-                        btn.disabled = false;
-                    }
-                }
-            }
-        });
-    } catch(e) {
-        if (container) container.innerHTML = `<p style="color:#ef4444;font-size:0.85rem;padding:12px;">Erro: ${e.message}</p>`;
-    }
 }
 
 async function applyPaymentMethodSettings() {
@@ -639,8 +496,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (params.get('status') === 'success') {
         cart = [];
         save();
-        document.getElementById('modalSuccess').style.display = 'flex';
-        document.getElementById('checkoutOverlay').classList.add('active');
+        const ms = document.getElementById('modalSuccess');
+        const co = document.getElementById('checkoutOverlay');
+        if (ms) ms.style.display = 'flex';
+        if (co) co.classList.add('active');
 
         // Fallback crítico: confirma o pagamento caso o webhook do Stripe não tenha chegado
         // (URL do servidor expirada, falha de rede, etc.)
@@ -657,15 +516,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     applyPaymentMethodSettings();
-
-    // Mostrar/ocultar Bricks quando o método de pagamento muda
-    document.body.addEventListener('change', (e) => {
-        if (e.target.name !== 'payment-method') return;
-
-        const confirmBtn = document.querySelector('#checkoutModal .btn-primary');
-        // Resetamos o display caso tenha sido alterado
-        if (confirmBtn) confirmBtn.style.display = 'block';
-    });
 
     const closeBtn = document.getElementById('closeCart');
     if (closeBtn) closeBtn.addEventListener('click', window.closeCart);

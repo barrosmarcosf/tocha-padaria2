@@ -148,49 +148,84 @@
 
         /* --- Coluna Direita: Pagamento --- */
         .payment-col {
-            background: var(--bg-card);
-            border-radius: 12px;
-            padding: 50px;
+            background: #181818;
+            border-radius: 20px;
+            padding: 44px 48px 48px;
             position: relative;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            box-shadow:
+                0 0 0 1px rgba(255,255,255,0.06),
+                0 24px 60px rgba(0,0,0,0.5);
         }
 
         .payment-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 40px;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
         }
 
         .payment-header .col-title {
-            font-size: 14px;
-            font-weight: 600;
-            letter-spacing: 1px;
-            color: var(--text-main);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            text-transform: uppercase;
             margin: 0;
         }
 
         .mp-logo-right {
-            height: 32px;
-            filter: brightness(0) invert(1);
-            opacity: 0.9;
+            height: 38px;
         }
 
-        /* Customização dos Bricks */
+        /* Container escuro ao redor do Brick */
+        .bricks-wrapper {
+            background: #0B0B0B;
+            border-radius: 16px;
+            padding: 6px;
+            box-shadow:
+                0 0 0 1px rgba(255,255,255,0.07),
+                0 12px 40px rgba(0,0,0,0.6);
+            overflow: hidden;
+        }
+
         #mp-card-bricks {
             width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
         }
 
         .trust-footer {
-            margin-top: 50px;
+            margin-top: 40px;
+            padding-top: 28px;
+            border-top: 1px solid var(--border);
             text-align: center;
             font-size: 12px;
             color: var(--text-muted);
-            line-height: 1.6;
+            line-height: 1.7;
         }
 
-        .trust-footer p {
-            margin-bottom: 4px;
+        .trust-footer .trust-secure {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 6px;
+        }
+
+        .trust-footer .trust-secure svg {
+            flex-shrink: 0;
+            color: #4ade80;
+        }
+
+        .trust-footer a {
+            color: #60a5fa;
+            text-decoration: underline;
+            font-size: 12px;
         }
 
         /* Loader */
@@ -277,14 +312,22 @@
             <main class="payment-col">
                 <div class="payment-header">
                     <h2 class="col-title">DADOS DO CARTÃO</h2>
-                    <img src="https://logodownload.org/wp-content/uploads/2019/06/mercado-pago-logo.png" alt="Mercado Pago" class="mp-logo-right">
+                    <div style="background:#FFE600; border-radius:10px; padding:7px 14px; display:inline-flex; align-items:center;">
+                        <img src="/mp-logo.svg" alt="Mercado Pago" class="mp-logo-right">
+                    </div>
                 </div>
                 
-                <div id="mp-card-bricks"></div>
+                <div class="bricks-wrapper">
+                    <div id="mp-card-bricks"></div>
+                </div>
                 
                 <footer class="trust-footer">
-                    <p>Sua compra é processada com segurança pelo Mercado Pago.</p>
-                    <p>Os dados são protegidos por criptografia durante a transação.</p>
+                    <div class="trust-secure">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                        Sua compra é 100% segura.
+                    </div>
+                    <p>Todos os dados são criptografados e a transação é auditada pelo Mercado Pago.</p>
+                    <a href="https://www.mercadopago.com.br/seguranca" target="_blank" rel="noopener">Saiba mais sobre a segurança do Mercado Pago ↗</a>
                 </footer>
             </main>
         </div>
@@ -428,7 +471,23 @@
             document.getElementById('total-amount').innerText = `R$ ${data.total.toFixed(2).replace('.', ',')}`;
             
             // Formatar data da fornada
-            const batchLabel = data.batch_date || 'A confirmar';
+            let batchLabel = 'A confirmar';
+            if (data.batch_date) {
+                const raw = data.batch_date;
+                const dateObj = raw.match(/^\d{4}-\d{2}-\d{2}$/)
+                    ? new Date(raw + 'T12:00:00')
+                    : null;
+                if (dateObj) {
+                    const days = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+                    const d = String(dateObj.getDate()).padStart(2,'0');
+                    const m = String(dateObj.getMonth()+1).padStart(2,'0');
+                    const y = dateObj.getFullYear();
+                    batchLabel = `${days[dateObj.getDay()]} ${d}/${m}/${y}`;
+                } else {
+                    // já é string formatada — remove "dia " se presente
+                    batchLabel = String(raw).replace(/\bdia\s+/gi, '').replace(/,\s*/g, ' ').trim();
+                }
+            }
             document.getElementById('batch-date-label').innerText = `Fornada: ${batchLabel}`;
 
             const container = document.getElementById('item-list-container');

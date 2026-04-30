@@ -126,6 +126,9 @@ app.use('/api', publicRoutes);
 // ──────────────────────────────────────────────────
 // MIDDLEWARES GLOBAIS (Arquivos Estáticos após API)
 // ──────────────────────────────────────────────────
+app.get('/debug', (req, res) => {
+  res.send('VERSAO NOVA 123');
+});
 app.get('/', (_req, res) => res.status(200).sendFile(path.join(__dirname, 'public', 'index.html')));
 app.use(express.static(path.join(__dirname, 'public')));
 
