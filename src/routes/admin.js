@@ -1017,7 +1017,15 @@ module.exports = function (supabase) {
         },
         filename: (req, file, cb) => cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname))
     });
-    const upload = multer({ storage });
+    const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const upload = multer({
+        storage,
+        limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+        fileFilter: (_req, file, cb) => {
+            if (ALLOWED_MIME.includes(file.mimetype)) cb(null, true);
+            else cb(new Error('Tipo de arquivo não permitido. Use JPEG, PNG, WEBP ou GIF.'));
+        }
+    });
 
     router.post('/upload', adminAuth, upload.single('image'), (req, res) => {
         try {

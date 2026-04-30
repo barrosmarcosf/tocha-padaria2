@@ -204,6 +204,7 @@ window.confirmarPedido = async function() {
 
     if (!name || !whatsapp || !email) {
         alert("Preencha todos os campos obrigatórios.");
+        window.__checkoutLock = false;
         return;
     }
 
@@ -556,8 +557,8 @@ document.addEventListener('DOMContentLoaded', () => {
         render();
     }
 
-    // Mascara de WhatsApp
-    const whatsappInput = document.getElementById('whatsapp');
+    // Mascara de WhatsApp (id correto do modal: id-whatsapp)
+    const whatsappInput = document.getElementById('id-whatsapp');
     if (whatsappInput) {
         whatsappInput.addEventListener('input', (e) => {
             let x = e.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,5})(\d{0,4})/);

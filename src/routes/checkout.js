@@ -45,7 +45,7 @@ module.exports = function (supabase, stripe) {
             
             // O frontend do Stripe sempre manda session.payment_method_types = ['card', 'pix'] ou similar
             // Aqui validamos se a configuração global permite Stripe (card)
-            if (s.mp_card === true || s.card === false) {
+            if (s.mp_card === true || !s.card) {
                 return res.status(403).json({ error: 'Stripe desabilitado' });
             }
 

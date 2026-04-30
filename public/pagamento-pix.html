@@ -143,9 +143,10 @@
     </div>
 
     <script>
-        const pixData = JSON.parse(localStorage.getItem('tocha-pix-data'));
+        let pixData = null;
+        try { pixData = JSON.parse(localStorage.getItem('tocha-pix-data')); } catch (_) {}
 
-        if (!pixData) {
+        if (!pixData || !pixData.payment_id) {
             window.location.href = "/";
         } else {
             document.getElementById('qrImage').src = pixData.qr_code_base64;
@@ -153,29 +154,42 @@
         }
 
         function copyPix() {
+            if (!pixData) return;
             navigator.clipboard.writeText(pixData.qr_code);
             const btn = document.querySelector('.copy-btn');
             btn.innerText = "COPIADO!";
             setTimeout(() => btn.innerText = "COPIAR", 2000);
         }
 
-        // Polling para verificar status
+        // Polling com limite de tentativas (max 72 = ~6 min)
+        let _pollAttempts = 0;
+        const MAX_POLL = 72;
+        let _pollTimer = null;
+
         async function checkStatus() {
+            if (_pollAttempts >= MAX_POLL) {
+                const badge = document.querySelector('.status-badge');
+                if (badge) badge.innerHTML = '⏰ Tempo esgotado. <a href="/" style="color:inherit;text-decoration:underline;">Voltar ao site</a>';
+                return;
+            }
+            _pollAttempts++;
             try {
-                const res = await fetch(`/api/check-payment/${pixData.payment_id}`);
+                const res = await fetch(`/api/mercadopago/check-payment/${pixData.payment_id}`);
                 const data = await res.json();
 
                 if (data.status === 'approved') {
+                    clearTimeout(_pollTimer);
                     showSuccess();
-                } else if (data.status === 'cancelled') {
+                } else if (data.status === 'cancelled' || data.status === 'rejected') {
+                    clearTimeout(_pollTimer);
                     alert("O pagamento foi cancelado ou expirou.");
                     window.location.href = "/";
                 } else {
-                    setTimeout(checkStatus, 5000);
+                    _pollTimer = setTimeout(checkStatus, 5000);
                 }
             } catch (e) {
                 console.warn("Erro ao checar status:", e.message);
-                setTimeout(checkStatus, 10000);
+                _pollTimer = setTimeout(checkStatus, 10000);
             }
         }
 
@@ -201,7 +215,7 @@
             `;
         }
 
-        checkStatus();
+        if (pixData) checkStatus();
     </script>
 </body>
 </html>

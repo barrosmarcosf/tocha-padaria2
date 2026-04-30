@@ -60,7 +60,7 @@ module.exports = function (supabase) {
                 status: 'active',
                 last_activity_at: new Date().toISOString(),
                 recovery_sent: false,
-                recovery_token: `rec-${sessionId}-${Date.now()}`
+                recovery_token: require('crypto').randomBytes(24).toString('hex')
             }], { onConflict: 'session_id' });
 
             if (error) console.error("❌ Erro ao salvar carrinho:", error.message);
@@ -82,10 +82,10 @@ module.exports = function (supabase) {
 
             if (error || !cartData) return res.status(404).json({ error: 'Carrinho não encontrado.' });
 
-            res.json({
-                cart: JSON.parse(cartData.items),
-                customer: cartData.customer_data
-            });
+            let cartItems;
+            try { cartItems = typeof cartData.items === 'string' ? JSON.parse(cartData.items) : cartData.items; }
+            catch (_) { return res.status(500).json({ error: 'Dados do carrinho corrompidos.' }); }
+            res.json({ cart: cartItems, customer: cartData.customer_data });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 

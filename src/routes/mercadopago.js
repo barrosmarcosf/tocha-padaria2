@@ -58,7 +58,8 @@ module.exports = function (supabase) {
             }
 
             if (!idemErr && existing) {
-                const items = typeof existing.items === 'string' ? JSON.parse(existing.items) : existing.items;
+                let items = existing.items;
+                try { if (typeof items === 'string') items = JSON.parse(items); } catch (_) { items = {}; }
                 return res.json({ payment_id: items.mp_id, order_id: existing.id });
             }
 
@@ -158,8 +159,9 @@ module.exports = function (supabase) {
             } catch (err) {
                 if (err.code === '23505' || err.message?.includes('duplicate key')) {
                     const { data: existing } = await supabase.from('pedidos').select('id, items').eq('idempotency_key', idemKey).single();
-                    const items = typeof existing.items === 'string' ? JSON.parse(existing.items) : existing.items;
-                    return res.json({ payment_id: items.mp_id, order_id: existing.id });
+                    let items = existing?.items || {};
+                    try { if (typeof items === 'string') items = JSON.parse(items); } catch (_) { items = {}; }
+                    return res.json({ payment_id: items.mp_id, order_id: existing?.id });
                 }
                 throw err;
             }
@@ -224,7 +226,8 @@ module.exports = function (supabase) {
 
             if (error || !order) return res.status(404).json({ error: 'Pedido não encontrado.' });
 
-            const itemsData = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+            let itemsData = order.items;
+            try { if (typeof itemsData === 'string') itemsData = JSON.parse(itemsData); } catch (_) { itemsData = {}; }
 
             // 🔒 VALIDAÇÕES DE SEGURANÇA (Suavizadas para Homologação)
             if (order.status !== 'pending' && order.status !== 'paid') {
@@ -597,7 +600,8 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
 
     console.log(`✅ [MP] Processando pagamento aprovado: ${mpId} (pedido ${order.id})`);
 
-    const itemsData = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+    let itemsData = order.items;
+    try { if (typeof itemsData === 'string') itemsData = JSON.parse(itemsData); } catch (_) { itemsData = {}; }
     const cart = itemsData.actual_items || [];
     const batchDate = itemsData.batch_date;
     const paymentMethod = itemsData.payment_method || 'Mercado Pago';

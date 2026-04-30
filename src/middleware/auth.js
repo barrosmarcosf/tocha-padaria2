@@ -1,7 +1,11 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'tocha-default-secret';
+const JWT_SECRET = process.env.JWT_SECRET || (() => {
+    const fallback = require('crypto').randomBytes(32).toString('hex');
+    console.warn('⚠️  [AUTH] JWT_SECRET não definido no .env — usando chave temporária. Todas as sessões expirarão no próximo restart.');
+    return fallback;
+})();
 
 /**
  * Middleware de Autenticação Admin
