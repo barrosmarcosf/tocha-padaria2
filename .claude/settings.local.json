@@ -5,7 +5,13 @@
       "WebFetch(domain:www.tochapadaria.com)",
       "Bash(grep -E \"\\\\.\\(json|toml|yml|yaml\\)$\")",
       "Bash(find c:\\\\\\\\Users\\\\\\\\tocha\\\\\\\\.gemini\\\\\\\\antigravity\\\\\\\\scratch\\\\\\\\tocha-padaria -name \".env\" -o -name \".env.local\")",
-      "Bash(node deploy_all_fixes.js)"
+      "Bash(node deploy_all_fixes.js)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(node --check server.js)",
+      "Bash(node --check src/middleware/auth.js)",
+      "Bash(node --check src/routes/checkout.js)",
+      "Bash(node --check src/routes/mercadopago.js)",
+      "Bash(node --check src/routes/admin.js)"
     ]
   }
 }

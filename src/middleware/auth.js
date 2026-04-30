@@ -2,8 +2,12 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
 const JWT_SECRET = process.env.JWT_SECRET || (() => {
+    if (process.env.NODE_ENV === 'production') {
+        console.error('❌ [AUTH] JWT_SECRET obrigatório em produção. Configure no .env e reinicie o servidor.');
+        process.exit(1);
+    }
     const fallback = require('crypto').randomBytes(32).toString('hex');
-    console.warn('⚠️  [AUTH] JWT_SECRET não definido no .env — usando chave temporária. Todas as sessões expirarão no próximo restart.');
+    console.warn('⚠️  [AUTH] JWT_SECRET não definido — usando chave temporária (somente desenvolvimento).');
     return fallback;
 })();
 

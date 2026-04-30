@@ -1,9 +1,45 @@
 const express = require('express');
+const crypto = require('crypto');
 const { MercadoPagoConfig, Payment } = require('mercadopago');
 const QRCode = require('qrcode');
 const { sendOrderEmails, sendOrderWhatsApp } = require('../notification-service');
 const { getUnifiedAvailableStock } = require('../services/stockService');
 const { getUnifiedStoreStatus } = require('../services/storeStatusService');
+
+function verifyMPWebhookSignature(req, secret) {
+    const signature = req.headers['x-signature'];
+    const requestId = req.headers['x-request-id'] || '';
+    if (!signature) return false;
+    const parts = {};
+    signature.split(',').forEach(part => {
+        const idx = part.indexOf('=');
+        if (idx > 0) parts[part.slice(0, idx).trim()] = part.slice(idx + 1).trim();
+    });
+    const { ts, v1 } = parts;
+    if (!ts || !v1) return false;
+    const mpId = req.body?.data?.id || req.query['data.id'] || '';
+    const manifest = `id:${mpId};request-id:${requestId};ts:${ts};`;
+    const hmac = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
+    return crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(v1));
+}
+
+async function handleMPWebhookPayload(req, payment, supabase) {
+    const { action, data } = req.body;
+    if (action === 'payment.updated' || req.query.type === 'payment') {
+        const mpId = data?.id || req.query['data.id'];
+        if (!mpId) return;
+        const mpPayment = await payment.get({ id: mpId });
+        if (!mpPayment || !mpPayment.id) {
+            console.warn(`[MP Webhook] Evento inválido ignorado (mpId=${mpId})`);
+            return;
+        }
+        if (mpPayment.status === 'approved' && mpPayment.status_detail !== 'rejected') {
+            await processPaidMPOrder(supabase, String(mpId), mpPayment);
+        } else {
+            console.log(`[MP Webhook] Pagamento ${mpId} ignorado. Status: ${mpPayment.status} / ${mpPayment.status_detail}`);
+        }
+    }
+}
 
 module.exports = function (supabase) {
     const router = express.Router();
@@ -39,9 +75,10 @@ module.exports = function (supabase) {
 
             const { customer, cart } = req.body;
 
-            if (!customer || !cart || cart.length === 0) {
-                return res.status(400).json({ error: 'Dados incompletos do carrinho ou cliente.' });
-            }
+            const customerErr = validateCustomer(customer);
+            if (customerErr) return res.status(400).json({ error: customerErr });
+            const cartErr = validateCart(cart);
+            if (cartErr) return res.status(400).json({ error: cartErr });
 
             // 🔒 IDEMPOTÊNCIA
             const idemKey = req.headers['x-idempotency-key'] || `session_${req.session_id}`;
@@ -351,7 +388,6 @@ module.exports = function (supabase) {
 
     // 4. CHECKOUT TRANSPARENTE — CARTÃO (Bricks)
     router.post('/create-card-payment', async (req, res) => {
-        console.log("🚀 [CARD] BODY RECEBIDO:", JSON.stringify(req.body, null, 2));
         try {
             if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
                 return res.status(503).json({ error: 'Integração Mercado Pago não configurada.' });
@@ -359,9 +395,13 @@ module.exports = function (supabase) {
 
             const { customer, cart: cartItems, token: cardToken, issuer_id, payment_method_id, installments, order_id } = req.body;
 
-            if (!customer?.email || !cartItems?.length || !cardToken) {
-                return res.status(400).json({ error: 'Dados incompletos.' });
+            if (!cardToken || typeof cardToken !== 'string' || cardToken.length < 10) {
+                return res.status(400).json({ error: 'Token de cartão inválido.' });
             }
+            const customerErr = validateCustomer(customer);
+            if (customerErr) return res.status(400).json({ error: customerErr });
+            const cartErr = validateCart(cartItems);
+            if (cartErr) return res.status(400).json({ error: cartErr });
 
             const storeStatusResult = await getUnifiedStoreStatus(supabase);
             if (!storeStatusResult.isOpen && !storeStatusResult.allowNextBatch) {
@@ -478,66 +518,75 @@ module.exports = function (supabase) {
 
     // 5. WEBHOOK MERCADO PAGO — rota principal
     router.post('/webhook', async (req, res) => {
-        // Responde 200 imediatamente para evitar retentativas por timeout do MP
-        res.status(200).send('OK');
-
-        try {
-            const { action, data } = req.body;
-            console.log(`[MP Webhook] Action: ${action}`, data);
-
-            if (action === 'payment.updated' || req.query.type === 'payment') {
-                const mpId = data?.id || req.query['data.id'];
-                if (!mpId) return;
-
-                const mpPayment = await payment.get({ id: mpId });
-
-                // 🔒 Valida que o evento veio do MP de verdade — evita simular pagamento
-                if (!mpPayment || !mpPayment.id) {
-                    console.warn(`[MP Webhook] Evento inválido ignorado (mpId=${mpId})`);
-                    return;
+        const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+        if (webhookSecret) {
+            try {
+                if (!verifyMPWebhookSignature(req, webhookSecret)) {
+                    console.warn('[MP Webhook] Assinatura inválida — requisição rejeitada.');
+                    return res.status(401).send('Assinatura inválida.');
                 }
-
-                if (mpPayment.status === 'approved' && mpPayment.status_detail !== 'rejected') {
-                    await processPaidMPOrder(supabase, String(mpId), mpPayment);
-                } else {
-                    console.log(`[MP Webhook] Pagamento ${mpId} ignorado. Status: ${mpPayment.status} / ${mpPayment.status_detail}`);
-                }
+            } catch (_) {
+                return res.status(401).send('Erro ao verificar assinatura.');
             }
-        } catch (error) {
-            console.error('Erro no Webhook MP:', error);
+        } else if (process.env.NODE_ENV === 'production') {
+            console.error('[MP Webhook] MERCADOPAGO_WEBHOOK_SECRET não configurado em produção!');
+            return res.status(401).send('Webhook não configurado.');
         }
+
+        res.status(200).send('OK');
+        console.log(`[MP Webhook] Action: ${req.body?.action}`, req.body?.data);
+        handleMPWebhookPayload(req, payment, supabase).catch(err => {
+            console.error('Erro no Webhook MP:', err);
+        });
     });
 
-    // Alias para compatibilidade com pagamentos PIX criados antes da mudança de rota
+    // Alias legado — redireciona para o mesmo handler com idempotência garantida no banco
     router.post('/webhook/mercadopago', async (req, res) => {
-        res.status(200).send('OK');
-
-        try {
-            const { action, data } = req.body;
-            console.log(`[MP Webhook Legacy] Action: ${action}`, data);
-
-            if (action === 'payment.updated' || req.query.type === 'payment') {
-                const mpId = data?.id || req.query['data.id'];
-                if (!mpId) return;
-
-                const mpPayment = await payment.get({ id: mpId });
-
-                if (!mpPayment || !mpPayment.id) {
-                    console.warn(`[MP Webhook Legacy] Evento inválido ignorado (mpId=${mpId})`);
-                    return;
+        const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+        if (webhookSecret) {
+            try {
+                if (!verifyMPWebhookSignature(req, webhookSecret)) {
+                    console.warn('[MP Webhook Legacy] Assinatura inválida — requisição rejeitada.');
+                    return res.status(401).send('Assinatura inválida.');
                 }
-
-                if (mpPayment.status === 'approved' && mpPayment.status_detail !== 'rejected') {
-                    await processPaidMPOrder(supabase, String(mpId), mpPayment);
-                }
+            } catch (_) {
+                return res.status(401).send('Erro ao verificar assinatura.');
             }
-        } catch (error) {
-            console.error('Erro no Webhook MP Legacy:', error);
         }
+
+        res.status(200).send('OK');
+        console.log(`[MP Webhook Legacy] Action: ${req.body?.action}`, req.body?.data);
+        handleMPWebhookPayload(req, payment, supabase).catch(err => {
+            console.error('Erro no Webhook MP Legacy:', err);
+        });
     });
 
     return router;
 };
+
+const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{2,}$/;
+
+function validateCustomer(c) {
+    if (!c || typeof c !== 'object') return 'Dados do cliente inválidos.';
+    const name = typeof c.name === 'string' ? c.name.trim() : '';
+    if (name.length < 2 || name.length > 200) return 'Nome deve ter entre 2 e 200 caracteres.';
+    if (!c.email || !EMAIL_RE.test(String(c.email))) return 'Email inválido.';
+    if (String(c.email).length > 254) return 'Email muito longo.';
+    const digits = String(c.whatsapp || '').replace(/\D/g, '');
+    if (digits.length < 10 || digits.length > 15) return 'WhatsApp inválido (10-15 dígitos).';
+    return null;
+}
+
+function validateCart(cart) {
+    if (!Array.isArray(cart) || cart.length === 0) return 'Carrinho vazio.';
+    if (cart.length > 50) return 'Carrinho excede o limite de 50 itens.';
+    for (const item of cart) {
+        if (!item.id) return 'Item sem ID.';
+        const qty = parseInt(item.qty);
+        if (!Number.isInteger(qty) || qty < 1 || qty > 999) return `Quantidade inválida no item ${item.id}.`;
+    }
+    return null;
+}
 
 // Recalcula o total do pedido buscando preços no banco — nunca confia no frontend
 async function recalcularTotal(supabase, cart) {

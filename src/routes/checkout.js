@@ -2,6 +2,30 @@ const express = require('express');
 const { sendOrderEmails, sendOrderWhatsApp } = require('../notification-service');
 const { getUnifiedAvailableStock } = require('../services/stockService');
 
+const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{2,}$/;
+
+function validateCustomer(c) {
+    if (!c || typeof c !== 'object') return 'Dados do cliente inválidos.';
+    const name = typeof c.name === 'string' ? c.name.trim() : '';
+    if (name.length < 2 || name.length > 200) return 'Nome deve ter entre 2 e 200 caracteres.';
+    if (!c.email || !EMAIL_RE.test(String(c.email))) return 'Email inválido.';
+    if (String(c.email).length > 254) return 'Email muito longo.';
+    const digits = String(c.whatsapp || '').replace(/\D/g, '');
+    if (digits.length < 10 || digits.length > 15) return 'WhatsApp inválido (10-15 dígitos).';
+    return null;
+}
+
+function validateCart(cart) {
+    if (!Array.isArray(cart) || cart.length === 0) return 'Carrinho vazio.';
+    if (cart.length > 50) return 'Carrinho excede o limite de 50 itens.';
+    for (const item of cart) {
+        if (!item.id) return 'Item sem ID.';
+        const qty = parseInt(item.qty);
+        if (!Number.isInteger(qty) || qty < 1 || qty > 999) return `Quantidade inválida no item ${item.id}.`;
+    }
+    return null;
+}
+
 module.exports = function (supabase, stripe) {
     const router = express.Router();
 
@@ -14,9 +38,10 @@ module.exports = function (supabase, stripe) {
         try {
             const { customer, cart, totalAmount } = req.body;
 
-            if (!customer || !cart || cart.length === 0) {
-                return res.status(400).json({ error: 'Dados incompletos do carrinho ou cliente.' });
-            }
+            const customerErr = validateCustomer(customer);
+            if (customerErr) return res.status(400).json({ error: customerErr });
+            const cartErr = validateCart(cart);
+            if (cartErr) return res.status(400).json({ error: cartErr });
 
             // 🔒 IDEMPOTÊNCIA: Evita duplicidade em cliques múltiplos ou refresh
             const idemKey = req.headers['x-idempotency-key'] || `fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -249,14 +274,16 @@ module.exports = function (supabase, stripe) {
                 console.error(`⚠️ Webhook signature verification failed:`, err.message);
                 return res.status(400).send(`Webhook Error: ${err.message}`);
             }
+        } else if (process.env.NODE_ENV === 'production') {
+            console.error("❌ STRIPE_WEBHOOK_SECRET não configurado em produção — webhook rejeitado.");
+            return res.status(400).send('Webhook Error: Secret não configurado.');
         } else {
             // DESENVOLVIMENTO: Aceitar sem verificação (com aviso)
-            console.warn("⚠️ STRIPE_WEBHOOK_SECRET não configurado no .env. Webhook aceito sem verificação de assinatura.");
+            console.warn("⚠️ STRIPE_WEBHOOK_SECRET não configurado. Webhook aceito sem verificação (somente desenvolvimento).");
             try {
-                // Como usamos express.raw({ type: 'application/json' }), o body é um Buffer.
                 event = JSON.parse(req.body.toString());
             } catch (err) {
-                console.error("❌ Falha crítica ao processar o payload bruto do webhook:", err.message);
+                console.error("❌ Falha ao processar payload do webhook:", err.message);
                 return res.status(400).send(`Webhook Error: Malformed JSON`);
             }
         }

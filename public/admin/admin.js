@@ -106,7 +106,13 @@ let state = {
         const ok = document.getElementById('confirm-modal-ok');
 
         if (tEl) tEl.innerText = title;
-        if (mEl) mEl.innerHTML = message.replace(/\n/g, '<br>');
+        if (mEl) {
+            mEl.textContent = '';
+            message.split('\n').forEach((line, i) => {
+                if (i > 0) mEl.appendChild(document.createElement('br'));
+                mEl.appendChild(document.createTextNode(line));
+            });
+        }
 
         if (ok) {
             const btn = ok.cloneNode(true);

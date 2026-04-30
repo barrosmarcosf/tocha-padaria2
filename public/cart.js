@@ -4,6 +4,15 @@
 
 const OWNER_PHONE = '5521966278965';
 
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 /* ── State & Persistence ── */
 let cart = JSON.parse(localStorage.getItem('tocha-cart') || '[]');
 let coupon = null;
@@ -102,18 +111,18 @@ function render() {
     itemsList.innerHTML = cart.map(item => `
         <div class="cart-item">
             <div class="ci-left">
-                <h4>${item.name}</h4>
+                <h4>${escapeHtml(item.name)}</h4>
                 <span class="unit-price">${fmt(item.price)} / un</span>
             </div>
             <div class="ci-right">
                 <div class="ci-price-total">${fmt(item.price * item.qty)}</div>
                 <div class="ci-controls-wrapper">
                     <div class="ci-controls">
-                        <button onclick="decrease('${item.id}')">−</button>
+                        <button onclick="decrease('${escapeHtml(item.id)}')">−</button>
                         <span>${item.qty}</span>
-                        <button onclick="increase('${item.id}')">+</button>
+                        <button onclick="increase('${escapeHtml(item.id)}')">+</button>
                     </div>
-                    <button class="ci-remove" onclick="removeItem('${item.id}')">🗑</button>
+                    <button class="ci-remove" onclick="removeItem('${escapeHtml(item.id)}')">🗑</button>
                 </div>
             </div>
         </div>

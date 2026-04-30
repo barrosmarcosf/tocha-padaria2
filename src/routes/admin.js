@@ -9,10 +9,33 @@ const { getDashboardMetrics, getDateRange, fetchPaidOrders, buildCostMap, calcAg
 const { sendWhatsAppMessage } = require('../notification-service');
 const { getUnifiedProductList } = require('../services/stockService');
 
+// Rate limiting simples em memória para o login (máx 10 tentativas / 15 min por IP)
+const loginAttempts = new Map();
+function rateLimitLogin(req, res, next) {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
+    const now = Date.now();
+    const window = 15 * 60 * 1000;
+    const max = 10;
+    const rec = loginAttempts.get(ip);
+    if (!rec || now - rec.first > window) {
+        loginAttempts.set(ip, { count: 1, first: now });
+        return next();
+    }
+    if (rec.count >= max) {
+        return res.status(429).json({ error: 'Muitas tentativas. Tente novamente em 15 minutos.' });
+    }
+    rec.count++;
+    next();
+}
+setInterval(() => {
+    const cutoff = Date.now() - 15 * 60 * 1000;
+    loginAttempts.forEach((rec, ip) => { if (rec.first < cutoff) loginAttempts.delete(ip); });
+}, 10 * 60 * 1000);
+
 module.exports = function (supabase) {
-    
+
     // Rota de Login
-    router.post('/login', async (req, res) => {
+    router.post('/login', rateLimitLogin, async (req, res) => {
         console.log(`>>> [AUTH] Login attempt: ${req.body?.email}`);
         try {
             const { email, password } = req.body;

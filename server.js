@@ -68,25 +68,25 @@ app.use((req, res, next) => {
     next();
 });
 
-// O redirecionamento de /admin para /admin/ é feito automaticamente pelo express.static
-// Todas as outras rotas usam JSON
-app.use(express.json());
-
-// O webhook do Stripe precisa do body RAW, então tratamos antes do express.json()
-// Rota de webhook com raw body
+// Webhook do Stripe precisa do body RAW — deve vir ANTES do express.json()
 app.use('/api/webhook', express.raw({ type: 'application/json' }));
 
 // Todas as outras rotas usam JSON
 app.use(express.json());
 
-// Middleware MANUAL de Cookie Parser (para evitar novas dependências)
-app.use((req, res, next) => {
+// Cookie parser seguro (sem dependência extra)
+app.use((req, _res, next) => {
     const list = {};
     const rc = req.headers.cookie;
-    rc && rc.split(';').forEach(cookie => {
-        const parts = cookie.split('=');
-        list[parts.shift().trim()] = decodeURI(parts.join('='));
-    });
+    if (rc) {
+        rc.split(';').forEach(cookie => {
+            const idx = cookie.indexOf('=');
+            if (idx < 1) return;
+            const key = cookie.slice(0, idx).trim();
+            const val = cookie.slice(idx + 1).trim();
+            try { list[key] = decodeURIComponent(val); } catch (_) { list[key] = val; }
+        });
+    }
     req.cookies = list;
     next();
 });
