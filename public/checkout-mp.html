@@ -372,6 +372,13 @@
 
                 if (!pkData.publicKey) throw new Error('Chave pública não configurada no servidor.');
 
+                window.addEventListener('error', e => {
+                    console.error('🔥 JS ERROR GLOBAL:', e.error);
+                });
+                window.addEventListener('unhandledrejection', e => {
+                    console.error('🔥 PROMISE ERROR:', e.reason);
+                });
+
                 // 3. Inicializar Bricks
                 console.log("🔑 [MP] Inicializando com chave:", pkData.publicKey);
                 const mp = new MercadoPago(pkData.publicKey, { locale: 'pt-BR' });
@@ -383,8 +390,10 @@
 
                 cardPaymentBrickController = await bricks.create("cardPayment", "mp-card-bricks", {
                     initialization: {
-                        amount: orderData.total,
-                        ...(payerEmail ? { payer: { email: payerEmail } } : {})
+                        amount: Number(orderData.total),
+                        payer: {
+                            email: payerEmail || 'test@test.com'
+                        }
                     },
                     customization: {
                         visual: {
@@ -401,28 +410,44 @@
                             setTimeout(() => { if(loader) loader.remove(); }, 500);
                         },
                         onSubmit: async (cardFormData) => {
+                            console.log('🔥 ON SUBMIT DISPARADO');
+                            console.log('🔥 CARD FORM DATA COMPLETO:', cardFormData);
                             console.log("📤 [MP] onSubmit disparado");
                             console.log('TOKEN MP FRONT:', cardFormData.token);
                             try {
-                                if (!cardFormData.token) throw new Error('TOKEN NÃO GERADO');
+                                if (!cardFormData.token) {
+                                    console.error('❌ TOKEN NÃO VEIO DO BRICK');
+                                    throw new Error('TOKEN NÃO GERADO');
+                                }
 
-                                const res = await fetch('/api/mercadopago/create-card-payment', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json'
+                                const payload = {
+                                    token: cardFormData.token,
+                                    payment_method_id: cardFormData.payment_method_id,
+                                    issuer_id: cardFormData.issuer_id,
+                                    installments: Number(cardFormData.installments || 1),
+                                    payer: {
+                                        email: cardFormData.payer?.email || 'test@test.com'
                                     },
-                                    body: JSON.stringify({
-                                        token: cardFormData.token,
-                                        payment_method_id: cardFormData.payment_method_id,
-                                        issuer_id: cardFormData.issuer_id,
-                                        installments: Number(cardFormData.installments || 1),
-                                        payer: {
-                                            email: cardFormData.payer?.email || 'test@test.com'
+                                    amount: Number(orderData.total)
+                                };
+
+                                console.log('ENVIANDO PARA BACKEND:', payload);
+                                console.log('🔥 VOU ENVIAR REQUEST');
+
+                                let res;
+                                try {
+                                    res = await fetch('/api/mercadopago/create-card-payment', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json'
                                         },
-                                        amount: Number(orderData.total),
-                                        order_id: orderData.id
-                                    })
-                                });
+                                        body: JSON.stringify(payload)
+                                    });
+                                    console.log('🔥 RESPONSE STATUS:', res.status);
+                                } catch (fetchErr) {
+                                    console.error('🔥 FETCH ERRO:', fetchErr);
+                                    throw fetchErr;
+                                }
 
                                 const data = await res.json();
 
@@ -435,7 +460,7 @@
 
                             } catch (err) {
                                 console.error("❌ Erro no processamento:", err);
-                                alert(err.message);
+                                alert(typeof err.message === 'string' ? err.message : JSON.stringify(err.message));
                             }
                         },
                         onError: (error) => {

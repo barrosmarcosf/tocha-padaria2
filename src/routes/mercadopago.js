@@ -389,15 +389,21 @@ module.exports = function (supabase) {
 
     // 4. CHECKOUT TRANSPARENTE — CARTÃO (Bricks)
     router.post('/create-card-payment', async (req, res) => {
+        console.log('HEADERS:', req.headers);
+        console.log('RAW BODY:', req.body);
         try {
             if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
                 return res.status(503).json({ error: 'Integração Mercado Pago não configurada.' });
             }
 
+            if (!req.body || typeof req.body !== 'object') {
+                return res.status(400).json({ error: 'Body ausente ou Content-Type inválido.' });
+            }
+
             console.log('TOKEN BACKEND:', req.body.token);
             console.log('BODY COMPLETO:', req.body);
 
-            const { token, amount, installments, payment_method_id, issuer_id, payer, order_id } = req.body;
+            const { token, amount, payer, order_id } = req.body;
 
             if (!req.body.token) {
                 return res.status(400).json({ error: 'Token não recebido' });
@@ -412,25 +418,38 @@ module.exports = function (supabase) {
                 return res.status(400).json({ error: 'payer.email obrigatório.' });
             }
 
-            const paymentData = {
-                transaction_amount: Number(amount),
-                token: token,
-                description: 'Pedido Tocha Padaria',
-                installments: Number(installments || 1),
-                payment_method_id: payment_method_id,
-                issuer_id: issuer_id,
+            console.log('MP PAYMENT PAYLOAD:', {
+                transaction_amount: Number(req.body.amount),
+                token: req.body.token,
+                description: 'Pedido Tocha',
+                installments: Number(req.body.installments),
+                payment_method_id: req.body.payment_method_id,
+                issuer_id: req.body.issuer_id,
                 payer: {
-                    email: payer?.email || 'test@test.com'
+                    email: req.body.payer?.email
+                }
+            });
+
+            const paymentData = {
+                transaction_amount: Number(req.body.amount),
+                token: req.body.token,
+                description: 'Pedido Tocha',
+                installments: Number(req.body.installments || 1),
+                payment_method_id: req.body.payment_method_id,
+                issuer_id: req.body.issuer_id,
+                payer: {
+                    email: req.body.payer?.email
                 }
             };
 
-            console.log('MP PAYMENT PAYLOAD:', paymentData);
+            const idempotencyKey = `order-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
             const mpRes = await fetch('https://api.mercadopago.com/v1/payments', {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-Idempotency-Key': idempotencyKey
                 },
                 body: JSON.stringify(paymentData)
             });
@@ -469,11 +488,14 @@ module.exports = function (supabase) {
 
             res.json(responseData);
 
-        } catch (error) {
-            console.log('MP ERROR FULL:', error.response?.data || error);
-            res.status(500).json({
-                error: 'Erro ao criar pagamento',
-                details: error.response?.data || null
+        } catch (err) {
+            console.error('MP ERROR COMPLETO:', err.response?.data || err);
+            return res.status(500).json({
+                error: err.response?.data?.message ||
+                       err.response?.data?.cause?.[0]?.description ||
+                       JSON.stringify(err.response?.data) ||
+                       err.message ||
+                       'Erro desconhecido no pagamento'
             });
         }
     });
