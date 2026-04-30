@@ -14,7 +14,8 @@
       "Bash(node --check src/routes/admin.js)",
       "Bash(node --check src/middleware/csrf.js)",
       "Bash(node --check src/utils/secLogger.js)",
-      "Read(//c/tmp/vps-deploy\" 2>/dev/**)"
+      "Read(//c/tmp/vps-deploy\" 2>/dev/**)",
+      "Bash(node deploy_webhook_fix.js)"
     ]
   }
 }

@@ -518,6 +518,8 @@ module.exports = function (supabase) {
     });
 
     // 5. WEBHOOK MERCADO PAGO — rota principal
+    router.get('/webhook', (_req, res) => res.status(200).send('MP webhook endpoint OK'));
+
     router.post('/webhook', async (req, res) => {
         const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
         const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;

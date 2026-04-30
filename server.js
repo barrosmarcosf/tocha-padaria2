@@ -73,16 +73,7 @@ app.use((_req, res, next) => {
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.setHeader('Content-Security-Policy', [
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://sdk.mercadopago.com https://http2.mlstatic.com",
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-        "font-src 'self' https://fonts.gstatic.com",
-        "img-src 'self' data: https: blob:",
-        "connect-src 'self' https://api.mercadopago.com https://*.supabase.co wss://*.supabase.co",
-        "frame-src https://sdk.mercadopago.com https://*.mercadopago.com",
-        "object-src 'none'"
-    ].join('; '));
+    res.setHeader('Content-Security-Policy', `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://sdk.mercadopago.com https://http2.mlstatic.com; connect-src 'self' https://api.mercadopago.com https://api.mercadolibre.com https://*.mercadolibre.com https://http2.mlstatic.com https://secure-fields.mercadopago.com https://api-static.mercadopago.com; frame-src 'self' https://sdk.mercadopago.com https://www.mercadopago.com https://www.mercadolibre.com https://secure-fields.mercadopago.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:;`);
     next();
 });
 
@@ -325,12 +316,17 @@ app.get('/api/health', async (_req, res) => {
 // ──────────────────────────────────────────────────
 app.use((req, res) => {
     console.warn(`⚠️ [404] ${req.url}`);
-    
+
+    // Rotas de API nunca devem receber HTML — evita mascarar erros de rota inexistente
+    if (req.url.startsWith('/api/')) {
+        return res.status(404).json({ error: 'Rota não encontrada.' });
+    }
+
     // Se for uma rota dentro do admin, serve o admin/index.html
     if (req.url.startsWith('/admin')) {
         return res.status(200).sendFile(path.join(__dirname, 'public', 'admin', 'index.html'));
     }
-    
+
     // Caso contrário, serve o storefront normal (SPA — sempre 200)
     res.status(200).sendFile(path.join(__dirname, 'public', 'index.html'));
 });
