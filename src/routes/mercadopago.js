@@ -394,122 +394,81 @@ module.exports = function (supabase) {
                 return res.status(503).json({ error: 'Integração Mercado Pago não configurada.' });
             }
 
-            const { customer, cart: cartItems, token: cardToken, issuer_id, payment_method_id, installments, order_id } = req.body;
+            const { token, amount, installments, payment_method_id, issuer_id, payer, order_id } = req.body;
 
-            if (!cardToken || typeof cardToken !== 'string' || cardToken.length < 10) {
-                return res.status(400).json({ error: 'Token de cartão inválido.' });
+            // Validar obrigatórios
+            if (!token || typeof token !== 'string' || token.length < 10) {
+                return res.status(400).json({ error: 'token obrigatório e deve ser válido.' });
             }
-            const customerErr = validateCustomer(customer);
-            if (customerErr) return res.status(400).json({ error: customerErr });
-            const cartErr = validateCart(cartItems);
-            if (cartErr) return res.status(400).json({ error: cartErr });
-
-            const storeStatusResult = await getUnifiedStoreStatus(supabase);
-            if (!storeStatusResult.isOpen && !storeStatusResult.allowNextBatch) {
-                return res.status(403).json({ error: storeStatusResult.message || 'Loja fechada.' });
+            if (amount == null || isNaN(Number(amount)) || Number(amount) <= 0) {
+                return res.status(400).json({ error: 'transaction_amount obrigatório e deve ser positivo.' });
+            }
+            if (!payer?.email) {
+                return res.status(400).json({ error: 'payer.email obrigatório.' });
             }
 
-            const batchDate = storeStatusResult.batchDate || storeStatusResult.nextBatchDate;
-            if (batchDate) {
-                for (const item of cartItems) {
-                    const available = await getUnifiedAvailableStock(supabase, item.id);
-                    if (available < item.qty) {
-                        return res.status(400).json({ error: `Estoque insuficiente para ${item.name}.` });
-                    }
-                }
-            }
-
-            // Recalcular total no backend — nunca confiar no valor do frontend
-            const totalAmount = await recalcularTotal(supabase, cartItems);
-            console.log(`💰 [Card] Total recalculado no backend: R$ ${totalAmount}`);
-
-            // Registrar/Atualizar Cliente
-            let customerId;
-            const { data: existingCustomer } = await supabase.from('clientes').select('id').eq('email', customer.email).maybeSingle();
-            if (existingCustomer) {
-                customerId = existingCustomer.id;
-                await supabase.from('clientes').update({ name: customer.name, whatsapp: customer.whatsapp }).eq('id', customerId);
-            } else {
-                const { data: newCustomer, error: insertErr } = await supabase.from('clientes').insert([{ name: customer.name, email: customer.email, whatsapp: customer.whatsapp }]).select().single();
-                if (insertErr) throw insertErr;
-                customerId = newCustomer.id;
-            }
-
-            // Criar pagamento no Mercado Pago
-            const nameParts = (customer.name || '').split(' ');
-            const payload = {
-                transaction_amount: totalAmount,
-                token: cardToken,
+            const paymentData = {
+                transaction_amount: Number(amount),
+                token: token,
                 description: 'Pedido Tocha Padaria',
-                installments: Number(installments) || 1,
-                payment_method_id,
-                issuer_id,
+                installments: Number(installments || 1),
+                payment_method_id: payment_method_id,
+                issuer_id: issuer_id,
                 payer: {
-                    email: customer.email,
-                    first_name: nameParts[0] || 'Cliente',
-                    last_name: nameParts.slice(1).join(' ') || 'Cliente'
+                    email: payer?.email || 'test@test.com'
                 }
             };
-            console.log('PAYLOAD MP:', payload);
-            const response = await payment.create({ body: payload });
 
-            const mpId = String(response.id);
-            const mpStatus = response.status;
-            console.log(`💳 [MP Card] Pagamento ${mpId}: ${mpStatus} (${response.status_detail})`);
+            console.log('MP PAYMENT PAYLOAD:', paymentData);
 
-            const itemsJson = JSON.stringify({
-                actual_items: cartItems,
-                order_type: storeStatusResult.orderType,
-                batch_date: batchDate,
-                payment_method: 'Cartão (Mercado Pago)',
-                mp_id: mpId
+            const mpRes = await fetch('https://api.mercadopago.com/v1/payments', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(paymentData)
             });
 
-            // Se order_id vier do checkout-mp.html (criado por prepare-card-order),
-            // atualiza o pedido existente em vez de criar um duplicado.
-            let newOrder;
+            const responseData = await mpRes.json();
+
+            if (!mpRes.ok) {
+                const err = new Error(`MP API ${mpRes.status}`);
+                err.response = { data: responseData };
+                throw err;
+            }
+
+            const mpId = String(responseData.id);
+            console.log(`💳 [MP Card] Pagamento ${mpId}: ${responseData.status} (${responseData.status_detail})`);
+
+            // Atualizar pedido existente criado por prepare-card-order
             if (order_id) {
                 const { data: existingOrder } = await supabase
                     .from('pedidos')
-                    .select('status')
+                    .select('status, items')
                     .eq('id', order_id)
                     .maybeSingle();
 
-                if (!existingOrder || existingOrder.status !== 'pending') {
-                    return res.status(400).json({ error: 'Pedido inválido ou já processado.' });
-                }
+                if (existingOrder && existingOrder.status === 'pending') {
+                    let itemsData = existingOrder.items;
+                    try { if (typeof itemsData === 'string') itemsData = JSON.parse(itemsData); } catch (_) { itemsData = {}; }
+                    itemsData.mp_id = mpId;
 
-                const { data, error: updateErr } = await supabase
-                    .from('pedidos')
-                    .update({ stripe_session_id: `mp_${mpId}`, items: itemsJson })
-                    .eq('id', order_id)
-                    .eq('status', 'pending')
-                    .select()
-                    .single();
-                if (updateErr) throw updateErr;
-                newOrder = data;
-            } else {
-                const { data, error: insertErr } = await supabase.from('pedidos').insert([{
-                    customer_id: customerId,
-                    stripe_session_id: `mp_${mpId}`,
-                    total_amount: totalAmount,
-                    status: 'pending',
-                    items: itemsJson
-                }]).select().single();
-                if (insertErr) throw insertErr;
-                newOrder = data;
+                    await supabase
+                        .from('pedidos')
+                        .update({ stripe_session_id: `mp_${mpId}`, items: JSON.stringify(itemsData) })
+                        .eq('id', order_id)
+                        .eq('status', 'pending');
+                }
             }
 
-            if (!newOrder) throw new Error('Falha ao registrar pedido de cartão.');
-
-            res.json(response.data);
+            res.json(responseData);
 
         } catch (error) {
-            console.error('MP ERROR:', error.response?.data || error.message);
-
-            return res.status(500).json({
+            console.log('MP ERROR FULL:', error.response?.data || error);
+            res.status(500).json({
                 error: 'Erro ao criar pagamento',
-                details: error.response?.data || error.message
+                details: error.response?.data || null
             });
         }
     });
