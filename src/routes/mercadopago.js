@@ -158,7 +158,7 @@ module.exports = function (supabase) {
             const mpResponse = await payment.create(paymentData);
             const mpId = String(mpResponse.id);
             const qrCode = mpResponse.point_of_interaction.transaction_data.qr_code;
-            const qrCodeBase64 = await QRCode.toDataURL(qrCode);
+            const qrCodeBase64 = await /** @type {Promise<string>} */ (QRCode.toDataURL(qrCode));
 
             // Registrar Pedido Pendente no Banco
             let newOrder;
