@@ -456,8 +456,16 @@
                                     throw new Error(data.error || 'Erro no pagamento');
                                 }
 
-                                console.log("✅ Pagamento OK", data);
-                                window.location.href = `/?status=success&order_id=${data.order_id || orderData.id}`;
+                                if (data.status === 'approved') {
+                                    console.log("✅ Pagamento aprovado", data);
+                                    window.location.href = `/?status=success&order_id=${data.order_id || orderData.id}`;
+                                } else if (data.status === 'pending' || data.status === 'in_process') {
+                                    console.log("⏳ Pagamento pendente", data);
+                                    alert('Seu pagamento está sendo processado. Aguarde a confirmação por e-mail ou WhatsApp.');
+                                    window.location.href = '/';
+                                } else {
+                                    throw new Error(data.status_detail || data.error || 'Pagamento não aprovado pelo banco.');
+                                }
 
                             } catch (err) {
                                 console.error("❌ Erro no processamento:", err);

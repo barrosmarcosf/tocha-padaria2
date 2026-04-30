@@ -538,7 +538,23 @@ module.exports = function (supabase) {
                 }
             }
 
-            res.json(responseData);
+            if (responseData.status === 'approved') {
+                await processPaidMPOrder(supabase, mpId, responseData);
+            } else if (responseData.status === 'rejected' || responseData.status === 'cancelled') {
+                if (order_id) {
+                    await supabase.from('pedidos')
+                        .update({ status: 'cancelled' })
+                        .eq('id', order_id)
+                        .eq('status', 'pending');
+                }
+            }
+
+            res.json({
+                status: responseData.status,
+                status_detail: responseData.status_detail,
+                payment_id: mpId,
+                order_id: order_id || undefined
+            });
 
         } catch (err) {
             console.error('MP ERROR COMPLETO:', err.response?.data || err);
