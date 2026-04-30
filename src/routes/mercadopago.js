@@ -55,8 +55,13 @@ module.exports = function (supabase) {
         const pubKey = process.env.MERCADOPAGO_PUBLIC_KEY || '';
         const pubEnv = pubKey.startsWith('TEST-') ? 'TESTE' : pubKey.startsWith('APP_USR-') ? 'PRODUÇÃO' : 'DESCONHECIDO';
         console.log(`🔑 [Mercado Pago] Public Key: ${pubKey.slice(0, 20)}... | Ambiente: ${pubEnv}`);
+        if (process.env.MERCADOPAGO_PUBLIC_KEY?.includes('TEST') && token.includes('APP_USR')) {
+            console.error('❌ ERRO CRÍTICO: CHAVES INCONSISTENTES (PUBLIC_KEY=TEST + ACCESS_TOKEN=PROD)');
+            process.exit(1);
+        }
         if (env !== pubEnv) {
             console.error(`❌ [Mercado Pago] INCONSISTÊNCIA: token é ${env} mas public key é ${pubEnv}!`);
+            process.exit(1);
         }
     }
 
