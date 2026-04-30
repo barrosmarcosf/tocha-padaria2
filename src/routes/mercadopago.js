@@ -50,7 +50,14 @@ module.exports = function (supabase) {
     if (!token) {
         console.error("❌ [Mercado Pago] ERRO: MERCADOPAGO_ACCESS_TOKEN não encontrado nas variáveis de ambiente!");
     } else {
-        console.log("✅ [Mercado Pago] Token configurado:", token.substring(0, 10) + "...");
+        const env = token.startsWith('TEST-') ? 'TESTE' : token.startsWith('APP_USR-') ? 'PRODUÇÃO' : 'DESCONHECIDO';
+        console.log(`✅ [Mercado Pago] Token: ${token.slice(0, 20)}... | Ambiente: ${env}`);
+        const pubKey = process.env.MERCADOPAGO_PUBLIC_KEY || '';
+        const pubEnv = pubKey.startsWith('TEST-') ? 'TESTE' : pubKey.startsWith('APP_USR-') ? 'PRODUÇÃO' : 'DESCONHECIDO';
+        console.log(`🔑 [Mercado Pago] Public Key: ${pubKey.slice(0, 20)}... | Ambiente: ${pubEnv}`);
+        if (env !== pubEnv) {
+            console.error(`❌ [Mercado Pago] INCONSISTÊNCIA: token é ${env} mas public key é ${pubEnv}!`);
+        }
     }
 
     const client = new MercadoPagoConfig({
