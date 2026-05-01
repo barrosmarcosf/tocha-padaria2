@@ -302,6 +302,14 @@ module.exports = function (supabase) {
         } finally {
             const duration = Date.now() - startTime;
             console.log('[MP METRICS]', { requestId, order_id: order_id || 'unknown', status: paymentStatus || 'unknown', duration_ms: duration });
+            try {
+                await supabase.from('payment_logs').insert({
+                    order_id: order_id || 'unknown',
+                    request_id: requestId,
+                    status: paymentStatus || 'unknown',
+                    duration_ms: duration
+                });
+            } catch (_) {}
             if (orderLocked) {
                 try {
                     await supabase.from('pedidos').update({ processing: false, processing_at: null }).eq('id', order_id);
@@ -714,6 +722,14 @@ module.exports = function (supabase) {
         } finally {
             const duration = Date.now() - startTime;
             console.log('[MP METRICS]', { requestId, order_id: req.body?.order_id || 'unknown', status: paymentStatus || 'unknown', duration_ms: duration });
+            try {
+                await supabase.from('payment_logs').insert({
+                    order_id: req.body?.order_id || 'unknown',
+                    request_id: requestId,
+                    status: paymentStatus || 'unknown',
+                    duration_ms: duration
+                });
+            } catch (_) {}
             if (orderLocked && req.body?.order_id) {
                 try {
                     await supabase.from('pedidos').update({ processing: false, processing_at: null }).eq('id', req.body.order_id);
