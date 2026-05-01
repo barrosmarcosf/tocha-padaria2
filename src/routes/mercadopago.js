@@ -82,11 +82,35 @@ module.exports = function (supabase) {
 
     // 1. CRIAR PAGAMENTO PIX
     router.post('/create-pix-payment', async (req, res) => {
+        const order_id = req.body.order_id;
+        if (!order_id) {
+            return res.status(400).json({ error: 'order_id obrigatório' });
+        }
+
+        const startTime = Date.now();
         let orderLocked = false;
         try {
             if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
                 return res.status(503).json({ error: 'Integração Mercado Pago não configurada.' });
             }
+
+            // 🔒 LOCK PRIMEIRO
+            const lockTimeout = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+            const { data: lockedOrder } = await supabase
+                .from('pedidos')
+                .update({ processing: true, processing_at: new Date().toISOString() })
+                .eq('id', order_id)
+                .in('status', ['pending', 'payment_failed'])
+                .or(`processing.eq.false,processing_at.lt.${lockTimeout}`)
+                .select()
+                .single();
+
+            if (!lockedOrder) {
+                console.log('[ORDER LOCK DENIED]', { orderId: order_id });
+                return res.status(409).json({ error: 'Pagamento já está sendo processado' });
+            }
+            orderLocked = true;
+            console.log('[ORDER LOCKED]', { orderId: order_id });
 
             let { customer, cart } = req.body;
 
@@ -120,7 +144,7 @@ module.exports = function (supabase) {
             const cartErr = validateCart(cart);
             if (cartErr) return res.status(400).json({ error: cartErr });
 
-            // 🔒 IDEMPOTÊNCIA
+            // 🔒 IDEMPOTÊNCIA (depois do lock)
             const idemKey = req.headers['x-idempotency-key'] || `session_${req.session_id}`;
 
             const { data: existing, error: idemErr } = await supabase
@@ -138,25 +162,6 @@ module.exports = function (supabase) {
                 let items = existing.items;
                 try { if (typeof items === 'string') items = JSON.parse(items); } catch (_) { items = {}; }
                 return res.json({ payment_id: items.mp_id, order_id: existing.id });
-            }
-
-            const order_id = req.body.order_id;
-            if (order_id) {
-                const { data: lockedOrder } = await supabase
-                    .from('pedidos')
-                    .update({ processing: true })
-                    .eq('id', order_id)
-                    .in('status', ['pending', 'payment_failed'])
-                    .eq('processing', false)
-                    .select()
-                    .single();
-
-                if (!lockedOrder) {
-                    console.log('[ORDER LOCK DENIED]', { orderId: order_id });
-                    return res.status(409).json({ error: 'Pagamento já está sendo processado' });
-                }
-                orderLocked = true;
-                console.log('[ORDER LOCKED]', { orderId: order_id });
             }
 
             // Validar status da loja e estoque (mesma lógica do Stripe)
@@ -181,7 +186,7 @@ module.exports = function (supabase) {
             console.log(`💰 [PIX] Total recalculado no backend: R$ ${totalAmount}`);
 
             // Registrar/Atualizar Cliente
-            let customerId;
+            let customerId = lockedOrder.customer_id;
             const { data: existingCustomer } = await supabase.from('clientes').select('id').eq('email', customer.email).maybeSingle();
             if (existingCustomer) {
                 customerId = existingCustomer.id;
@@ -229,57 +234,57 @@ module.exports = function (supabase) {
             const qrCode = mpResponse.point_of_interaction.transaction_data.qr_code;
             const qrCodeBase64 = await /** @type {Promise<string>} */ (QRCode.toDataURL(qrCode));
 
-            // Registrar Pedido Pendente no Banco
-            let newOrder;
+            // Atualizar pedido existente com dados do PIX
             try {
-                const orderData = {
+                let existingItems = lockedOrder.items;
+                try { if (typeof existingItems === 'string') existingItems = JSON.parse(existingItems); } catch (_) { existingItems = {}; }
+                existingItems.mp_id = mpId;
+                if (!existingItems.order_type) existingItems.order_type = storeStatusResult.orderType;
+                if (!existingItems.batch_date) existingItems.batch_date = batchDate;
+                existingItems.payment_method = 'Pix (Mercado Pago)';
+
+                const updateData = {
                     customer_id: customerId,
                     stripe_session_id: `mp_${mpId}`,
                     total_amount: totalAmount,
                     status: 'pending',
-                    items: JSON.stringify({
-                        actual_items: cart,
-                        order_type: storeStatusResult.orderType,
-                        batch_date: batchDate,
-                        payment_method: 'Pix (Mercado Pago)',
-                        mp_id: mpId,
-                        client_session_id: req.session_id
-                    })
+                    items: JSON.stringify(existingItems)
                 };
 
-                // Tenta incluir idempotency_key se não for um fallback
                 if (idemKey && !idemKey.startsWith('fallback_')) {
-                    orderData.idempotency_key = idemKey;
+                    updateData.idempotency_key = idemKey;
                 }
 
-                const { data, error } = await supabase.from('pedidos').insert([orderData]).select().single();
-                
+                const { error } = await supabase.from('pedidos')
+                    .update(updateData)
+                    .eq('id', order_id)
+                    .select()
+                    .single();
+
                 if (error) {
                     if (error.message.includes('idempotency_key')) {
                         console.error('❌ ERRO CRÍTICO: coluna idempotency_key ausente no banco. Execute a migration SQL.');
                         return res.status(500).json({ error: true, message: 'Erro de configuração do servidor.' });
                     }
                     throw error;
-                } else {
-                    newOrder = data;
                 }
             } catch (err) {
                 if (err.code === '23505' || err.message?.includes('duplicate key')) {
-                    const { data: existing } = await supabase.from('pedidos').select('id, items').eq('idempotency_key', idemKey).single();
-                    let items = existing?.items || {};
+                    const { data: existingByIdem } = await supabase.from('pedidos').select('id, items').eq('idempotency_key', idemKey).single();
+                    let items = existingByIdem?.items || {};
                     try { if (typeof items === 'string') items = JSON.parse(items); } catch (_) { items = {}; }
-                    return res.json({ payment_id: items.mp_id, order_id: existing?.id });
+                    return res.json({ payment_id: items.mp_id, order_id: existingByIdem?.id || order_id });
                 }
                 throw err;
             }
 
-            console.log(`[MP FLOW] source=pix order_id=${newOrder?.id} payment_id=${mpId} status=pending`);
+            console.log(`[MP FLOW] source=pix order_id=${order_id} payment_id=${mpId} status=pending`);
 
             res.json({
                 payment_id: mpId,
                 qr_code: qrCode,
                 qr_code_base64: qrCodeBase64,
-                order_id: newOrder.id
+                order_id: order_id
             });
 
         } catch (error) {
@@ -289,12 +294,14 @@ module.exports = function (supabase) {
                 message: error.response?.data?.message || error.message || 'Erro ao gerar pagamento Pix.'
             });
         } finally {
+            const duration = Date.now() - startTime;
+            console.log('[MP PROCESS TIME]', { order_id, duration_ms: duration });
             if (orderLocked) {
                 try {
-                    await supabase.from('pedidos').update({ processing: false }).eq('id', req.body.order_id);
-                    console.log('[ORDER UNLOCKED]', req.body.order_id);
+                    await supabase.from('pedidos').update({ processing: false, processing_at: null }).eq('id', order_id);
+                    console.log('[ORDER UNLOCKED]', order_id);
                 } catch (_) {
-                    console.error('[ORDER UNLOCK FAILED]', req.body.order_id);
+                    console.error('[ORDER UNLOCK FAILED]', order_id);
                 }
             }
         }
@@ -511,6 +518,7 @@ module.exports = function (supabase) {
     router.post('/create-card-payment', async (req, res) => {
         console.log('🔥 HEADERS:', req.headers);
         console.log('🔥 BODY RECEBIDO:', req.body);
+        const startTime = Date.now();
         let orderLocked = false;
         try {
             if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
@@ -556,12 +564,13 @@ module.exports = function (supabase) {
             }
 
             if (order_id) {
+                const lockTimeout = new Date(Date.now() - 2 * 60 * 1000).toISOString();
                 const { data: lockedOrder } = await supabase
                     .from('pedidos')
-                    .update({ processing: true })
+                    .update({ processing: true, processing_at: new Date().toISOString() })
                     .eq('id', order_id)
                     .in('status', ['pending', 'payment_failed'])
-                    .eq('processing', false)
+                    .or(`processing.eq.false,processing_at.lt.${lockTimeout}`)
                     .select()
                     .single();
 
@@ -691,9 +700,11 @@ module.exports = function (supabase) {
                        'Erro desconhecido no pagamento'
             });
         } finally {
+            const duration = Date.now() - startTime;
+            console.log('[MP PROCESS TIME]', { order_id: req.body?.order_id, duration_ms: duration });
             if (orderLocked && req.body?.order_id) {
                 try {
-                    await supabase.from('pedidos').update({ processing: false }).eq('id', req.body.order_id);
+                    await supabase.from('pedidos').update({ processing: false, processing_at: null }).eq('id', req.body.order_id);
                     console.log('[ORDER UNLOCKED]', { orderId: req.body.order_id });
                 } catch (_) {
                     console.error('[ORDER UNLOCK FAILED]', { orderId: req.body.order_id });
