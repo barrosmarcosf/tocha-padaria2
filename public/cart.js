@@ -150,16 +150,53 @@ function render() {
 }
 
 /* ── Checkout Modal Logic ── */
+function fillCustomerForm(c) {
+    const nameEl = document.getElementById('id-name');
+    const emailEl = document.getElementById('id-email');
+    const whatsappEl = document.getElementById('id-whatsapp');
+    if (nameEl && !nameEl.value && c.name) nameEl.value = c.name;
+    if (emailEl && !emailEl.value && c.email) emailEl.value = c.email;
+    if (whatsappEl && !whatsappEl.value && c.whatsapp) whatsappEl.value = c.whatsapp;
+}
+
+function tryAutoSaveCustomer() {
+    const name = document.getElementById('id-name')?.value.trim();
+    const email = document.getElementById('id-email')?.value.trim();
+    const whatsapp = document.getElementById('id-whatsapp')?.value.trim();
+    if (!name || !email || !whatsapp) return;
+    fetch('/api/customer/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, whatsapp })
+    }).catch(() => {});
+}
+
 window.openCheckoutModal = function() {
     window.closeCart();
     const modal = document.getElementById('checkoutModal');
     const overlay = document.getElementById('checkoutOverlay');
     if (modal) modal.style.display = 'flex';
     if (overlay) overlay.classList.add('active');
-    
+
     if (globalStatus && globalStatus.batchLabel) {
         const dataFornada = document.getElementById('dataFornada');
         if (dataFornada) dataFornada.textContent = globalStatus.batchLabel;
+    }
+
+    // Auto-preenchimento: tenta localStorage primeiro, depois sessão do servidor
+    const stored = JSON.parse(localStorage.getItem('tocha-customer') || 'null');
+    if (stored?.email) {
+        fillCustomerForm(stored);
+    } else {
+        fetch('/api/customer/me')
+            .then(r => r.ok ? r.json() : null)
+            .then(c => {
+                if (c?.email) {
+                    fillCustomerForm(c);
+                    localStorage.setItem('tocha-customer', JSON.stringify(c));
+                }
+            })
+            .catch(() => {});
     }
 }
 
@@ -219,6 +256,11 @@ window.confirmarPedido = async function() {
 
     const customer = { name, whatsapp, email };
     localStorage.setItem('tocha-customer', JSON.stringify(customer));
+    fetch('/api/customer/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(customer)
+    }).catch(() => {});
 
     const btn = document.querySelector('#checkoutModal .btn-primary');
     const originalText = btn ? btn.innerText : 'CONFIRMAR PEDIDO';
@@ -589,6 +631,12 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         render();
     }
+
+    // Salvar cliente no blur quando todos os 3 campos estiverem preenchidos
+    ['id-name', 'id-email', 'id-whatsapp'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('blur', tryAutoSaveCustomer);
+    });
 
     // Mascara de WhatsApp (id correto do modal: id-whatsapp)
     const whatsappInput = document.getElementById('id-whatsapp');

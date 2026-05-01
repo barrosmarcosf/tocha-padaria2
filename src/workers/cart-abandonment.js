@@ -58,10 +58,41 @@ async function checkAbandonedCarts(supabase) {
                 const recoveryUrl = `${appUrl}/?token=${cart.recovery_token}`;
 
                 await sendAbandonmentRecovery(supabase, cart.customer_data, JSON.parse(cart.items), recoveryUrl);
-
                 await supabase.from('carrinhos').update({ recovery_sent: true }).eq('id', cart.id);
             } else {
-                console.log(`[ABANDONO] Sessao ${cart.session_id} ignorada: Cliente não se identificou.`);
+                // Tenta identificar cliente via customer_sessions (sessão vinculada ao email)
+                let identified = false;
+                try {
+                    const { data: sessionLink } = await supabase
+                        .from('customer_sessions')
+                        .select('customer_email')
+                        .eq('session_id', cart.session_id)
+                        .maybeSingle();
+
+                    if (sessionLink?.customer_email) {
+                        const { data: sessionCustomer } = await supabase
+                            .from('clientes')
+                            .select('name, email, whatsapp')
+                            .eq('email', sessionLink.customer_email)
+                            .maybeSingle();
+
+                        if (sessionCustomer) {
+                            identified = true;
+                            console.log('[ABANDONO IDENTIFICADO]', { session_id: cart.session_id, email: sessionCustomer.email });
+                            console.log(`🚀 [ABANDONO] Disparando recuperação (via sessão) para: ${sessionCustomer.name || 'Cliente'}`);
+
+                            const appUrl = process.env.BASE_URL || 'http://localhost:3333';
+                            const recoveryUrl = `${appUrl}/?token=${cart.recovery_token}`;
+
+                            await sendAbandonmentRecovery(supabase, sessionCustomer, JSON.parse(cart.items), recoveryUrl);
+                            await supabase.from('carrinhos').update({ recovery_sent: true }).eq('id', cart.id);
+                        }
+                    }
+                } catch (_) {}
+
+                if (!identified) {
+                    console.log(`[ABANDONO] Sessão ${cart.session_id}: cliente não identificado.`);
+                }
             }
         }
     } catch (e) { console.error("❌ Erro no trabalhador de abandono:", e.message); }

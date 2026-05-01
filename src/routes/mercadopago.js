@@ -332,10 +332,36 @@ module.exports = function (supabase) {
     router.post('/prepare-card-order', async (req, res) => {
         console.log("🚀 [MP Prepare] BODY RECEBIDO:", JSON.stringify(req.body, null, 2));
         try {
-            const { customer, cart: cartItems } = req.body;
+            let { customer, cart: cartItems } = req.body;
 
-            if (!customer || !cartItems || cartItems.length === 0) {
-                return res.status(400).json({ error: 'Dados incompletos do carrinho ou cliente.' });
+            if (!cartItems || cartItems.length === 0) {
+                return res.status(400).json({ error: 'Carrinho vazio.' });
+            }
+
+            // Fallback: busca dados do cliente via sessão se não foram enviados
+            if (!customer?.email) {
+                const sid = req.cookies?.session_id || req.session_id;
+                if (sid) {
+                    try {
+                        const { data: sessionLink } = await supabase
+                            .from('customer_sessions')
+                            .select('customer_email')
+                            .eq('session_id', sid)
+                            .maybeSingle();
+                        if (sessionLink?.customer_email) {
+                            const { data: sessionCustomer } = await supabase
+                                .from('clientes')
+                                .select('name, email, whatsapp')
+                                .eq('email', sessionLink.customer_email)
+                                .maybeSingle();
+                            if (sessionCustomer) customer = sessionCustomer;
+                        }
+                    } catch (_) {}
+                }
+            }
+
+            if (!customer?.email) {
+                return res.status(400).json({ error: 'Dados do cliente ausentes.' });
             }
 
             // 🔒 IDEMPOTÊNCIA

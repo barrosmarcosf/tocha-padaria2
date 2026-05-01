@@ -136,10 +136,12 @@ const adminRoutes = require('./src/routes/admin')(supabase);
 const checkoutRoutes = require('./src/routes/checkout')(supabase, stripe);
 const mercadopagoRoutes = require('./src/routes/mercadopago')(supabase);
 const publicRoutes = require('./src/routes/public')(supabase);
+const customerRoutes = require('./src/routes/customer')(supabase);
 const { startBot } = require('./src/notification-service');
 
 app.use('/api/admin', adminRoutes);
 app.use('/api/mercadopago', mercadopagoRoutes);
+app.use('/api/customer', customerRoutes);
 app.use('/api', checkoutRoutes);
 app.use('/api', publicRoutes);
 

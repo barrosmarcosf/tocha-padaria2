@@ -827,7 +827,9 @@ module.exports = function (supabase) {
                 .gte('created_at', utcOpStart)
                 .order('created_at', { ascending: false });
             if (error) throw error;
-            res.json(data);
+            const normalized = normalizeOrderCustomers(data);
+            console.log('[ADMIN CUSTOMER OK]', { count: normalized.length });
+            res.json(normalized);
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
@@ -1204,3 +1206,18 @@ module.exports = function (supabase) {
 
     return router;
 };
+
+// Garante que cada pedido exponha customer_name/email/whatsapp de forma consistente.
+// Usa o join com clientes como fonte primária; lê o JSON de items como fallback.
+function normalizeOrderCustomers(orders) {
+    return (orders || []).map(o => {
+        let itemsData = o.items;
+        try { if (typeof itemsData === 'string') itemsData = JSON.parse(itemsData); } catch (_) { itemsData = {}; }
+        return {
+            ...o,
+            customer_name: o.clientes?.name || itemsData?.customer_name || null,
+            customer_email: o.clientes?.email || itemsData?.customer_email || null,
+            customer_whatsapp: o.clientes?.whatsapp || itemsData?.customer_whatsapp || null
+        };
+    });
+}
