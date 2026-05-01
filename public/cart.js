@@ -227,6 +227,23 @@ window.syncCart = async function() {
     }
 };
 
+function openPaymentErrorModal(message) {
+    const existing = document.getElementById('cart-error-modal');
+    if (existing) existing.remove();
+    const modal = document.createElement('div');
+    modal.id = 'cart-error-modal';
+    modal.innerHTML = `
+        <div style="position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:10000;">
+            <div style="background:#141414;padding:30px;border-radius:16px;width:90%;max-width:400px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.08);">
+                <div style="font-size:28px;margin-bottom:10px;">⚠️</div>
+                <p style="color:rgba(255,255,255,0.85);margin-bottom:20px;">${escapeHtml(String(message))}</p>
+                <button onclick="document.getElementById('cart-error-modal').remove()" style="background:#EBB43B;color:#000;border:none;padding:12px 24px;border-radius:10px;cursor:pointer;font-weight:600;">OK</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
 window.confirmarPedido = async function() {
     if (window.__checkoutLock) return;
     window.__checkoutLock = true;
@@ -243,7 +260,7 @@ window.confirmarPedido = async function() {
     const cartToCheckout = JSON.parse(localStorage.getItem('tocha-cart') || '[]');
 
     if (!name || !whatsapp || !email) {
-        alert("Preencha todos os campos obrigatórios.");
+        openPaymentErrorModal("Preencha todos os campos obrigatórios.");
         window.__checkoutLock = false;
         return;
     }
@@ -336,7 +353,7 @@ window.confirmarPedido = async function() {
         }
     } catch (e) {
         console.error('❌ [CHECKOUT] Erro:', e.message);
-        alert("Erro: " + e.message);
+        openPaymentErrorModal(e.message);
         if (btn) { btn.innerText = originalText; btn.disabled = false; }
     } finally {
         window.__checkoutLock = false;

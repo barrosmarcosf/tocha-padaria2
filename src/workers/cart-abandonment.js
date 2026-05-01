@@ -88,8 +88,30 @@ async function checkAbandonedCarts(supabase) {
                     }
                 } catch (_) {}
 
+                if (!identified && cart.customer_id) {
+                    try {
+                        const { data: directCustomer } = await supabase
+                            .from('clientes')
+                            .select('name, email, whatsapp')
+                            .eq('id', cart.customer_id)
+                            .maybeSingle();
+
+                        if (directCustomer && (directCustomer.email || directCustomer.whatsapp)) {
+                            identified = true;
+                            console.log(`[ABANDONO MATCH OK] session_id=${cart.session_id} customer_id=${cart.customer_id}`);
+                            console.log(`🚀 [ABANDONO DISPARADO] ${directCustomer.name || 'Cliente'} (via customer_id) — session_id=${cart.session_id}`);
+
+                            const appUrl = process.env.BASE_URL || 'http://localhost:3333';
+                            const recoveryUrl = `${appUrl}/?token=${cart.recovery_token}`;
+
+                            await sendAbandonmentRecovery(supabase, directCustomer, JSON.parse(cart.items), recoveryUrl);
+                            await supabase.from('carrinhos').update({ recovery_sent: true }).eq('id', cart.id);
+                        }
+                    } catch (_) {}
+                }
+
                 if (!identified) {
-                    console.log(`[ABANDONO] Sessão ${cart.session_id}: cliente não identificado.`);
+                    console.log(`[ABANDONO SKIP] session_id=${cart.session_id}: sem vínculo de cliente. Aguardando identificação.`);
                 }
             }
         }

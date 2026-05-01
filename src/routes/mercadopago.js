@@ -87,7 +87,28 @@ module.exports = function (supabase) {
                 return res.status(503).json({ error: 'Integração Mercado Pago não configurada.' });
             }
 
-            const { customer, cart } = req.body;
+            let { customer, cart } = req.body;
+
+            if (!customer?.email) {
+                const sid = req.cookies?.session_id || req.session_id;
+                if (sid) {
+                    try {
+                        const { data: sessionLink } = await supabase
+                            .from('customer_sessions')
+                            .select('customer_email')
+                            .eq('session_id', sid)
+                            .maybeSingle();
+                        if (sessionLink?.customer_email) {
+                            const { data: sessionCustomer } = await supabase
+                                .from('clientes')
+                                .select('name, email, whatsapp')
+                                .eq('email', sessionLink.customer_email)
+                                .maybeSingle();
+                            if (sessionCustomer) customer = sessionCustomer;
+                        }
+                    } catch (_) {}
+                }
+            }
 
             const customerErr = validateCustomer(customer);
             if (customerErr) return res.status(400).json({ error: customerErr });
