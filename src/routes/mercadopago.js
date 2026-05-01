@@ -88,6 +88,7 @@ module.exports = function (supabase) {
         }
 
         const startTime = Date.now();
+        let paymentStatus = 'unknown';
         let orderLocked = false;
         try {
             if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
@@ -230,6 +231,7 @@ module.exports = function (supabase) {
             console.log("💳 [Pix] Criando pagamento no MP:", paymentData.body.transaction_amount);
 
             const mpResponse = await payment.create(paymentData);
+            paymentStatus = mpResponse.status || 'unknown';
             const mpId = String(mpResponse.id);
             const qrCode = mpResponse.point_of_interaction.transaction_data.qr_code;
             const qrCodeBase64 = await /** @type {Promise<string>} */ (QRCode.toDataURL(qrCode));
@@ -288,6 +290,7 @@ module.exports = function (supabase) {
             });
 
         } catch (error) {
+            paymentStatus = 'error';
             console.error('❌ [PIX] Erro Crítico:', error.response?.data || error);
             return res.status(error.response?.status || 500).json({
                 error: true,
@@ -295,7 +298,7 @@ module.exports = function (supabase) {
             });
         } finally {
             const duration = Date.now() - startTime;
-            console.log('[MP PROCESS TIME]', { order_id, duration_ms: duration });
+            console.log('[MP METRICS]', { order_id, status: paymentStatus, duration_ms: duration });
             if (orderLocked) {
                 try {
                     await supabase.from('pedidos').update({ processing: false, processing_at: null }).eq('id', order_id);
@@ -519,6 +522,7 @@ module.exports = function (supabase) {
         console.log('🔥 HEADERS:', req.headers);
         console.log('🔥 BODY RECEBIDO:', req.body);
         const startTime = Date.now();
+        let paymentStatus = 'unknown';
         let orderLocked = false;
         try {
             if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
@@ -640,6 +644,7 @@ module.exports = function (supabase) {
             }
 
             const mpId = String(responseData.id);
+            paymentStatus = responseData.status || 'unknown';
             console.log(`💳 [MP Card] Pagamento ${mpId}: ${responseData.status} (${responseData.status_detail})`);
 
             // Atualizar pedido existente criado por prepare-card-order
@@ -691,6 +696,7 @@ module.exports = function (supabase) {
             });
 
         } catch (err) {
+            paymentStatus = 'error';
             console.error('MP ERROR COMPLETO:', err.response?.data || err);
             return res.status(500).json({
                 error: err.response?.data?.message ||
@@ -701,7 +707,7 @@ module.exports = function (supabase) {
             });
         } finally {
             const duration = Date.now() - startTime;
-            console.log('[MP PROCESS TIME]', { order_id: req.body?.order_id, duration_ms: duration });
+            console.log('[MP METRICS]', { order_id: req.body?.order_id, status: paymentStatus, duration_ms: duration });
             if (orderLocked && req.body?.order_id) {
                 try {
                     await supabase.from('pedidos').update({ processing: false, processing_at: null }).eq('id', req.body.order_id);
