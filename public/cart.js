@@ -533,7 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then(r => r.json())
                 .then(d => {
                     if (!d.valid) {
-                        console.warn('[MP BLOCK] payment/order mismatch', d);
+                        console.warn('[MP BLOCK MODAL]', d);
                         window.history.replaceState({}, '', window.location.pathname);
                         return;
                     }
