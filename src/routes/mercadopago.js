@@ -266,6 +266,9 @@ module.exports = function (supabase) {
             if (orderId) {
                 const valid = mpStatus.status === 'approved' &&
                     String(mpStatus.external_reference) === String(orderId);
+                if (!valid) {
+                    console.warn(`[MP BACKEND REDIRECT BLOCK] payment_id=${mpId} mp_status=${mpStatus.status} external_reference=${mpStatus.external_reference} order_id=${orderId}`);
+                }
                 return res.json({ status, valid });
             }
 
@@ -554,12 +557,15 @@ module.exports = function (supabase) {
                 } catch (procErr) {
                     console.error(`❌ [MP Card] processPaidMPOrder falhou (mpId=${mpId}):`, procErr.message);
                 }
-            } else if (responseData.status === 'rejected' || responseData.status === 'cancelled') {
-                if (order_id) {
-                    await supabase.from('pedidos')
-                        .update({ status: 'cancelled' })
-                        .eq('id', order_id)
-                        .eq('status', 'pending');
+            } else {
+                console.warn(`[MP BACKEND REDIRECT BLOCK] create-card-payment status=${responseData.status} status_detail=${responseData.status_detail} payment_id=${mpId} order_id=${order_id}`);
+                if (responseData.status === 'rejected' || responseData.status === 'cancelled') {
+                    if (order_id) {
+                        await supabase.from('pedidos')
+                            .update({ status: 'cancelled' })
+                            .eq('id', order_id)
+                            .eq('status', 'pending');
+                    }
                 }
             }
 
