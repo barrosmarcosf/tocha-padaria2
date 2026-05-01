@@ -431,6 +431,7 @@ module.exports = function (supabase) {
     router.post('/create-card-payment', async (req, res) => {
         console.log('🔥 HEADERS:', req.headers);
         console.log('🔥 BODY RECEBIDO:', req.body);
+        let orderLocked = false;
         try {
             if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
                 return res.status(503).json({ error: 'Integração Mercado Pago não configurada.' });
@@ -474,6 +475,24 @@ module.exports = function (supabase) {
                 } catch (_) {}
             }
 
+            if (order_id) {
+                const { data: lockedOrder } = await supabase
+                    .from('pedidos')
+                    .update({ processing: true })
+                    .eq('id', order_id)
+                    .in('status', ['pending', 'payment_failed'])
+                    .eq('processing', false)
+                    .select()
+                    .single();
+
+                if (!lockedOrder) {
+                    console.log('[ORDER LOCK DENIED]', { orderId: order_id });
+                    return res.status(409).json({ error: 'Pagamento já está sendo processado' });
+                }
+                orderLocked = true;
+                console.log('[ORDER LOCKED]', { orderId: order_id });
+            }
+
             const paymentData = {
                 transaction_amount: Number(req.body.amount),
                 token: req.body.token,
@@ -511,7 +530,7 @@ module.exports = function (supabase) {
 
             console.log('MP PAYMENT PAYLOAD:', JSON.stringify({ ...paymentData, token: '[REDACTED]' }, null, 2));
 
-            const idempotencyKey = `order-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            const idempotencyKey = order_id ? String(order_id) : `card-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
             const mpRes = await fetch('https://api.mercadopago.com/v1/payments', {
                 method: 'POST',
@@ -591,6 +610,15 @@ module.exports = function (supabase) {
                        err.message ||
                        'Erro desconhecido no pagamento'
             });
+        } finally {
+            if (orderLocked && req.body?.order_id) {
+                try {
+                    await supabase.from('pedidos').update({ processing: false }).eq('id', req.body.order_id);
+                    console.log('[ORDER UNLOCKED]', { orderId: req.body.order_id });
+                } catch (_) {
+                    console.error('[ORDER UNLOCK FAILED]', { orderId: req.body.order_id });
+                }
+            }
         }
     });
 
