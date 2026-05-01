@@ -212,12 +212,7 @@ window.syncCart = async function() {
     const cartToSync = JSON.parse(localStorage.getItem('tocha-cart') || '[]');
     const customer = JSON.parse(localStorage.getItem('tocha-customer') || 'null');
     const totalAmount = cartToSync.reduce((total, item) => total + (item.price * item.qty), 0);
-    
-    let sessionId = localStorage.getItem('tocha-session-id');
-    if (!sessionId) {
-        sessionId = 'sess_' + Math.random().toString(36).substr(2, 9) + Date.now();
-        localStorage.setItem('tocha-session-id', sessionId);
-    }
+    const orderId = localStorage.getItem('tocha-order-id') || null;
 
     if (cartToSync.length === 0) return;
 
@@ -225,7 +220,7 @@ window.syncCart = async function() {
         await fetch('/api/cart/sync', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId, customer, cart: cartToSync, totalAmount })
+            body: JSON.stringify({ customer, cart: cartToSync, totalAmount, order_id: orderId })
         });
     } catch (e) {
         console.warn("[SYNC] Falha ao sincronizar carrinho:", e.message);
@@ -246,7 +241,6 @@ window.confirmarPedido = async function() {
     const paymentEl = document.querySelector('input[name="payment-method"]:checked');
     const payment = paymentEl ? paymentEl.value : 'pix';
     const cartToCheckout = JSON.parse(localStorage.getItem('tocha-cart') || '[]');
-    const sessionId = localStorage.getItem('tocha-session-id');
 
     if (!name || !whatsapp || !email) {
         alert("Preencha todos os campos obrigatórios.");
@@ -301,6 +295,7 @@ window.confirmarPedido = async function() {
             }
 
             const data = await res.json();
+            if (data.order_id) localStorage.setItem('tocha-order-id', String(data.order_id));
             window.location.href = `/checkout-mp.html?order_id=${data.order_id}`;
             return;
         }
@@ -320,7 +315,7 @@ window.confirmarPedido = async function() {
                 throw new Error(errData.message || errData.error || 'Erro ao gerar PIX.');
             }
             const data = await res.json();
-
+            if (data.order_id) localStorage.setItem('tocha-order-id', String(data.order_id));
             localStorage.setItem('tocha-pix-data', JSON.stringify(data));
             window.location.href = "/pagamento-pix.html";
         } else {
@@ -551,6 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const mostrarConfirmacao = () => {
             cart = [];
+            localStorage.removeItem('tocha-order-id');
             save();
             const ms = document.getElementById('modalSuccess');
             const co = document.getElementById('checkoutOverlay');

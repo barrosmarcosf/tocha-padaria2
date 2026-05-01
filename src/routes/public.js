@@ -47,12 +47,15 @@ module.exports = function (supabase) {
     // ──────────────────────────────────────────────────
     router.post('/cart/sync', async (req, res) => {
         try {
-            const { sessionId, customer, cart, totalAmount } = req.body;
+            const sessionId = req.cookies.session_id || req.session_id;
+            const { customer, cart, totalAmount, order_id } = req.body;
+
             if (!sessionId || !cart) return res.status(400).json({ error: 'Dados incompletos.' });
 
-            console.log(`[ABANDONO] Sincronizando sessão: ${sessionId}`);
+            console.log(`[SESSION COOKIE] ${sessionId}`);
+            console.log(`[CART SYNC SESSION] session_id=${sessionId} order_id=${order_id || 'none'}`);
 
-            const { error } = await supabase.from('carrinhos').upsert([{
+            const record = {
                 session_id: sessionId,
                 customer_data: customer,
                 items: JSON.stringify(cart),
@@ -61,7 +64,11 @@ module.exports = function (supabase) {
                 last_activity_at: new Date().toISOString(),
                 recovery_sent: false,
                 recovery_token: require('crypto').randomBytes(24).toString('hex')
-            }], { onConflict: 'session_id' });
+            };
+
+            if (order_id) record.order_id = order_id;
+
+            const { error } = await supabase.from('carrinhos').upsert([record], { onConflict: 'session_id' });
 
             if (error) console.error("❌ Erro ao salvar carrinho:", error.message);
             res.json({ success: true });

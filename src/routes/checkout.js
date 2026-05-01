@@ -171,7 +171,7 @@ module.exports = function (supabase, stripe) {
                     metadata: {
                         whatsapp: customer.whatsapp,
                         customerName: customer.name,
-                        sessionId: req.body.sessionId
+                        sessionId: req.session_id
                     }
                 });
             } catch (stripeErr) {
@@ -189,7 +189,7 @@ module.exports = function (supabase, stripe) {
                         metadata: {
                             whatsapp: customer.whatsapp,
                             customerName: customer.name,
-                            sessionId: req.body.sessionId
+                            sessionId: req.session_id
                         }
                     });
                 } else {

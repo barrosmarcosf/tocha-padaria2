@@ -1,16 +1,10 @@
 const { sendAbandonmentRecovery } = require('../notification-service');
 
-/**
- * Trabalhador de Abandono de Carrinho
- * Verifica carrinhos abandonados e envia notificações de recuperação
- */
 async function checkAbandonedCarts(supabase) {
-    // 1. Verificação de Horário Comercial (Evitar barulho de madrugada)
     const now = new Date();
     const saoPauloTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
     const currentHour = saoPauloTime.getHours();
 
-    // Só envia entre 09:00 e 21:00
     if (currentHour < 9 || currentHour >= 21) {
         console.log(`[WORKER] 💤 Fora do horário comercial (${currentHour}h). Aguardando próxima janela.`);
         return;
@@ -31,19 +25,22 @@ async function checkAbandonedCarts(supabase) {
 
         if (error) throw error;
 
-        // Filtragem Extra de Segurança: Verifica se existe pedido pago para esta sessão
+        // Filtragem Extra de Segurança: verifica se existe pedido pago para este carrinho
         const activeAbandoned = [];
         for (const cart of abandoned) {
-            const { data: existingOrder } = await supabase
-                .from('pedidos')
-                .select('status')
-                .eq('stripe_session_id', cart.session_id)
-                .maybeSingle();
+            // Usa order_id se disponível (armazenado via AÇÃO 6); caso contrário, pula a checagem
+            if (cart.order_id) {
+                const { data: existingOrder } = await supabase
+                    .from('pedidos')
+                    .select('status')
+                    .eq('id', cart.order_id)
+                    .maybeSingle();
 
-            if (existingOrder && (existingOrder.status === 'paid' || existingOrder.status === 'completed')) {
-                console.log(`[WORKER] 🛡️ Sessão ${cart.session_id} ignorada: Pedido já consta como PAGO.`);
-                await supabase.from('carrinhos').update({ status: 'completed' }).eq('id', cart.id);
-                continue;
+                if (existingOrder && (existingOrder.status === 'paid' || existingOrder.status === 'completed')) {
+                    console.log(`[WORKER] 🛡️ Carrinho ${cart.id} ignorado: Pedido ${cart.order_id} já consta como PAGO.`);
+                    await supabase.from('carrinhos').update({ status: 'completed' }).eq('id', cart.id);
+                    continue;
+                }
             }
             activeAbandoned.push(cart);
         }
@@ -52,7 +49,8 @@ async function checkAbandonedCarts(supabase) {
             const hasContact = cart.customer_data && (cart.customer_data.email || cart.customer_data.whatsapp);
 
             if (hasContact) {
-                console.log(`🚀 [ABANDONO] Disparando recuperação para: ${cart.customer_data.name || 'Cliente'}`);
+                console.log(`[ABANDONO MATCH OK] session_id=${cart.session_id}`);
+                console.log(`🚀 [ABANDONO DISPARADO] ${cart.customer_data.name || 'Cliente'} — session_id=${cart.session_id}`);
 
                 const appUrl = process.env.BASE_URL || 'http://localhost:3333';
                 const recoveryUrl = `${appUrl}/?token=${cart.recovery_token}`;
@@ -60,7 +58,7 @@ async function checkAbandonedCarts(supabase) {
                 await sendAbandonmentRecovery(supabase, cart.customer_data, JSON.parse(cart.items), recoveryUrl);
                 await supabase.from('carrinhos').update({ recovery_sent: true }).eq('id', cart.id);
             } else {
-                // Tenta identificar cliente via customer_sessions (sessão vinculada ao email)
+                // Tenta identificar cliente via customer_sessions usando o session_id do cookie
                 let identified = false;
                 try {
                     const { data: sessionLink } = await supabase
@@ -78,8 +76,8 @@ async function checkAbandonedCarts(supabase) {
 
                         if (sessionCustomer) {
                             identified = true;
-                            console.log('[ABANDONO IDENTIFICADO]', { session_id: cart.session_id, email: sessionCustomer.email });
-                            console.log(`🚀 [ABANDONO] Disparando recuperação (via sessão) para: ${sessionCustomer.name || 'Cliente'}`);
+                            console.log(`[ABANDONO MATCH OK] session_id=${cart.session_id} email=${sessionCustomer.email}`);
+                            console.log(`🚀 [ABANDONO DISPARADO] ${sessionCustomer.name || 'Cliente'} (via sessão) — session_id=${cart.session_id}`);
 
                             const appUrl = process.env.BASE_URL || 'http://localhost:3333';
                             const recoveryUrl = `${appUrl}/?token=${cart.recovery_token}`;
