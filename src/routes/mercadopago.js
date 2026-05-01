@@ -88,8 +88,10 @@ module.exports = function (supabase) {
         }
 
         const startTime = Date.now();
+        const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
         let paymentStatus = 'unknown';
         let orderLocked = false;
+        console.log('[MP START]', { requestId, order_id });
         try {
             if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
                 return res.status(503).json({ error: 'Integração Mercado Pago não configurada.' });
@@ -107,7 +109,7 @@ module.exports = function (supabase) {
                 .single();
 
             if (!lockedOrder) {
-                console.log('[ORDER LOCK DENIED]', { orderId: order_id });
+                console.log('[ORDER LOCK DENIED]', { requestId, orderId: order_id });
                 return res.status(409).json({ error: 'Pagamento já está sendo processado' });
             }
             orderLocked = true;
@@ -291,6 +293,7 @@ module.exports = function (supabase) {
 
         } catch (error) {
             paymentStatus = 'error';
+            console.log('[MP ERROR]', { requestId, error: error.message });
             console.error('❌ [PIX] Erro Crítico:', error.response?.data || error);
             return res.status(error.response?.status || 500).json({
                 error: true,
@@ -298,7 +301,7 @@ module.exports = function (supabase) {
             });
         } finally {
             const duration = Date.now() - startTime;
-            console.log('[MP METRICS]', { order_id, status: paymentStatus, duration_ms: duration });
+            console.log('[MP METRICS]', { requestId, order_id, status: paymentStatus, duration_ms: duration });
             if (orderLocked) {
                 try {
                     await supabase.from('pedidos').update({ processing: false, processing_at: null }).eq('id', order_id);
@@ -522,8 +525,10 @@ module.exports = function (supabase) {
         console.log('🔥 HEADERS:', req.headers);
         console.log('🔥 BODY RECEBIDO:', req.body);
         const startTime = Date.now();
+        const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
         let paymentStatus = 'unknown';
         let orderLocked = false;
+        console.log('[MP START]', { requestId, order_id: req.body?.order_id });
         try {
             if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
                 return res.status(503).json({ error: 'Integração Mercado Pago não configurada.' });
@@ -579,11 +584,11 @@ module.exports = function (supabase) {
                     .single();
 
                 if (!lockedOrder) {
-                    console.log('[ORDER LOCK DENIED]', { orderId: order_id });
+                    console.log('[ORDER LOCK DENIED]', { requestId, orderId: order_id });
                     return res.status(409).json({ error: 'Pagamento já está sendo processado' });
                 }
                 orderLocked = true;
-                console.log('[ORDER LOCKED]', { orderId: order_id });
+                console.log('[ORDER LOCKED]', { requestId, orderId: order_id });
             }
 
             const paymentData = {
@@ -697,6 +702,7 @@ module.exports = function (supabase) {
 
         } catch (err) {
             paymentStatus = 'error';
+            console.log('[MP ERROR]', { requestId, error: err.message });
             console.error('MP ERROR COMPLETO:', err.response?.data || err);
             return res.status(500).json({
                 error: err.response?.data?.message ||
@@ -707,7 +713,7 @@ module.exports = function (supabase) {
             });
         } finally {
             const duration = Date.now() - startTime;
-            console.log('[MP METRICS]', { order_id: req.body?.order_id, status: paymentStatus, duration_ms: duration });
+            console.log('[MP METRICS]', { requestId, order_id: req.body?.order_id, status: paymentStatus, duration_ms: duration });
             if (orderLocked && req.body?.order_id) {
                 try {
                     await supabase.from('pedidos').update({ processing: false, processing_at: null }).eq('id', req.body.order_id);
