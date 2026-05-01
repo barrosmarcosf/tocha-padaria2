@@ -501,19 +501,23 @@ document.addEventListener('DOMContentLoaded', () => {
     window.syncCart();
     setInterval(() => window.syncCart(), 30000);
 
-    // Detectar sucesso do Stripe
+    // Detectar sucesso de pagamento (Stripe ou Mercado Pago cartão)
     const params = new URLSearchParams(window.location.search);
     if (params.get('status') === 'success') {
-        cart = [];
-        save();
-        const ms = document.getElementById('modalSuccess');
-        const co = document.getElementById('checkoutOverlay');
-        if (ms) ms.style.display = 'flex';
-        if (co) co.classList.add('active');
-
-        // Fallback crítico: confirma o pagamento caso o webhook do Stripe não tenha chegado
-        // (URL do servidor expirada, falha de rede, etc.)
+        const mpPaymentId = params.get('payment_id');
         const stripeSessionId = params.get('session_id');
+
+        const mostrarConfirmacao = () => {
+            cart = [];
+            save();
+            const ms = document.getElementById('modalSuccess');
+            const co = document.getElementById('checkoutOverlay');
+            if (ms) ms.style.display = 'flex';
+            if (co) co.classList.add('active');
+            window.history.replaceState({}, '', window.location.pathname);
+        };
+
+        // Fallback Stripe: confirma caso o webhook não tenha chegado
         if (stripeSessionId) {
             fetch('/api/confirm-session', {
                 method: 'POST',
@@ -522,7 +526,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }).catch(e => console.warn('[CONFIRM] Fallback confirm-session falhou:', e.message));
         }
 
-        window.history.replaceState({}, '', window.location.pathname);
+        if (mpPaymentId) {
+            // MP cartão: verificar status real com o backend antes de exibir confirmação
+            fetch(`/api/mercadopago/check-payment/${mpPaymentId}`)
+                .then(r => r.json())
+                .then(d => {
+                    if (d.status === 'approved') {
+                        mostrarConfirmacao();
+                    } else {
+                        console.warn('[MP BLOCK] Tentativa de sucesso bloqueada', d);
+                        window.history.replaceState({}, '', window.location.pathname);
+                    }
+                })
+                .catch(e => {
+                    console.warn('[MP BLOCK] Falha ao verificar status do pagamento:', e.message);
+                    window.history.replaceState({}, '', window.location.pathname);
+                });
+        } else {
+            // Stripe ou outro método sem payment_id: comportamento original
+            mostrarConfirmacao();
+        }
     }
 
     applyPaymentMethodSettings();

@@ -474,9 +474,9 @@
                                 }
 
                                 // Único caminho para sucesso: status === 'approved' passou pelo guard acima
-                                console.log('[MP FLOW REDIRECT]', { status: data.status, order_id: data.order_id });
+                                console.log('[MP FLOW REDIRECT]', { status: data.status, order_id: data.order_id, payment_id: data.payment_id });
                                 console.log("✅ Pagamento aprovado", data);
-                                window.location.href = `/?status=success&order_id=${data.order_id || orderData.id}`;
+                                window.location.href = `/?status=success&order_id=${data.order_id || orderData.id}&payment_id=${data.payment_id}`;
 
                             } catch (err) {
                                 console.error("❌ Erro no processamento:", err);
