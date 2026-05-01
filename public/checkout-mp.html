@@ -458,18 +458,25 @@
                                     throw new Error(errMsg);
                                 }
 
-                                if (data.status === 'approved') {
-                                    console.log("✅ Pagamento aprovado", data);
-                                    window.location.href = `/?status=success&order_id=${data.order_id || orderData.id}`;
-                                } else if (data.status === 'pending' || data.status === 'in_process') {
-                                    console.log("⏳ Pagamento em análise", data);
-                                    alert('Pagamento em análise. Você será notificado por e-mail ou WhatsApp.');
-                                    window.location.href = '/';
-                                } else {
-                                    const errMsg = data.status_detail || data.error || 'Pagamento não aprovado pelo banco.';
-                                    console.warn('⚠️ Pagamento recusado:', data.status, data.status_detail);
-                                    throw new Error(errMsg);
+                                // Guard: bloqueia qualquer caminho para redirect de sucesso se status !== 'approved'
+                                if (data.status !== 'approved') {
+                                    console.warn('[MP FLOW BLOCK] Prevented invalid success redirect', data);
+                                    if (data.status === 'pending' || data.status === 'in_process') {
+                                        console.log("⏳ Pagamento em análise", data);
+                                        alert('Pagamento em análise. Você será notificado por e-mail ou WhatsApp.');
+                                        window.location.href = '/';
+                                    } else {
+                                        const errMsg = data.status_detail || data.error || 'Pagamento não aprovado pelo banco.';
+                                        console.warn('⚠️ Pagamento recusado:', data.status, data.status_detail);
+                                        throw new Error(errMsg);
+                                    }
+                                    return;
                                 }
+
+                                // Único caminho para sucesso: status === 'approved' passou pelo guard acima
+                                console.log('[MP FLOW REDIRECT]', { status: data.status, order_id: data.order_id });
+                                console.log("✅ Pagamento aprovado", data);
+                                window.location.href = `/?status=success&order_id=${data.order_id || orderData.id}`;
 
                             } catch (err) {
                                 console.error("❌ Erro no processamento:", err);
