@@ -527,16 +527,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (mpPaymentId) {
-            // MP cartão: verificar status real com o backend antes de exibir confirmação
-            fetch(`/api/mercadopago/check-payment/${mpPaymentId}`)
+            // MP cartão: verificar status real e vínculo com o pedido antes de exibir confirmação
+            const mpOrderId = params.get('order_id');
+            fetch(`/api/mercadopago/check-payment/${mpPaymentId}?order_id=${mpOrderId}`)
                 .then(r => r.json())
                 .then(d => {
-                    if (d.status === 'approved') {
-                        mostrarConfirmacao();
-                    } else {
-                        console.warn('[MP BLOCK] Tentativa de sucesso bloqueada', d);
+                    if (!d.valid) {
+                        console.warn('[MP BLOCK] payment/order mismatch', d);
                         window.history.replaceState({}, '', window.location.pathname);
+                        return;
                     }
+                    mostrarConfirmacao();
                 })
                 .catch(e => {
                     console.warn('[MP BLOCK] Falha ao verificar status do pagamento:', e.message);

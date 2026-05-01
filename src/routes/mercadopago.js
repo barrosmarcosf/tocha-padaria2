@@ -250,6 +250,7 @@ module.exports = function (supabase) {
     router.get('/check-payment/:id', async (req, res) => {
         try {
             const mpId = req.params.id;
+            const orderId = req.query.order_id;
             const mpStatus = await payment.get({ id: mpId });
 
             let status = 'pending';
@@ -261,9 +262,16 @@ module.exports = function (supabase) {
                 await processPaidMPOrder(supabase, mpId, mpStatus);
             }
 
+            // Quando order_id está presente, valida o vínculo entre pagamento e pedido
+            if (orderId) {
+                const valid = mpStatus.status === 'approved' &&
+                    String(mpStatus.external_reference) === String(orderId);
+                return res.json({ status, valid });
+            }
+
             res.json({ status });
         } catch (error) {
-            console.error('Erro ao checar Pix:', error);
+            console.error('Erro ao checar pagamento MP:', error);
             res.status(500).json({ error: 'Erro ao verificar status.' });
         }
     });
