@@ -68,9 +68,24 @@ module.exports = function (supabase) {
 
             if (order_id) record.order_id = order_id;
 
-            const { error } = await supabase.from('carrinhos').upsert([record], { onConflict: 'session_id' });
+            if (customer?.email) {
+                try {
+                    const { data: clienteRow } = await supabase
+                        .from('clientes').select('id').eq('email', customer.email).maybeSingle();
+                    if (clienteRow?.id) record.customer_id = clienteRow.id;
+                } catch (_) {}
+            }
 
-            if (error) console.error("❌ Erro ao salvar carrinho:", error.message);
+            const { error } = await supabase.from('carrinhos').upsert([record], { onConflict: 'session_id' });
+            if (error) {
+                if (record.customer_id !== undefined) {
+                    delete record.customer_id;
+                    const { error: e2 } = await supabase.from('carrinhos').upsert([record], { onConflict: 'session_id' });
+                    if (e2) console.error("❌ Erro ao salvar carrinho:", e2.message);
+                } else {
+                    console.error("❌ Erro ao salvar carrinho:", error.message);
+                }
+            }
             res.json({ success: true });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });

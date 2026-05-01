@@ -82,6 +82,7 @@ module.exports = function (supabase) {
 
     // 1. CRIAR PAGAMENTO PIX
     router.post('/create-pix-payment', async (req, res) => {
+        let orderLocked = false;
         try {
             if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
                 return res.status(503).json({ error: 'Integração Mercado Pago não configurada.' });
@@ -110,6 +111,10 @@ module.exports = function (supabase) {
                 }
             }
 
+            if (!customer?.email) {
+                return res.status(400).json({ error: 'Cliente não identificado' });
+            }
+
             const customerErr = validateCustomer(customer);
             if (customerErr) return res.status(400).json({ error: customerErr });
             const cartErr = validateCart(cart);
@@ -133,6 +138,25 @@ module.exports = function (supabase) {
                 let items = existing.items;
                 try { if (typeof items === 'string') items = JSON.parse(items); } catch (_) { items = {}; }
                 return res.json({ payment_id: items.mp_id, order_id: existing.id });
+            }
+
+            const order_id = req.body.order_id;
+            if (order_id) {
+                const { data: lockedOrder } = await supabase
+                    .from('pedidos')
+                    .update({ processing: true })
+                    .eq('id', order_id)
+                    .in('status', ['pending', 'payment_failed'])
+                    .eq('processing', false)
+                    .select()
+                    .single();
+
+                if (!lockedOrder) {
+                    console.log('[ORDER LOCK DENIED]', { orderId: order_id });
+                    return res.status(409).json({ error: 'Pagamento já está sendo processado' });
+                }
+                orderLocked = true;
+                console.log('[ORDER LOCKED]', { orderId: order_id });
             }
 
             // Validar status da loja e estoque (mesma lógica do Stripe)
@@ -260,10 +284,19 @@ module.exports = function (supabase) {
 
         } catch (error) {
             console.error('❌ [PIX] Erro Crítico:', error.response?.data || error);
-            res.status(error.response?.status || 500).json({ 
+            return res.status(error.response?.status || 500).json({
                 error: true,
-                message: error.response?.data?.message || error.message || 'Erro ao gerar pagamento Pix.' 
+                message: error.response?.data?.message || error.message || 'Erro ao gerar pagamento Pix.'
             });
+        } finally {
+            if (orderLocked) {
+                try {
+                    await supabase.from('pedidos').update({ processing: false }).eq('id', req.body.order_id);
+                    console.log('[ORDER UNLOCKED]', req.body.order_id);
+                } catch (_) {
+                    console.error('[ORDER UNLOCK FAILED]', req.body.order_id);
+                }
+            }
         }
     });
 
