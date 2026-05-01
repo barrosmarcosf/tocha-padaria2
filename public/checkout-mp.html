@@ -453,26 +453,26 @@
 
                                 const data = await res.json();
 
-                                if (!res.ok) {
-                                    const errMsg = data.status_detail || data.error || 'Erro no pagamento';
-                                    console.error('❌ Erro HTTP do backend:', res.status, data);
-                                    throw new Error(errMsg);
-                                }
+                                // 🔒 BLOQUEIO ABSOLUTO
+                                if (!data || data.status !== 'approved') {
+                                    const errMsg = data?.status_detail || data?.error || 'Pagamento não aprovado';
 
-                                if (data.status !== 'approved') {
-                                    const errMsg = data.status_detail || data.error || 'Pagamento não aprovado';
+                                    console.warn('[MP BLOCK HARD]', data);
 
-                                    if (data.status === 'pending' || data.status === 'in_process') {
+                                    if (data?.status === 'pending' || data?.status === 'in_process') {
                                         alert('Pagamento em análise');
                                         window.location.href = '/';
                                         return;
                                     }
 
-                                    console.warn('[MP BLOCK]', data);
-                                    throw new Error(errMsg);
+                                    alert(errMsg);
+                                    return;
                                 }
 
-                                window.location.href = `/?status=success&order_id=${orderId}&payment_id=${data.payment_id}`;
+                                // ✅ ÚNICO CAMINHO POSSÍVEL
+                                console.log('[MP FLOW REDIRECT OK]', data);
+
+                                window.location.href = `/?status=success&order_id=${orderId}&payment_id=${data.id}`;
 
                             } catch (err) {
                                 console.error("❌ Erro no processamento:", err);
