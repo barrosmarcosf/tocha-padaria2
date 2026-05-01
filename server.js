@@ -150,6 +150,12 @@ app.get('/debug', (req, res) => {
   res.send('VERSAO NOVA 123');
 });
 app.get('/', (_req, res) => res.status(200).sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/checkout-mp.html', (_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    next();
+});
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ──────────────────────────────────────────────────

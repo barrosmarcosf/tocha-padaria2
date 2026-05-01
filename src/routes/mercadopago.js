@@ -302,10 +302,15 @@ module.exports = function (supabase) {
             let itemsData = order.items;
             try { if (typeof itemsData === 'string') itemsData = JSON.parse(itemsData); } catch (_) { itemsData = {}; }
 
-            // 🔒 VALIDAÇÕES DE SEGURANÇA (Suavizadas para Homologação)
-            if (order.status !== 'pending' && order.status !== 'paid') {
-                return res.status(400).json({ error: 'Este pedido expirou ou é inválido.' });
+            if (order.status === 'paid') {
+                return res.status(400).json({ error: 'Pedido já foi pago.' });
             }
+
+            if (order.expires_at && new Date() > new Date(order.expires_at)) {
+                return res.status(400).json({ error: 'Pedido expirado.' });
+            }
+
+            // pending / rejected / payment_failed: permitir fluxo normalmente
             // Log de diagnóstico para ajudar o usuário se a sessão falhar
             if (itemsData.client_session_id && itemsData.client_session_id !== sid) {
                 console.warn(`⚠️ [MP Summary] Divergência de sessão (Esperada: ${itemsData.client_session_id}, Recebida: ${sid}). Prosseguindo para permitir homologação.`);
@@ -537,7 +542,7 @@ module.exports = function (supabase) {
                     .eq('id', order_id)
                     .maybeSingle();
 
-                if (existingOrder && existingOrder.status === 'pending') {
+                if (existingOrder && (existingOrder.status === 'pending' || existingOrder.status === 'payment_failed')) {
                     let itemsData = existingOrder.items;
                     try { if (typeof itemsData === 'string') itemsData = JSON.parse(itemsData); } catch (_) { itemsData = {}; }
                     itemsData.mp_id = mpId;
@@ -546,11 +551,12 @@ module.exports = function (supabase) {
                         .from('pedidos')
                         .update({ mp_payment_id: mpId, items: JSON.stringify(itemsData) })
                         .eq('id', order_id)
-                        .eq('status', 'pending');
+                        .in('status', ['pending', 'payment_failed']);
                 }
             }
 
             console.log(`[MP FLOW] source=card order_id=${order_id} payment_id=${mpId} status=${responseData.status}`);
+            console.log('[MP PAYMENT RESULT]', { status: responseData.status, orderId: order_id });
             if (responseData.status === 'approved') {
                 try {
                     await processPaidMPOrder(supabase, mpId, responseData);
@@ -562,9 +568,9 @@ module.exports = function (supabase) {
                 if (responseData.status === 'rejected' || responseData.status === 'cancelled') {
                     if (order_id) {
                         await supabase.from('pedidos')
-                            .update({ status: 'cancelled' })
+                            .update({ status: 'payment_failed' })
                             .eq('id', order_id)
-                            .eq('status', 'pending');
+                            .in('status', ['pending', 'payment_failed']);
                     }
                 }
             }
@@ -700,7 +706,7 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
         .from('pedidos')
         .update({ status: 'paid', mp_payment_id: mpId })
         .or(`stripe_session_id.eq.${externalId},mp_payment_id.eq.${mpId}`)
-        .eq('status', 'pending')
+        .in('status', ['pending', 'payment_failed'])
         .select('*, clientes(*)')
         .maybeSingle();
 
