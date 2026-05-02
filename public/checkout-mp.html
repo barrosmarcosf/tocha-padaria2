@@ -468,6 +468,8 @@
                                     throw fetchErr;
                                 }
 
+                                openPaymentInfoModal('Verificando pagamento...');
+
                                 statusTimer = setTimeout(async () => {
                                     try {
                                         if (!orderId) return;
