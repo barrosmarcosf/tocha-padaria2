@@ -338,6 +338,11 @@
         let orderData = null;
         let isSubmitting = false;
         let hasRedirected = false;
+        let statusTimer = null;
+
+        window.addEventListener('beforeunload', () => {
+            if (statusTimer) clearTimeout(statusTimer);
+        });
 
         async function init() {
             console.log("🚀 CHECKOUT VERSION 3");
@@ -463,8 +468,9 @@
                                     throw fetchErr;
                                 }
 
-                                setTimeout(async () => {
+                                statusTimer = setTimeout(async () => {
                                     try {
+                                        if (!orderId) return;
                                         const statusRes = await fetch(`/api/orders/${orderId}`);
                                         const statusData = await statusRes.json();
                                         console.log('[ORDER STATUS CHECK]', statusData.status);
