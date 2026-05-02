@@ -44,17 +44,26 @@ window.addToCart = function(product, qty = 1) {
     window.openCart();
 
     // Abre modal de captura apenas na primeira adição de item da sessão
+    console.log('[MODAL] wasEmpty:', wasEmpty);
     if (wasEmpty && !sessionStorage.getItem('tocha-capture-shown')) {
         const alreadyHasData = (() => {
             try {
                 const stored = JSON.parse(localStorage.getItem('tocha-customer') || 'null');
-                return !!(stored?.name && stored?.whatsapp);
+                return !!(stored?.whatsapp);
             } catch (_) { return false; }
         })();
         if (!alreadyHasData) {
-            sessionStorage.setItem('tocha-capture-shown', '1');
-            setTimeout(openCaptureModal, 700);
+            setTimeout(() => {
+                const opened = openCaptureModal();
+                if (opened) {
+                    sessionStorage.setItem('tocha-capture-shown', '1');
+                }
+            }, 700);
+        } else {
+            console.log('[MODAL] bloqueado por dados existentes');
         }
+    } else if (sessionStorage.getItem('tocha-capture-shown')) {
+        console.log('[MODAL] bloqueado por session');
     }
 };
 
@@ -191,8 +200,9 @@ let _captureDebounce = null;
 
 function openCaptureModal() {
     const modal = document.getElementById('captureModal');
-    if (!modal) return;
+    if (!modal) return false;
     modal.style.display = 'flex';
+    console.log('[MODAL] exibindo modal');
 
     // Pré-preenche se houver dados parciais no localStorage
     try {
@@ -206,6 +216,7 @@ function openCaptureModal() {
             if (waEl && !waEl.value) waEl.value = stored.whatsapp;
         }
     } catch (_) {}
+    return true;
 }
 
 window.closeCaptureModal = function() {
@@ -454,6 +465,8 @@ window.confirmarPedido = async function() {
             const data = await res.json();
             if (data.order_id) localStorage.setItem('tocha-order-id', String(data.order_id));
             localStorage.setItem('tocha-pix-data', JSON.stringify(data));
+            cart = [];
+            localStorage.removeItem('tocha-cart');
             window.location.href = "/pagamento-pix.html";
         } else {
             // Stripe
