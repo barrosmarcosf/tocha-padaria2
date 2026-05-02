@@ -38,24 +38,21 @@ transporter.verify((error, success) => {
 // Controle de inicialização
 let isInitializing = false;
 
-// A inicialização agora é feita via startBot() exportado
+// Singleton global — impede múltiplas instâncias mesmo com hot-reload
 async function startBot() {
+    if (global.whatsappClient) return;
     if (isInitializing || isBotReady) return;
     isInitializing = true;
-    
-    try {
-        console.log("TOCHA BOT: Chamando client.initialize()...");
-        await client.initialize();
-        console.log("TOCHA BOT: Processo de inicialização em andamento...");
-    } catch (err) {
+    global.whatsappClient = client;
+
+    console.log("[WA] Inicializando bot...");
+
+    client.initialize().catch(err => {
+        console.error('[WA INIT ERROR]', err.message);
         isInitializing = false;
-        console.error("❌ ERRO CRÍTICO ao iniciar Tocha Bot:");
-        if (err.message && err.message.includes('browser is already running')) {
-            console.error("💡 ERRO: Perfil do Chrome bloqueado. Tente reiniciar o servidor.");
-        } else {
-            console.error(err);
-        }
-    }
+        global.whatsappClient = null;
+        setTimeout(() => startBot(), 5000);
+    });
 }
 
 async function restartBot() {
@@ -118,7 +115,7 @@ const client = new Client({
 client.on('qr', async (qr) => {
     isBotReady = false;
     botStatus = WA_STATE.INITIALIZING; // Aguardando login ainda é fase de inicialização
-    console.log(`[WA-STATE] ${botStatus} - ESCANEIE O CÓDIGO ABAIXO:`);
+    console.log('[WA QR] Escaneie o QR code');
     qrcodeTerminal.generate(qr, { small: false });
     
     try {
@@ -132,28 +129,21 @@ client.on('qr', async (qr) => {
 
 client.on('authenticated', () => {
     botStatus = WA_STATE.AUTHENTICATED;
-    console.log(`[WA-STATE] ${WA_STATE.AUTHENTICATED}`);
+    console.log('[WA AUTHENTICATED]');
 });
 
 client.on('ready', () => {
     botStatus = WA_STATE.READY;
     isBotReady = true;
-    console.log(`[WA-STATE] ${WA_STATE.READY}`);
-    console.log('==========================================');
-    console.log('TOCHA BOT: CONECTADO E PRONTO PARA ENVIAR!');
-    console.log('==========================================');
+    isInitializing = false;
+    console.log('[WA READY]');
 });
 
 client.on('auth_failure', (msg) => {
     botStatus = WA_STATE.ERROR;
     isBotReady = false;
-    console.error(`[WA-STATE] ${WA_STATE.ERROR} - Falha: ${msg}`);
-});
-
-client.on('disconnected', (reason) => {
-    botStatus = WA_STATE.DISCONNECTED;
-    isBotReady = false;
-    console.log(`[WA-STATE] ${WA_STATE.DISCONNECTED} - Motivo: ${reason}`);
+    isInitializing = false;
+    console.error('[WA AUTH FAILURE]', msg);
 });
 
 // --- NOVO: INTERACAO INTELIGENTE (IA) ---
@@ -210,41 +200,19 @@ Responda à mensagem do cliente a seguir de forma natural:`;
     }
 });
 
-client.on('auth_failure', msg => {
+client.on('disconnected', async (reason) => {
+    botStatus = WA_STATE.DISCONNECTED;
     isBotReady = false;
-    botStatus = "FALHA_AUTH";
-    console.error('TOCHA BOT: FALHA NA AUTENTICACAO', msg);
-});
+    isInitializing = false;
+    global.whatsappClient = null;
+    console.log('[WA DISCONNECTED]', reason);
 
-client.on('disconnected', (reason) => {
-    isBotReady = false;
-    botStatus = "DESCONECTADO";
-    console.error(`[WHATSAPP] ⚠️ BOT DESCONECTADO! Motivo: ${reason}`);
-    
-    // Tentativa de reconexão inteligente com Backoff Exponencial simples
-    let retryCount = 0;
-    const maxRetries = 5;
-    
-    const reconnect = () => {
-        if (retryCount >= maxRetries) {
-            console.error("[WHATSAPP] ❌ Limite de tentativas de reconexão atingido.");
-            return;
-        }
-        retryCount++;
-        const delay = 5000 * retryCount;
-        console.log(`[WHATSAPP] 🔄 Tentando reconectar (${retryCount}/${maxRetries}) em ${delay/1000}s...`);
-        
-        setTimeout(async () => {
-            try {
-                await client.initialize();
-            } catch (e) {
-                console.error("[WHATSAPP] ❌ Erro ao tentar inicializar durante reconexão:", e.message);
-                reconnect();
-            }
-        }, delay);
-    };
-    
-    reconnect();
+    try { await client.destroy(); } catch (_) {}
+
+    setTimeout(() => {
+        console.log('[WA RECONNECTING]');
+        startBot();
+    }, 5000);
 });
 
 // Inicialização via startBot() no topo do arquivo.
@@ -703,6 +671,14 @@ async function sendWhatsAppMessage(phone, message) {
     await client.sendMessage(targetChatId, message);
     return true;
 }
+
+process.on('uncaughtException', (err) => {
+    console.error('[WA FATAL]', err.message, err.stack);
+});
+
+process.on('unhandledRejection', (err) => {
+    console.error('[WA PROMISE ERROR]', err);
+});
 
 module.exports = {
     startBot,
