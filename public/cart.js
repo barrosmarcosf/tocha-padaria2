@@ -187,6 +187,17 @@ function tryAutoSaveCustomer() {
     const name = document.getElementById('id-name')?.value.trim();
     const email = document.getElementById('id-email')?.value.trim();
     const whatsapp = document.getElementById('id-whatsapp')?.value.trim();
+
+    // Salva parcialmente no localStorage a cada blur (não espera os 3 campos)
+    if (name || email || whatsapp) {
+        const existing = (() => { try { return JSON.parse(localStorage.getItem('tocha-customer') || '{}'); } catch (_) { return {}; } })();
+        const updated = { ...existing };
+        if (name) updated.name = name;
+        if (email) updated.email = email;
+        if (whatsapp) updated.whatsapp = whatsapp;
+        localStorage.setItem('tocha-customer', JSON.stringify(updated));
+    }
+
     if (!name || !email || !whatsapp) return;
     fetch('/api/customer/save', {
         method: 'POST',
@@ -316,15 +327,17 @@ window.openCheckoutModal = function() {
 
     // Auto-preenchimento: tenta localStorage primeiro, depois sessão do servidor
     const stored = JSON.parse(localStorage.getItem('tocha-customer') || 'null');
-    if (stored?.email) {
+    if (stored?.name || stored?.whatsapp || stored?.email) {
         fillCustomerForm(stored);
-    } else {
+        console.log('[CHECKOUT] dados reidratados do localStorage');
+    }
+    if (!stored?.email) {
         fetch('/api/customer/me')
             .then(r => r.ok ? r.json() : null)
             .then(c => {
                 if (c?.email) {
                     fillCustomerForm(c);
-                    localStorage.setItem('tocha-customer', JSON.stringify(c));
+                    localStorage.setItem('tocha-customer', JSON.stringify({ ...(stored || {}), ...c }));
                 }
             })
             .catch(() => {});
