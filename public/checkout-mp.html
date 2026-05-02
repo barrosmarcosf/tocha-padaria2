@@ -472,7 +472,9 @@
                                 openPaymentInfoModal('Verificando pagamento...');
 
                                 setTimeout(() => {
-                                    updatePaymentInfoModal('Não conseguimos confirmar o pagamento. Tente novamente.', 'error');
+                                    if (!hasRedirected) {
+                                        updatePaymentInfoModal('Não conseguimos confirmar o pagamento. Tente novamente.', 'error');
+                                    }
                                 }, 10000);
 
                                 statusTimer = setTimeout(async () => {
