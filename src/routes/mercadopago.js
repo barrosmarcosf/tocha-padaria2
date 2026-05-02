@@ -100,14 +100,14 @@ module.exports = function (supabase) {
             // Verificar status atual antes de qualquer lock
             const { data: pedidoCheck } = await supabase
                 .from('pedidos')
-                .select('id, status, payment_id')
+                .select('id, status, mp_payment_id')
                 .eq('id', order_id)
                 .single();
 
-            console.log('[PAYMENT DEBUG]', {
+            console.log('[PAYMENT FLOW]', {
                 pedido_id: pedidoCheck?.id,
                 status: pedidoCheck?.status,
-                payment_id: pedidoCheck?.payment_id
+                antigo_payment_id: pedidoCheck?.mp_payment_id
             });
 
             if (pedidoCheck?.status === 'paid') {
@@ -162,25 +162,8 @@ module.exports = function (supabase) {
             const cartErr = validateCart(cart);
             if (cartErr) return res.status(400).json({ error: cartErr });
 
-            // 🔒 IDEMPOTÊNCIA (depois do lock)
+            // idemKey usado apenas para gravar no pedido (não bloqueia retry)
             const idemKey = req.headers['x-idempotency-key'] || `session_${req.session_id}`;
-
-            const { data: existing, error: idemErr } = await supabase
-                .from('pedidos')
-                .select('id, items')
-                .eq('idempotency_key', idemKey)
-                .maybeSingle();
-
-            if (idemErr && idemErr.message.includes('idempotency_key')) {
-                console.error('❌ ERRO CRÍTICO: coluna idempotency_key ausente no banco. Execute a migration SQL.');
-                return res.status(500).json({ error: true, message: 'Erro de configuração do servidor.' });
-            }
-
-            if (!idemErr && existing) {
-                let items = existing.items;
-                try { if (typeof items === 'string') items = JSON.parse(items); } catch (_) { items = {}; }
-                return res.json({ payment_id: items.mp_id, order_id: existing.id });
-            }
 
             // Validar status da loja e estoque (mesma lógica do Stripe)
             const storeStatusResult = await getUnifiedStoreStatus(supabase);
@@ -265,6 +248,7 @@ module.exports = function (supabase) {
                 const updateData = {
                     customer_id: customerId,
                     stripe_session_id: `mp_${mpId}`,
+                    mp_payment_id: mpId,
                     total_amount: totalAmount,
                     status: 'pending',
                     items: JSON.stringify(existingItems)
@@ -584,7 +568,7 @@ module.exports = function (supabase) {
                 try {
                     const { data: fetched } = await supabase
                         .from('pedidos')
-                        .select('items, status, payment_id, clientes(name, whatsapp)')
+                        .select('items, status, mp_payment_id, clientes(name, whatsapp)')
                         .eq('id', order_id)
                         .maybeSingle();
                     orderRow = fetched;
@@ -598,10 +582,10 @@ module.exports = function (supabase) {
             }
 
             if (order_id) {
-                console.log('[PAYMENT DEBUG]', {
+                console.log('[PAYMENT FLOW]', {
                     pedido_id: order_id,
                     status: orderRow?.status,
-                    payment_id: orderRow?.payment_id
+                    antigo_payment_id: orderRow?.mp_payment_id
                 });
 
                 if (orderRow?.status === 'paid') {
