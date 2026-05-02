@@ -174,6 +174,34 @@ function render() {
 }
 
 /* ── Checkout Modal Logic ── */
+function hydrateCheckoutFormSafe() {
+    let attempts = 0;
+    const interval = setInterval(() => {
+        const nameInput = document.getElementById('id-name');
+        const whatsappInput = document.getElementById('id-whatsapp');
+        const emailInput = document.getElementById('id-email');
+
+        if (nameInput || whatsappInput || emailInput) {
+            try {
+                const stored = JSON.parse(localStorage.getItem('tocha-customer') || '{}');
+                if (stored.name && nameInput && !nameInput.value) nameInput.value = stored.name;
+                if (stored.whatsapp && whatsappInput && !whatsappInput.value) whatsappInput.value = stored.whatsapp;
+                if (stored.email && emailInput && !emailInput.value) emailInput.value = stored.email;
+                console.log('[CHECKOUT] autofill aplicado com sucesso');
+            } catch (e) {
+                console.error('[CHECKOUT] erro no autofill', e);
+            }
+            clearInterval(interval);
+        }
+
+        attempts++;
+        if (attempts > 10) {
+            clearInterval(interval);
+            console.warn('[CHECKOUT] autofill falhou (inputs não encontrados)');
+        }
+    }, 100);
+}
+
 function fillCustomerForm(c) {
     const nameEl = document.getElementById('id-name');
     const emailEl = document.getElementById('id-email');
@@ -325,12 +353,10 @@ window.openCheckoutModal = function() {
         if (dataFornada) dataFornada.textContent = globalStatus.batchLabel;
     }
 
-    // Auto-preenchimento: tenta localStorage primeiro, depois sessão do servidor
+    // Auto-preenchimento com retry para garantir que o DOM está pronto
+    setTimeout(hydrateCheckoutFormSafe, 50);
+
     const stored = JSON.parse(localStorage.getItem('tocha-customer') || 'null');
-    if (stored?.name || stored?.whatsapp || stored?.email) {
-        fillCustomerForm(stored);
-        console.log('[CHECKOUT] dados reidratados do localStorage');
-    }
     if (!stored?.email) {
         fetch('/api/customer/me')
             .then(r => r.ok ? r.json() : null)
