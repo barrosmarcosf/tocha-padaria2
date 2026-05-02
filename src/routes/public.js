@@ -125,6 +125,30 @@ module.exports = function (supabase) {
     });
 
     // ──────────────────────────────────────────────────
+    // STATUS DO PEDIDO (usado pelo checkout-mp.html)
+    // ──────────────────────────────────────────────────
+    router.get('/orders/:id', async (req, res) => {
+        try {
+            const { data: pedido, error } = await supabase
+                .from('pedidos')
+                .select('id, status, total_amount, clientes(name, email)')
+                .eq('id', req.params.id)
+                .single();
+
+            if (error || !pedido) return res.status(404).json({ error: 'Pedido não encontrado.' });
+
+            res.json({
+                id: pedido.id,
+                status: pedido.status,
+                total: pedido.total_amount,
+                customer: pedido.clientes
+            });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    // ──────────────────────────────────────────────────
     // MÉTODOS DE PAGAMENTO ATIVOS (público)
     // ──────────────────────────────────────────────────
     router.get('/payment-methods', async (req, res) => {

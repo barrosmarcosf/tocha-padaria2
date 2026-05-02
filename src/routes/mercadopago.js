@@ -97,14 +97,29 @@ module.exports = function (supabase) {
                 return res.status(503).json({ error: 'Integração Mercado Pago não configurada.' });
             }
 
-            // 🔒 LOCK PRIMEIRO
-            const lockTimeout = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+            // Verificar status atual antes de qualquer lock
+            const { data: pedidoCheck } = await supabase
+                .from('pedidos')
+                .select('id, status, payment_id')
+                .eq('id', order_id)
+                .single();
+
+            console.log('[PAYMENT DEBUG]', {
+                pedido_id: pedidoCheck?.id,
+                status: pedidoCheck?.status,
+                payment_id: pedidoCheck?.payment_id
+            });
+
+            if (pedidoCheck?.status === 'paid') {
+                return res.status(409).json({ error: 'Pedido já pago' });
+            }
+
+            // 🔒 LOCK — permite retry se pending ou payment_failed
             const { data: lockedOrder } = await supabase
                 .from('pedidos')
                 .update({ processing: true, processing_at: new Date().toISOString() })
                 .eq('id', order_id)
                 .in('status', ['pending', 'payment_failed'])
-                .or(`processing.eq.false,processing_at.lt.${lockTimeout}`)
                 .select()
                 .single();
 
@@ -564,13 +579,15 @@ module.exports = function (supabase) {
             // Fetch order items + customer for payload enrichment (fail-safe)
             let orderItems = [];
             let orderCustomer = null;
+            let orderRow = null;
             if (order_id) {
                 try {
-                    const { data: orderRow } = await supabase
+                    const { data: fetched } = await supabase
                         .from('pedidos')
-                        .select('items, clientes(name, whatsapp)')
+                        .select('items, status, payment_id, clientes(name, whatsapp)')
                         .eq('id', order_id)
                         .maybeSingle();
+                    orderRow = fetched;
                     if (orderRow) {
                         let parsed = orderRow.items;
                         try { if (typeof parsed === 'string') parsed = JSON.parse(parsed); } catch (_) {}
@@ -581,13 +598,21 @@ module.exports = function (supabase) {
             }
 
             if (order_id) {
-                const lockTimeout = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+                console.log('[PAYMENT DEBUG]', {
+                    pedido_id: order_id,
+                    status: orderRow?.status,
+                    payment_id: orderRow?.payment_id
+                });
+
+                if (orderRow?.status === 'paid') {
+                    return res.status(409).json({ error: 'Pedido já pago' });
+                }
+
                 const { data: lockedOrder } = await supabase
                     .from('pedidos')
                     .update({ processing: true, processing_at: new Date().toISOString() })
                     .eq('id', order_id)
                     .in('status', ['pending', 'payment_failed'])
-                    .or(`processing.eq.false,processing_at.lt.${lockTimeout}`)
                     .select()
                     .single();
 
@@ -636,7 +661,7 @@ module.exports = function (supabase) {
 
             console.log('MP PAYMENT PAYLOAD:', JSON.stringify({ ...paymentData, token: '[REDACTED]' }, null, 2));
 
-            const idempotencyKey = order_id ? String(order_id) : `card-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            const idempotencyKey = crypto.randomUUID();
 
             const mpRes = await fetch('https://api.mercadopago.com/v1/payments', {
                 method: 'POST',
