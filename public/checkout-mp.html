@@ -462,6 +462,16 @@
                                     throw fetchErr;
                                 }
 
+                                setTimeout(async () => {
+                                    try {
+                                        const statusRes = await fetch(`/api/orders/${orderId}`);
+                                        const statusData = await statusRes.json();
+                                        if (statusData.status === 'approved') {
+                                            window.location.href = '/sucesso.html';
+                                        }
+                                    } catch (_) {}
+                                }, 3000);
+
                                 if (res.status === 409) {
                                     console.warn('[MP 409] Pagamento duplicado bloqueado pelo servidor.');
                                     openPaymentInfoModal('Seu pagamento já está sendo processado. Aguarde alguns segundos.');
