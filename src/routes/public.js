@@ -52,6 +52,8 @@ module.exports = function (supabase) {
 
             if (!sessionId || !cart) return res.status(400).json({ error: 'Dados incompletos.' });
 
+            const isUUID = (v) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+
             console.log(`[SESSION COOKIE] ${sessionId}`);
             console.log(`[CART SYNC SESSION] session_id=${sessionId} order_id=${order_id || 'none'}`);
 
@@ -66,18 +68,27 @@ module.exports = function (supabase) {
                 recovery_token: require('crypto').randomBytes(24).toString('hex')
             };
 
-            if (order_id) record.order_id = order_id;
+            if (order_id) {
+                if (isUUID(order_id)) {
+                    record.order_id = order_id;
+                } else {
+                    console.warn('[CART DEBUG] order_id inválido ignorado (não é UUID):', order_id);
+                }
+            }
 
             if (customer?.email) {
                 try {
                     const { data: clienteRow } = await supabase
                         .from('clientes').select('id').eq('email', customer.email).maybeSingle();
-                    if (clienteRow?.id) record.customer_id = clienteRow.id;
+                    if (clienteRow?.id && isUUID(clienteRow.id)) record.customer_id = clienteRow.id;
                 } catch (_) {}
             }
 
+            console.log('[CART DEBUG]', JSON.stringify(record));
+
             const { error } = await supabase.from('carrinhos').upsert([record], { onConflict: 'session_id' });
             if (error) {
+                console.error('[CART DEBUG] upsert error:', error.message, '| payload:', JSON.stringify(record));
                 if (record.customer_id !== undefined) {
                     delete record.customer_id;
                     const { error: e2 } = await supabase.from('carrinhos').upsert([record], { onConflict: 'session_id' });
