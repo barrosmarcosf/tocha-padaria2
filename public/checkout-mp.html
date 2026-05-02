@@ -466,7 +466,7 @@
                                     try {
                                         const statusRes = await fetch(`/api/orders/${orderId}`);
                                         const statusData = await statusRes.json();
-                                        if (statusData.status === 'approved') {
+                                        if (['approved', 'paid'].includes(statusData.status)) {
                                             window.location.href = '/sucesso.html';
                                         }
                                     } catch (_) {}
