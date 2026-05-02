@@ -134,7 +134,7 @@ client.on('qr', async (qr) => {
         await QRCode.toFile(qrPath, qr, { width: 600 });
         console.log("✅ QR Code ampliado salvo em: public/qr.png");
     } catch (err) {
-        console.error("❌ [WA-STATE] Erro ao salvar QR:", err);
+        console.error("❌ [WA QR] Erro ao salvar QR:", err);
     }
 });
 
