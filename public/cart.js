@@ -489,19 +489,39 @@ window.confirmarPedido = async function() {
 
         if (payment === 'pix') {
             if (!settings.mp_pix && !settings.pix) throw new Error('PIX desabilitado');
-            const res = await fetch('/api/mercadopago/create-pix-payment', {
+
+            // Passo 1: criar pedido pendente (idempotente pelo idempotencyKey)
+            const prepareRes = await fetch('/api/mercadopago/prepare-pix-order', {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'x-idempotency-key': idempotencyKey
                 },
                 body: JSON.stringify({ customer, cart: cartToCheckout })
+            });
+            if (!prepareRes.ok) {
+                const errData = await prepareRes.json().catch(() => ({ error: 'Erro ao preparar pedido.' }));
+                throw new Error(errData.message || errData.error || 'Erro ao preparar pedido PIX.');
+            }
+            const { order_id: pixOrderId } = await prepareRes.json();
+
+            // Passo 2: gerar pagamento PIX com attempt_id único por clique
+            const attemptId = crypto.randomUUID();
+            const res = await fetch('/api/mercadopago/create-pix-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order_id: pixOrderId, attempt_id: attemptId, customer, cart: cartToCheckout })
             });
             if (!res.ok) {
                 const errData = await res.json().catch(() => ({ error: 'Erro ao gerar PIX.' }));
                 throw new Error(errData.message || errData.error || 'Erro ao gerar PIX.');
             }
             const data = await res.json();
+            if (data.reuse) {
+                // Tentativa duplicada: QR code já gerado, redireciona direto
+                window.location.href = '/pagamento-pix.html';
+                return;
+            }
             if (data.order_id) localStorage.setItem('tocha-order-id', String(data.order_id));
             localStorage.setItem('tocha-pix-data', JSON.stringify(data));
             cart = [];

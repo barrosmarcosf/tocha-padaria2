@@ -446,7 +446,8 @@
                                         email: payerEmail || 'test@test.com'
                                     },
                                     amount: Number(orderData.total),
-                                    order_id: orderId
+                                    order_id: orderId,
+                                    attempt_id: crypto.randomUUID()
                                 };
 
                                 console.log('[CHECKOUT REQUEST]', { orderId });
@@ -497,6 +498,12 @@
                                 }
 
                                 const data = await res.json();
+
+                                if (data.reuse) {
+                                    console.log('[PAYMENT] tentativa duplicada detectada, aguardando resultado anterior');
+                                    updatePaymentInfoModal('Pagamento já em processamento. Aguarde alguns segundos.');
+                                    return;
+                                }
 
                                 // 🔒 BLOQUEIO ABSOLUTO
                                 if (!data || data.status !== 'approved') {

@@ -83,6 +83,7 @@ module.exports = function (supabase) {
     // 1. CRIAR PAGAMENTO PIX
     router.post('/create-pix-payment', async (req, res) => {
         const order_id = req.body.order_id;
+        const attempt_id = req.body.attempt_id;
         if (!order_id) {
             return res.status(400).json({ error: 'order_id obrigatório' });
         }
@@ -100,7 +101,7 @@ module.exports = function (supabase) {
             // Verificar status atual antes de qualquer lock
             const { data: pedidoCheck } = await supabase
                 .from('pedidos')
-                .select('id, status, mp_payment_id')
+                .select('id, status, mp_payment_id, payment_attempt_id')
                 .eq('id', order_id)
                 .single();
 
@@ -129,6 +130,11 @@ module.exports = function (supabase) {
             }
             orderLocked = true;
             console.log('[ORDER LOCKED]', { requestId, orderId: order_id || 'unknown' });
+
+            if (attempt_id && lockedOrder.payment_attempt_id && lockedOrder.payment_attempt_id === attempt_id) {
+                console.log('[PAYMENT] tentativa duplicada detectada', { attempt_id, order_id });
+                return res.json({ reuse: true, payment_id: lockedOrder.mp_payment_id, order_id });
+            }
 
             let { customer, cart } = req.body;
 
@@ -230,7 +236,7 @@ module.exports = function (supabase) {
 
             console.log("💳 [Pix] Criando pagamento no MP:", paymentData.body.transaction_amount);
 
-            const mpResponse = await payment.create(paymentData);
+            const mpResponse = await payment.create(paymentData, { idempotencyKey: attempt_id || idemKey });
             paymentStatus = mpResponse.status || 'unknown';
             const mpId = String(mpResponse.id);
             const qrCode = mpResponse.point_of_interaction.transaction_data.qr_code;
@@ -256,6 +262,9 @@ module.exports = function (supabase) {
 
                 if (idemKey && !idemKey.startsWith('fallback_')) {
                     updateData.idempotency_key = idemKey;
+                }
+                if (attempt_id) {
+                    updateData.payment_attempt_id = attempt_id;
                 }
 
                 const { error } = await supabase.from('pedidos')
@@ -402,7 +411,122 @@ module.exports = function (supabase) {
         }
     });
 
-    // 3.2 PREPARAR PEDIDO DE CARTÃO (Cria o pedido pendente antes de ir para a página de checkout)
+    // 3.2 PREPARAR PEDIDO PIX (Cria o pedido pendente antes de criar o pagamento)
+    router.post('/prepare-pix-order', async (req, res) => {
+        try {
+            let { customer, cart: cartItems } = req.body;
+
+            if (!cartItems || cartItems.length === 0) {
+                return res.status(400).json({ error: 'Carrinho vazio.' });
+            }
+
+            if (!customer?.email) {
+                const sid = req.cookies?.session_id || req.session_id;
+                if (sid) {
+                    try {
+                        const { data: sessionLink } = await supabase
+                            .from('customer_sessions')
+                            .select('customer_email')
+                            .eq('session_id', sid)
+                            .maybeSingle();
+                        if (sessionLink?.customer_email) {
+                            const { data: sessionCustomer } = await supabase
+                                .from('clientes')
+                                .select('name, email, whatsapp')
+                                .eq('email', sessionLink.customer_email)
+                                .maybeSingle();
+                            if (sessionCustomer) customer = sessionCustomer;
+                        }
+                    } catch (_) {}
+                }
+            }
+
+            if (!customer?.email) {
+                return res.status(400).json({ error: 'Dados do cliente ausentes.' });
+            }
+
+            const idemKey = req.headers['x-idempotency-key'] || `session_${req.session_id}`;
+
+            const { data: existingPix, error: idemPixErr } = await supabase
+                .from('pedidos')
+                .select('id')
+                .eq('idempotency_key', idemKey)
+                .maybeSingle();
+
+            if (idemPixErr && idemPixErr.message.includes('idempotency_key')) {
+                console.error('❌ ERRO CRÍTICO: coluna idempotency_key ausente no banco. Execute a migration SQL.');
+                return res.status(500).json({ error: true, message: 'Erro de configuração do servidor.' });
+            }
+
+            if (!idemPixErr && existingPix) {
+                return res.json({ order_id: existingPix.id });
+            }
+
+            const { data: paySettings } = await supabase.from('site_content').select('value').eq('key', 'payment_methods').maybeSingle();
+            const s = paySettings?.value || {};
+            if (!s.mp_pix && !s.pix) {
+                return res.status(403).json({ error: 'PIX desabilitado' });
+            }
+
+            const storeStatusResult = await getUnifiedStoreStatus(supabase);
+            const batchDate = storeStatusResult.batchDate || storeStatusResult.nextBatchDate;
+            const totalAmount = await recalcularTotal(supabase, cartItems);
+
+            let customerId;
+            const { data: existingCustomer } = await supabase.from('clientes').select('id').eq('email', customer.email).maybeSingle();
+            if (existingCustomer) {
+                customerId = existingCustomer.id;
+                await supabase.from('clientes').update({ name: customer.name, whatsapp: customer.whatsapp }).eq('id', customerId);
+            } else {
+                const { data: newCustomer } = await supabase.from('clientes').insert([{ name: customer.name, email: customer.email, whatsapp: customer.whatsapp }]).select().single();
+                customerId = newCustomer.id;
+            }
+
+            let newOrder;
+            try {
+                const orderData = {
+                    customer_id: customerId,
+                    stripe_session_id: `mp_pix_pending_${Date.now()}`,
+                    total_amount: totalAmount,
+                    status: 'pending',
+                    items: JSON.stringify({
+                        actual_items: cartItems,
+                        order_type: storeStatusResult.orderType,
+                        batch_date: batchDate,
+                        payment_method: 'Pix (Mercado Pago)',
+                        client_session_id: req.session_id
+                    })
+                };
+
+                if (idemKey && !idemKey.startsWith('fallback_')) {
+                    orderData.idempotency_key = idemKey;
+                }
+
+                const { data, error } = await supabase.from('pedidos').insert([orderData]).select().single();
+                if (error) {
+                    if (error.message.includes('idempotency_key')) {
+                        console.error('❌ ERRO CRÍTICO: coluna idempotency_key ausente no banco. Execute a migration SQL.');
+                        return res.status(500).json({ error: true, message: 'Erro de configuração do servidor.' });
+                    }
+                    throw error;
+                }
+                newOrder = data;
+            } catch (err) {
+                if (err.code === '23505' || err.message?.includes('duplicate key')) {
+                    const { data: existing } = await supabase.from('pedidos').select('id').eq('idempotency_key', idemKey).single();
+                    return res.json({ order_id: existing.id });
+                }
+                throw err;
+            }
+
+            res.json({ order_id: newOrder.id });
+        } catch (e) {
+            console.error('❌ [MP Prepare PIX] Erro:', e);
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    // 3.3 PREPARAR PEDIDO DE CARTÃO (Cria o pedido pendente antes de ir para a página de checkout)
     router.post('/prepare-card-order', async (req, res) => {
         console.log("🚀 [MP Prepare] BODY RECEBIDO:", JSON.stringify(req.body, null, 2));
         try {
@@ -549,7 +673,7 @@ module.exports = function (supabase) {
             console.log('TOKEN BACKEND:', req.body.token);
             console.log('BODY COMPLETO:', req.body);
 
-            const { token, amount, payer, order_id } = req.body;
+            const { token, amount, payer, order_id, attempt_id } = req.body;
             if (!token || typeof token !== 'string' || token.length < 10) {
                 return res.status(400).json({ error: 'token obrigatório e deve ser válido.' });
             }
@@ -568,7 +692,7 @@ module.exports = function (supabase) {
                 try {
                     const { data: fetched } = await supabase
                         .from('pedidos')
-                        .select('items, status, mp_payment_id, clientes(name, whatsapp)')
+                        .select('items, status, mp_payment_id, payment_attempt_id, clientes(name, whatsapp)')
                         .eq('id', order_id)
                         .maybeSingle();
                     orderRow = fetched;
@@ -606,6 +730,11 @@ module.exports = function (supabase) {
                 }
                 orderLocked = true;
                 console.log('[ORDER LOCKED]', { requestId, orderId: order_id || 'unknown' });
+
+                if (attempt_id && lockedOrder.payment_attempt_id && lockedOrder.payment_attempt_id === attempt_id) {
+                    console.log('[PAYMENT] tentativa duplicada detectada (card)', { attempt_id, order_id });
+                    return res.json({ reuse: true, status: lockedOrder.status, payment_id: lockedOrder.mp_payment_id, order_id });
+                }
             }
 
             const paymentData = {
@@ -645,7 +774,7 @@ module.exports = function (supabase) {
 
             console.log('MP PAYMENT PAYLOAD:', JSON.stringify({ ...paymentData, token: '[REDACTED]' }, null, 2));
 
-            const idempotencyKey = crypto.randomUUID();
+            const idempotencyKey = attempt_id || crypto.randomUUID();
 
             const mpRes = await fetch('https://api.mercadopago.com/v1/payments', {
                 method: 'POST',
@@ -682,9 +811,11 @@ module.exports = function (supabase) {
                     try { if (typeof itemsData === 'string') itemsData = JSON.parse(itemsData); } catch (_) { itemsData = {}; }
                     itemsData.mp_id = mpId;
 
+                    const cardUpdateData = { mp_payment_id: mpId, items: JSON.stringify(itemsData) };
+                    if (attempt_id) cardUpdateData.payment_attempt_id = attempt_id;
                     await supabase
                         .from('pedidos')
-                        .update({ mp_payment_id: mpId, items: JSON.stringify(itemsData) })
+                        .update(cardUpdateData)
                         .eq('id', order_id)
                         .in('status', ['pending', 'payment_failed']);
                 }
