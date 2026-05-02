@@ -37,6 +37,7 @@ transporter.verify((error, success) => {
 
 // Controle de inicialização
 let isInitializing = false;
+let initTimeoutId = null;
 
 // Singleton global — impede múltiplas instâncias mesmo com hot-reload
 async function startBot() {
@@ -47,7 +48,17 @@ async function startBot() {
 
     console.log("[WA] Inicializando bot...");
 
+    initTimeoutId = setTimeout(() => {
+        if (!isBotReady) {
+            console.error('[WA TIMEOUT] Bot não chegou em READY');
+            console.error('[WA FIX REQUIRED]');
+            console.error('Executar no servidor:');
+            console.error('apt update && apt install -y chromium-browser fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libcups2 libdbus-1-3 libdrm2 libgbm1 libgtk-3-0 libnspr4 libnss3 libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 xdg-utils');
+        }
+    }, 60000);
+
     client.initialize().catch(err => {
+        if (initTimeoutId) { clearTimeout(initTimeoutId); initTimeoutId = null; }
         console.error('[WA INIT ERROR]', err.message);
         isInitializing = false;
         global.whatsappClient = null;
@@ -133,6 +144,7 @@ client.on('authenticated', () => {
 });
 
 client.on('ready', () => {
+    if (initTimeoutId) { clearTimeout(initTimeoutId); initTimeoutId = null; }
     botStatus = WA_STATE.READY;
     isBotReady = true;
     isInitializing = false;
