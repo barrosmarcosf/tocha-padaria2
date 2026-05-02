@@ -652,6 +652,74 @@ async function sendAbandonmentRecovery(supabase, customer, items, recoveryUrl) {
 }
 
 /**
+ * Recuperação de Pagamento Pendente (PIX ou Cartão)
+ */
+async function sendPaymentRecovery(supabase, customer, order, recoveryUrl, step, method) {
+    const customerName = (customer.name || customer.nome || 'Cliente').split(' ')[0];
+    const totalStr = `R$ ${Number(order.total_amount).toFixed(2).replace('.', ',')}`;
+    const methodLabel = method === 'card' ? 'Cartão' : 'PIX';
+
+    // Busca template do banco; fallback inline se não configurado
+    let waTemplate = `{nome}, seu pedido de {total} via {metodo} ainda está aguardando pagamento. 🍞\n\nFinalize agora para garantir sua fornada:\n{link}`;
+    if (supabase) {
+        try {
+            const { data } = await supabase.from('site_content').select('value').eq('key', 'msg_wa_payment_recovery').maybeSingle();
+            if (data?.value) waTemplate = data.value;
+        } catch (_) {}
+    }
+
+    const waMessage = waTemplate
+        .replace(/{nome}/g, customerName)
+        .replace(/{total}/g, totalStr)
+        .replace(/{metodo}/g, methodLabel)
+        .replace(/{link}/g, recoveryUrl);
+
+    // WhatsApp
+    if (customer.whatsapp && isBotReady) {
+        try {
+            let basePhone = customer.whatsapp.replace(/\D/g, '');
+            if (!basePhone.startsWith('55') && basePhone.length >= 10) basePhone = '55' + basePhone;
+            const jid = `${basePhone}@c.us`;
+            console.log(`📡 [PAYMENT RECOVERY] WhatsApp → ${jid}`);
+            await client.sendMessage(jid, waMessage);
+        } catch (e) {
+            console.warn('[PAYMENT RECOVERY] WhatsApp falhou:', e.message);
+        }
+    }
+
+    // Email
+    if (customer.email) {
+        try {
+            await transporter.sendMail({
+                from: `"Tocha Padaria" <${process.env.SMTP_USER}>`,
+                to: customer.email,
+                subject: `${customerName}, seu pedido aguarda pagamento – Tocha Padaria`,
+                html: `
+                    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#333;line-height:1.6;">
+                        <div style="text-align:center;padding:20px;background:#000;">
+                            <img src="https://lh3.googleusercontent.com/d/1X5X7oGvH5P9HhMvP6-kLz9qV9GjO1g3E" alt="Tocha Padaria" style="height:60px;">
+                        </div>
+                        <div style="padding:30px;border:1px solid #eee;border-top:none;border-radius:0 0 8px 8px;">
+                            <h1 style="color:#000;font-family:serif;font-size:22px;margin-top:0;">Pagamento pendente, ${customerName} 🍞</h1>
+                            <p>Seu pedido de <strong>${totalStr}</strong> via <strong>${methodLabel}</strong> ainda está aguardando a confirmação do pagamento.</p>
+                            <p>Finalize agora para garantir sua fornada — nossa produção é limitada!</p>
+                            <p style="text-align:center;margin-top:28px;">
+                                <a href="${recoveryUrl}" style="background:#EBB43B;color:#000;text-decoration:none;padding:14px 28px;border-radius:6px;font-weight:bold;font-size:15px;display:inline-block;">Concluir Pagamento</a>
+                            </p>
+                            <hr style="border:0;border-top:1px solid #eee;margin:28px 0;">
+                            <p style="font-size:12px;color:#999;text-align:center;">Tocha Padaria – Fermentação Natural de São João de Meriti</p>
+                        </div>
+                    </div>
+                `
+            });
+            console.log(`📧 [PAYMENT RECOVERY] Email enviado para ${customer.email}`);
+        } catch (e) {
+            console.warn('[PAYMENT RECOVERY] Email falhou:', e.message);
+        }
+    }
+}
+
+/**
  * Envia uma mensagem genérica via WhatsApp usando o bot logado
  * @param {string} phone Número no formato DDI+DDD+Número
  * @param {string} message Conteúdo da mensagem
@@ -700,6 +768,7 @@ module.exports = {
     sendOrderWhatsApp,
     sendContactEmail,
     sendAbandonmentRecovery,
+    sendPaymentRecovery,
     sendWhatsAppMessage,
     // Exportando estado e definições para diagnóstico
     get WA_STATE() { return WA_STATE; },

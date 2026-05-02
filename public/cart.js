@@ -25,6 +25,7 @@ function save() {
 
 /* ── Global Cart Context ── */
 window.addToCart = function(product, qty = 1) {
+    const wasEmpty = cart.length === 0;
     const productId = String(product.id);
     const existing = cart.find(i => String(i.id) === productId);
 
@@ -41,6 +42,20 @@ window.addToCart = function(product, qty = 1) {
     }
     save();
     window.openCart();
+
+    // Abre modal de captura apenas na primeira adição de item da sessão
+    if (wasEmpty && !sessionStorage.getItem('tocha-capture-shown')) {
+        const alreadyHasData = (() => {
+            try {
+                const stored = JSON.parse(localStorage.getItem('tocha-customer') || 'null');
+                return !!(stored?.name && stored?.whatsapp);
+            } catch (_) { return false; }
+        })();
+        if (!alreadyHasData) {
+            sessionStorage.setItem('tocha-capture-shown', '1');
+            setTimeout(openCaptureModal, 700);
+        }
+    }
 };
 
 window.increase = function(id) {
@@ -169,6 +184,111 @@ function tryAutoSaveCustomer() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, whatsapp })
     }).catch(() => {});
+}
+
+/* ── Modal de Captura Antecipada ── */
+let _captureDebounce = null;
+
+function openCaptureModal() {
+    const modal = document.getElementById('captureModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+
+    // Pré-preenche se houver dados parciais no localStorage
+    try {
+        const stored = JSON.parse(localStorage.getItem('tocha-customer') || 'null');
+        if (stored?.name) {
+            const nameEl = document.getElementById('capture-name');
+            if (nameEl && !nameEl.value) nameEl.value = stored.name;
+        }
+        if (stored?.whatsapp) {
+            const waEl = document.getElementById('capture-whatsapp');
+            if (waEl && !waEl.value) waEl.value = stored.whatsapp;
+        }
+    } catch (_) {}
+}
+
+window.closeCaptureModal = function() {
+    const modal = document.getElementById('captureModal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.saveCaptureModal = function() {
+    const name = document.getElementById('capture-name')?.value.trim();
+    const whatsapp = document.getElementById('capture-whatsapp')?.value.trim();
+    if (!name && !whatsapp) { window.closeCaptureModal(); return; }
+
+    const existing = (() => {
+        try { return JSON.parse(localStorage.getItem('tocha-customer') || '{}'); } catch (_) { return {}; }
+    })();
+    const updated = { ...existing };
+    if (name) updated.name = name;
+    if (whatsapp) updated.whatsapp = whatsapp;
+    localStorage.setItem('tocha-customer', JSON.stringify(updated));
+    console.log('[CAPTURE OK] modal captura salvo localStorage');
+
+    window.closeCaptureModal();
+    // Tenta preencher campos do checkout caso já esteja aberto
+    if (document.getElementById('checkoutModal')?.style.display === 'flex') {
+        fillCustomerForm(updated);
+    }
+};
+
+function onCaptureInput() {
+    clearTimeout(_captureDebounce);
+    _captureDebounce = setTimeout(() => {
+        const name = document.getElementById('capture-name')?.value.trim();
+        const whatsapp = document.getElementById('capture-whatsapp')?.value.trim();
+        if (!name && !whatsapp) return;
+        const existing = (() => {
+            try { return JSON.parse(localStorage.getItem('tocha-customer') || '{}'); } catch (_) { return {}; }
+        })();
+        const updated = { ...existing };
+        if (name) updated.name = name;
+        if (whatsapp) updated.whatsapp = whatsapp;
+        localStorage.setItem('tocha-customer', JSON.stringify(updated));
+        console.log('[AUTO SAVE OK] capture debounce localStorage');
+    }, 500);
+}
+
+function injectCaptureModal() {
+    if (document.getElementById('captureModal')) return;
+    document.body.insertAdjacentHTML('beforeend', `
+        <div id="captureModal" style="display:none;position:fixed;inset:0;z-index:10002;align-items:center;justify-content:center;display:none;">
+            <div onclick="closeCaptureModal()" style="position:absolute;inset:0;background:rgba(0,0,0,0.72);"></div>
+            <div style="position:relative;background:#141414;padding:28px 24px;border-radius:20px;width:90%;max-width:380px;border:1px solid rgba(255,255,255,0.08);z-index:1;">
+                <button onclick="closeCaptureModal()" style="position:absolute;top:14px;right:16px;background:transparent;border:none;color:#888;font-size:18px;cursor:pointer;line-height:1;">✕</button>
+                <h3 style="font-family:'Anton',sans-serif;font-size:1.35rem;color:#EBB43B;margin:0 0 8px;text-transform:uppercase;">Oi! Uma perguntinha rápida</h3>
+                <p style="color:rgba(255,255,255,0.85);margin:0 0 6px;line-height:1.5;font-size:0.93rem;">Para organizar sua fornada e facilitar seus próximos pedidos, informe seu nome e WhatsApp.</p>
+                <p style="color:rgba(255,255,255,0.4);font-size:0.8rem;margin:0 0 18px;">Assim conseguimos confirmar seu pedido e agilizar seu atendimento.</p>
+                <div style="margin-bottom:12px;">
+                    <input id="capture-name" type="text" placeholder="Seu nome" autocomplete="given-name"
+                        style="width:100%;padding:11px 13px;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:#1e1e1e;color:#fff;font-size:0.93rem;box-sizing:border-box;">
+                </div>
+                <div style="margin-bottom:18px;">
+                    <input id="capture-whatsapp" type="tel" placeholder="(00) 00000-0000" autocomplete="tel"
+                        style="width:100%;padding:11px 13px;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:#1e1e1e;color:#fff;font-size:0.93rem;box-sizing:border-box;">
+                </div>
+                <button onclick="saveCaptureModal()" style="width:100%;padding:13px;background:#EBB43B;color:#000;border:none;border-radius:10px;font-weight:700;font-size:0.93rem;cursor:pointer;">SALVAR</button>
+                <button onclick="closeCaptureModal()" style="width:100%;padding:11px;background:transparent;color:rgba(255,255,255,0.35);border:none;border-radius:10px;cursor:pointer;margin-top:7px;font-size:0.83rem;">Agora não</button>
+            </div>
+        </div>
+    `);
+
+    // Debounce nos inputs
+    ['capture-name', 'capture-whatsapp'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', onCaptureInput);
+    });
+
+    // Máscara de WhatsApp no campo de captura
+    const waCapture = document.getElementById('capture-whatsapp');
+    if (waCapture) {
+        waCapture.addEventListener('input', (e) => {
+            let x = e.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,5})(\d{0,4})/);
+            e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
+        });
+    }
 }
 
 window.openCheckoutModal = function() {
@@ -370,6 +490,7 @@ window.fecharModal = function() {
 /* ── Injections ── */
 function injectCart() {
     if (document.getElementById('cartDrawer')) return;
+    injectCaptureModal();
 
     document.body.insertAdjacentHTML('beforeend', `
         <div id="cartOverlay" class="cart-overlay"></div>
@@ -550,6 +671,42 @@ document.addEventListener('DOMContentLoaded', () => {
     injectCart();
     render();
     fetchStoreStatus();
+
+    // ── REIDRATAÇÃO: token de recovery na URL ──────────────────────────
+    const _params = new URLSearchParams(window.location.search);
+    const _recoveryToken = _params.get('token');
+    if (_recoveryToken) {
+        fetch(`/api/recover/${encodeURIComponent(_recoveryToken)}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+                if (data?.cart?.length > 0 && cart.length === 0) {
+                    cart = data.cart;
+                    save();
+                    console.log('[CAPTURE OK] carrinho reidratado via recovery token');
+                    if (data.customer) {
+                        const existing = (() => { try { return JSON.parse(localStorage.getItem('tocha-customer') || '{}'); } catch (_) { return {}; } })();
+                        localStorage.setItem('tocha-customer', JSON.stringify({ ...existing, ...data.customer }));
+                        console.log('[CAPTURE OK] cliente reidratado via recovery token');
+                    }
+                    window.history.replaceState({}, '', window.location.pathname);
+                    setTimeout(window.openCart, 400);
+                }
+            })
+            .catch(() => {});
+    }
+
+    // ── REIDRATAÇÃO: cliente via sessão do servidor (se localStorage vazio) ──
+    if (!localStorage.getItem('tocha-customer')) {
+        fetch('/api/customer/me')
+            .then(r => r.ok ? r.json() : null)
+            .then(c => {
+                if (c?.email) {
+                    localStorage.setItem('tocha-customer', JSON.stringify(c));
+                    console.log('[CAPTURE OK] cliente reidratado via /api/customer/me');
+                }
+            })
+            .catch(() => {});
+    }
 
     // Sincronização periódica para Abandono
     window.syncCart();

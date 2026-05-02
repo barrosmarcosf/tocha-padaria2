@@ -355,6 +355,12 @@ app.listen(PORT, '0.0.0.0', () => {
     setInterval(() => checkAbandonedCarts(supabase), WORKER_INTERVAL);
     checkAbandonedCarts(supabase);
 
+    // Worker de Pagamento Pendente: verificar pedidos a cada 5 minutos
+    const { checkPendingPayments } = require('./src/workers/payment-recovery');
+    console.log("🚀 [WORKER] Trabalhador de Recuperação de Pagamento Iniciado (intervalo: 5min).");
+    setInterval(() => checkPendingPayments(supabase), WORKER_INTERVAL);
+    checkPendingPayments(supabase);
+
     // Iniciar o WhatsApp Bot com um pequeno delay para não impactar o boot
     setTimeout(() => {
         console.log("🤖 [SERVER] Iniciando Tocha Bot (WhatsApp)...");
