@@ -485,7 +485,7 @@
 
                                 if (res.status === 409) {
                                     console.warn('[MP 409] Pagamento duplicado bloqueado pelo servidor.');
-                                    openPaymentInfoModal('Seu pagamento já está sendo processado. Aguarde alguns segundos.');
+                                    updatePaymentInfoModal('Seu pagamento já está sendo processado. Aguarde alguns segundos.');
                                     return;
                                 }
 
@@ -498,11 +498,11 @@
                                     console.warn('[MP BLOCK HARD]', data);
 
                                     if (data?.status === 'pending' || data?.status === 'in_process') {
-                                        openPaymentErrorModal('Pagamento em análise');
+                                        updatePaymentInfoModal('Pagamento em análise');
                                         return;
                                     }
 
-                                    openPaymentErrorModal(errMsg);
+                                    updatePaymentInfoModal(errMsg);
                                     return;
                                 }
 
@@ -513,7 +513,7 @@
 
                             } catch (err) {
                                 console.error("❌ Erro no processamento:", err);
-                                openPaymentErrorModal(typeof err.message === 'string' ? err.message : JSON.stringify(err.message));
+                                updatePaymentInfoModal(typeof err.message === 'string' ? err.message : JSON.stringify(err.message));
                             } finally {
                                 isSubmitting = false;
                                 if (submitBtn) {
@@ -600,6 +600,16 @@
         }
 
         init();
+
+        function updatePaymentInfoModal(text) {
+            const existing = document.getElementById('payment-info-modal');
+            if (existing) {
+                const p = existing.querySelector('p');
+                if (p) p.textContent = text;
+                return;
+            }
+            openPaymentInfoModal(text);
+        }
 
         function openPaymentInfoModal(message) {
             const existing = document.getElementById('payment-info-modal');
