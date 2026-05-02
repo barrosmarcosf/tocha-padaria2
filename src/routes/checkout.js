@@ -485,6 +485,7 @@ async function processPaidSession(supabase, stripe, session) {
 
         // MARCAR CARRINHO COMO CONCLUÍDO
         if (session.metadata?.sessionId) {
+            console.log('[CART SAVE TRACE] origem: checkout.js webhook → status=completed session_id=', session.metadata.sessionId);
             await supabase.from('carrinhos')
                 .update({ status: 'completed' })
                 .eq('session_id', session.metadata.sessionId);

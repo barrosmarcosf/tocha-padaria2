@@ -38,6 +38,7 @@ async function checkAbandonedCarts(supabase) {
 
                 if (existingOrder && (existingOrder.status === 'paid' || existingOrder.status === 'completed')) {
                     console.log(`[WORKER] 🛡️ Carrinho ${cart.id} ignorado: Pedido ${cart.order_id} já consta como PAGO.`);
+                    console.log('[CART SAVE TRACE] origem: cart-abandonment.js pedido pago → status=completed id=', cart.id);
                     await supabase.from('carrinhos').update({ status: 'completed' }).eq('id', cart.id);
                     continue;
                 }
@@ -56,6 +57,7 @@ async function checkAbandonedCarts(supabase) {
                 const recoveryUrl = `${appUrl}/?token=${cart.recovery_token}`;
 
                 await sendAbandonmentRecovery(supabase, cart.customer_data, JSON.parse(cart.items), recoveryUrl);
+                console.log('[CART SAVE TRACE] origem: cart-abandonment.js hasContact → recovery_sent=true id=', cart.id);
                 await supabase.from('carrinhos').update({ recovery_sent: true }).eq('id', cart.id);
             } else {
                 // Tenta identificar cliente via customer_sessions usando o session_id do cookie
@@ -83,6 +85,7 @@ async function checkAbandonedCarts(supabase) {
                             const recoveryUrl = `${appUrl}/?token=${cart.recovery_token}`;
 
                             await sendAbandonmentRecovery(supabase, sessionCustomer, JSON.parse(cart.items), recoveryUrl);
+                            console.log('[CART SAVE TRACE] origem: cart-abandonment.js via session → recovery_sent=true id=', cart.id);
                             await supabase.from('carrinhos').update({ recovery_sent: true }).eq('id', cart.id);
                         }
                     }
@@ -105,6 +108,7 @@ async function checkAbandonedCarts(supabase) {
                             const recoveryUrl = `${appUrl}/?token=${cart.recovery_token}`;
 
                             await sendAbandonmentRecovery(supabase, directCustomer, JSON.parse(cart.items), recoveryUrl);
+                            console.log('[CART SAVE TRACE] origem: cart-abandonment.js via customer_id → recovery_sent=true id=', cart.id);
                             await supabase.from('carrinhos').update({ recovery_sent: true }).eq('id', cart.id);
                         }
                     } catch (_) {}

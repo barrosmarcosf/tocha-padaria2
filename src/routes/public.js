@@ -84,6 +84,7 @@ module.exports = function (supabase) {
                 } catch (_) {}
             }
 
+            console.log('[CART SAVE TRACE] origem: public.js /cart/sync upsert');
             console.log('[CART DEBUG]', JSON.stringify(record));
 
             const { error } = await supabase.from('carrinhos').upsert([record], { onConflict: 'session_id' });
@@ -91,6 +92,7 @@ module.exports = function (supabase) {
                 console.error('[CART DEBUG] upsert error:', error.message, '| payload:', JSON.stringify(record));
                 if (record.customer_id !== undefined) {
                     delete record.customer_id;
+                    console.log('[CART SAVE TRACE] origem: public.js /cart/sync upsert retry (sem customer_id)');
                     const { error: e2 } = await supabase.from('carrinhos').upsert([record], { onConflict: 'session_id' });
                     if (e2) console.error("❌ Erro ao salvar carrinho:", e2.message);
                 } else {
