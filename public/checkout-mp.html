@@ -449,6 +449,7 @@
                                     order_id: orderId
                                 };
 
+                                console.log('[CHECKOUT REQUEST]', { orderId });
                                 console.log('ENVIANDO PARA BACKEND:', payload);
                                 console.log('🔥 PAYLOAD FINAL:', payload);
                                 console.log('🔥 VOU ENVIAR REQUEST');
@@ -469,6 +470,10 @@
                                 }
 
                                 openPaymentInfoModal('Verificando pagamento...');
+
+                                setTimeout(() => {
+                                    updatePaymentInfoModal('Não conseguimos confirmar o pagamento. Tente novamente.', 'error');
+                                }, 10000);
 
                                 statusTimer = setTimeout(async () => {
                                     try {
@@ -498,11 +503,11 @@
                                     console.warn('[MP BLOCK HARD]', data);
 
                                     if (data?.status === 'pending' || data?.status === 'in_process') {
-                                        updatePaymentInfoModal('Pagamento em análise');
+                                        updatePaymentInfoModal('Pagamento em análise', 'loading');
                                         return;
                                     }
 
-                                    updatePaymentInfoModal(errMsg);
+                                    updatePaymentInfoModal(errMsg, 'error');
                                     return;
                                 }
 
@@ -513,7 +518,7 @@
 
                             } catch (err) {
                                 console.error("❌ Erro no processamento:", err);
-                                updatePaymentInfoModal(typeof err.message === 'string' ? err.message : JSON.stringify(err.message));
+                                updatePaymentInfoModal(typeof err.message === 'string' ? err.message : JSON.stringify(err.message), 'error');
                             } finally {
                                 isSubmitting = false;
                                 if (submitBtn) {
@@ -601,11 +606,13 @@
 
         init();
 
-        function updatePaymentInfoModal(text) {
+        function updatePaymentInfoModal(text, type = 'loading') {
             const existing = document.getElementById('payment-info-modal');
             if (existing) {
                 const p = existing.querySelector('p');
                 if (p) p.textContent = text;
+                const icon = existing.querySelector('#info-modal-icon');
+                if (icon) icon.textContent = type === 'error' ? '❌' : '⏳';
                 return;
             }
             openPaymentInfoModal(text);
@@ -638,7 +645,7 @@
                         box-shadow:0 20px 60px rgba(0,0,0,0.6);
                         border:1px solid rgba(255,255,255,0.08);
                     ">
-                        <div style="font-size:32px; margin-bottom:10px;">⏳</div>
+                        <div id="info-modal-icon" style="font-size:32px; margin-bottom:10px;">⏳</div>
                         <h2 style="margin-bottom:10px;">Pagamento em processamento</h2>
                         <p style="color:rgba(255,255,255,0.7); margin-bottom:20px;">
                             ${message}
