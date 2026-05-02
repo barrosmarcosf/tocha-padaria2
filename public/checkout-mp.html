@@ -337,6 +337,7 @@
         let cardPaymentBrickController;
         let orderData = null;
         let isSubmitting = false;
+        let hasRedirected = false;
 
         async function init() {
             console.log("🚀 CHECKOUT VERSION 3");
@@ -466,7 +467,9 @@
                                     try {
                                         const statusRes = await fetch(`/api/orders/${orderId}`);
                                         const statusData = await statusRes.json();
-                                        if (['approved', 'paid'].includes(statusData.status)) {
+                                        console.log('[ORDER STATUS CHECK]', statusData.status);
+                                        if (!hasRedirected && ['approved', 'paid'].includes(statusData.status)) {
+                                            hasRedirected = true;
                                             window.location.href = '/sucesso.html';
                                         }
                                     } catch (_) {}
