@@ -626,8 +626,6 @@ module.exports = function (supabase) {
                     stripe_session_id: `mp_pending_${Date.now()}`,
                     total_amount: totalAmount,
                     status: 'pending',
-                    processing: false,
-                    processing_at: null,
                     items: JSON.stringify({
                         actual_items: cartItems,
                         order_type: storeStatusResult.orderType,
@@ -725,19 +723,28 @@ module.exports = function (supabase) {
             }
 
             // ── LOCK ──────────────────────────────────────────────────────────
+            console.log('[DB CHECK] tentando acessar colunas processing / processing_at');
             console.log('[LOCK TRY]', order_id);
 
             // Limpa lock preso de requisição anterior abandonada (> 2 min).
             // OR cobre linhas cujo processing_at é NULL (criadas antes da migration).
             const staleCutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-            await supabase
+            const { error: staleErr } = await supabase
                 .from('pedidos')
                 .update({ processing: false, processing_at: null })
                 .eq('id', order_id)
                 .eq('processing', true)
                 .or(`processing_at.lt.${staleCutoff},processing_at.is.null`);
 
-            const { data: lockedOrder } = await supabase
+            if (staleErr?.message?.includes('schema cache') || staleErr?.message?.includes("'processing'")) {
+                console.error('[SCHEMA CACHE ERROR]', staleErr.message);
+                return res.status(503).json({
+                    error: "Schema cache desatualizado. Execute 'NOTIFY pgrst, reload schema' no Supabase SQL Editor e tente novamente em 30s.",
+                    schema_cache: true
+                });
+            }
+
+            const { data: lockedOrder, error: lockErr } = await supabase
                 .from('pedidos')
                 .update({ processing: true, processing_at: new Date().toISOString() })
                 .eq('id', order_id)
@@ -745,6 +752,14 @@ module.exports = function (supabase) {
                 .in('status', ['pending', 'payment_failed'])
                 .select('*, clientes(name, whatsapp)')
                 .single();
+
+            if (lockErr?.message?.includes('schema cache') || lockErr?.message?.includes("'processing'")) {
+                console.error('[SCHEMA CACHE ERROR]', lockErr.message);
+                return res.status(503).json({
+                    error: "Schema cache desatualizado. Execute 'NOTIFY pgrst, reload schema' no Supabase SQL Editor e tente novamente em 30s.",
+                    schema_cache: true
+                });
+            }
 
             if (!lockedOrder) {
                 console.log('[LOCK DENIED]', { order_id });
