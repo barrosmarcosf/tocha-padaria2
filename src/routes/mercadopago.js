@@ -98,7 +98,35 @@ module.exports = function (supabase) {
                 return res.status(503).json({ error: 'Integração Mercado Pago não configurada.' });
             }
 
-            // 🔒 LOCK — deve acontecer antes de qualquer validação
+            // ── IDEMPOTÊNCIA PRÉ-LOCK ──────────────────────────────────────────
+            if (attempt_id) {
+                const { data: existingAttempt } = await supabase
+                    .from('pedidos')
+                    .select('id, status, mp_payment_id')
+                    .eq('id', order_id)
+                    .eq('payment_attempt_id', attempt_id)
+                    .maybeSingle();
+                if (existingAttempt?.mp_payment_id) {
+                    console.log('[IDEMPOTENCY HIT]', { attempt_id, order_id });
+                    return res.json({
+                        reuse: true,
+                        payment_id: existingAttempt.mp_payment_id,
+                        order_id
+                    });
+                }
+            }
+
+            // ── LOCK ──────────────────────────────────────────────────────────
+            console.log('[LOCK TRY]', order_id);
+
+            const staleCutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+            await supabase
+                .from('pedidos')
+                .update({ processing: false, processing_at: null })
+                .eq('id', order_id)
+                .eq('processing', true)
+                .or(`processing_at.lt.${staleCutoff},processing_at.is.null`);
+
             const { data: lockedOrder } = await supabase
                 .from('pedidos')
                 .update({ processing: true, processing_at: new Date().toISOString() })
@@ -109,10 +137,11 @@ module.exports = function (supabase) {
                 .single();
 
             if (!lockedOrder) {
-                console.log('[LOCK FAIL]', { order_id });
+                console.log('[LOCK DENIED]', { order_id });
                 return res.status(409).json({ error: 'Pedido já está sendo processado' });
             }
             orderLocked = true;
+            console.log('[LOCK OK]', order_id);
 
             console.log('[PAYMENT FLOW]', {
                 pedido_id: lockedOrder.id,
@@ -120,11 +149,6 @@ module.exports = function (supabase) {
                 antigo_payment_id: lockedOrder.mp_payment_id
             });
             console.log('[ORDER LOCKED]', { requestId, orderId: order_id });
-
-            if (attempt_id && lockedOrder.payment_attempt_id && lockedOrder.payment_attempt_id === attempt_id) {
-                console.log('[PAYMENT] tentativa duplicada detectada', { attempt_id, order_id });
-                return res.json({ reuse: true, payment_id: lockedOrder.mp_payment_id, order_id });
-            }
 
             let { customer, cart } = req.body;
 
@@ -224,11 +248,11 @@ module.exports = function (supabase) {
                 }
             };
 
-            console.log("💳 [Pix] Criando pagamento no MP:", paymentData.body.transaction_amount);
-
+            console.log('[MP CALL] criando pagamento pix', { amount: paymentData.body.transaction_amount });
             const mpResponse = await payment.create(paymentData, { idempotencyKey: attempt_id || idemKey });
             paymentStatus = mpResponse.status || 'unknown';
             const mpId = String(mpResponse.id);
+            console.log('[MP SUCCESS]', mpId);
             const qrCode = mpResponse.point_of_interaction.transaction_data.qr_code;
             const qrCodeBase64 = await /** @type {Promise<string>} */ (QRCode.toDataURL(qrCode));
 
@@ -602,6 +626,8 @@ module.exports = function (supabase) {
                     stripe_session_id: `mp_pending_${Date.now()}`,
                     total_amount: totalAmount,
                     status: 'pending',
+                    processing: false,
+                    processing_at: null,
                     items: JSON.stringify({
                         actual_items: cartItems,
                         order_type: storeStatusResult.orderType,
@@ -616,7 +642,7 @@ module.exports = function (supabase) {
                 }
 
                 const { data, error } = await supabase.from('pedidos').insert([orderData]).select().single();
-                
+
                 if (error) {
                     if (error.message.includes('idempotency_key')) {
                         console.error('❌ ERRO CRÍTICO: coluna idempotency_key ausente no banco. Execute a migration SQL.');
@@ -677,16 +703,39 @@ module.exports = function (supabase) {
                 return res.status(400).json({ error: 'order_id obrigatório' });
             }
 
-            // 🔒 LOCK — deve acontecer antes de qualquer validação
+            // ── IDEMPOTÊNCIA PRÉ-LOCK ──────────────────────────────────────────
+            // Verifica attempt_id ANTES de tentar o lock para que double-submit
+            // retorne 200 em vez de 409 quando o primeiro clique já terminou.
+            if (attempt_id) {
+                const { data: existingAttempt } = await supabase
+                    .from('pedidos')
+                    .select('id, status, mp_payment_id')
+                    .eq('id', order_id)
+                    .eq('payment_attempt_id', attempt_id)
+                    .maybeSingle();
+                if (existingAttempt?.mp_payment_id) {
+                    console.log('[IDEMPOTENCY HIT]', { attempt_id, order_id });
+                    return res.json({
+                        reuse: true,
+                        status: existingAttempt.status,
+                        payment_id: existingAttempt.mp_payment_id,
+                        order_id
+                    });
+                }
+            }
+
+            // ── LOCK ──────────────────────────────────────────────────────────
             console.log('[LOCK TRY]', order_id);
 
-            // Limpa lock preso de requisição anterior abandonada (> 2 minutos)
+            // Limpa lock preso de requisição anterior abandonada (> 2 min).
+            // OR cobre linhas cujo processing_at é NULL (criadas antes da migration).
+            const staleCutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString();
             await supabase
                 .from('pedidos')
-                .update({ processing: false })
+                .update({ processing: false, processing_at: null })
                 .eq('id', order_id)
                 .eq('processing', true)
-                .lt('processing_at', new Date(Date.now() - 2 * 60 * 1000).toISOString());
+                .or(`processing_at.lt.${staleCutoff},processing_at.is.null`);
 
             const { data: lockedOrder } = await supabase
                 .from('pedidos')
@@ -698,7 +747,7 @@ module.exports = function (supabase) {
                 .single();
 
             if (!lockedOrder) {
-                console.log('[LOCK FAIL]', { order_id });
+                console.log('[LOCK DENIED]', { order_id });
                 return res.status(409).json({ error: 'Pedido já está sendo processado' });
             }
             orderLocked = true;
@@ -709,12 +758,6 @@ module.exports = function (supabase) {
                 status: lockedOrder.status,
                 antigo_payment_id: lockedOrder.mp_payment_id
             });
-            console.log('[ORDER LOCKED]', { requestId, orderId: order_id });
-
-            if (attempt_id && lockedOrder.payment_attempt_id && lockedOrder.payment_attempt_id === attempt_id) {
-                console.log('[PAYMENT] tentativa duplicada detectada (card)', { attempt_id, order_id });
-                return res.json({ reuse: true, status: lockedOrder.status, payment_id: lockedOrder.mp_payment_id, order_id });
-            }
 
             // Dados do pedido para enriquecer o payload MP
             let orderItems = [];
