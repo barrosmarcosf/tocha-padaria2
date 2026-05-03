@@ -678,6 +678,16 @@ module.exports = function (supabase) {
             }
 
             // 🔒 LOCK — deve acontecer antes de qualquer validação
+            console.log('[LOCK TRY]', order_id);
+
+            // Limpa lock preso de requisição anterior abandonada (> 2 minutos)
+            await supabase
+                .from('pedidos')
+                .update({ processing: false })
+                .eq('id', order_id)
+                .eq('processing', true)
+                .lt('processing_at', new Date(Date.now() - 2 * 60 * 1000).toISOString());
+
             const { data: lockedOrder } = await supabase
                 .from('pedidos')
                 .update({ processing: true, processing_at: new Date().toISOString() })
@@ -692,6 +702,7 @@ module.exports = function (supabase) {
                 return res.status(409).json({ error: 'Pedido já está sendo processado' });
             }
             orderLocked = true;
+            console.log('[LOCK OK]', order_id);
 
             console.log('[PAYMENT FLOW]', {
                 pedido_id: lockedOrder.id,
@@ -753,6 +764,7 @@ module.exports = function (supabase) {
 
             const idempotencyKey = attempt_id || crypto.randomUUID();
 
+            console.log('[MP CALL] criando pagamento');
             const mpRes = await fetch('https://api.mercadopago.com/v1/payments', {
                 method: 'POST',
                 headers: {
@@ -773,6 +785,7 @@ module.exports = function (supabase) {
 
             const mpId = String(responseData.id);
             paymentStatus = responseData.status || 'unknown';
+            console.log('[MP SUCCESS]', mpId);
             console.log(`💳 [MP Card] Pagamento ${mpId}: ${responseData.status} (${responseData.status_detail})`);
 
             // Atualizar pedido existente criado por prepare-card-order
