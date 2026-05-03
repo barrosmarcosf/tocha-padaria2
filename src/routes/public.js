@@ -129,6 +129,7 @@ module.exports = function (supabase) {
     // ──────────────────────────────────────────────────
     router.get('/orders/:id', async (req, res) => {
         const { id } = req.params;
+        console.log('[ORDER FETCH HIT]', id);
         try {
             const { data: pedido, error } = await supabase
                 .from('pedidos')

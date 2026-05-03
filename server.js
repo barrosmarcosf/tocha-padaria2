@@ -360,6 +360,7 @@ app.use((req, res) => {
 // ──────────────────────────────────────────────────
 // INICIAR SERVIDOR
 // ──────────────────────────────────────────────────
+console.log('[ROUTES LOADED]');
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`\nTOCHA PADARIA: Sistema Ativo e Protegido!`);
     console.log(`PORTA: ${PORT}`);
