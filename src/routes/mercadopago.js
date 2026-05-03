@@ -98,38 +98,28 @@ module.exports = function (supabase) {
                 return res.status(503).json({ error: 'Integração Mercado Pago não configurada.' });
             }
 
-            // Verificar status atual antes de qualquer lock
-            const { data: pedidoCheck } = await supabase
-                .from('pedidos')
-                .select('id, status, mp_payment_id, payment_attempt_id')
-                .eq('id', order_id)
-                .single();
-
-            console.log('[PAYMENT FLOW]', {
-                pedido_id: pedidoCheck?.id,
-                status: pedidoCheck?.status,
-                antigo_payment_id: pedidoCheck?.mp_payment_id
-            });
-
-            if (pedidoCheck?.status === 'paid') {
-                return res.status(409).json({ error: 'Pedido já pago' });
-            }
-
-            // 🔒 LOCK — permite retry se pending ou payment_failed
+            // 🔒 LOCK — deve acontecer antes de qualquer validação
             const { data: lockedOrder } = await supabase
                 .from('pedidos')
                 .update({ processing: true, processing_at: new Date().toISOString() })
                 .eq('id', order_id)
+                .eq('processing', false)
                 .in('status', ['pending', 'payment_failed'])
                 .select()
                 .single();
 
             if (!lockedOrder) {
-                console.log('[ORDER LOCK DENIED]', { requestId, orderId: order_id || 'unknown' });
-                return res.status(409).json({ error: 'Pagamento já está sendo processado' });
+                console.log('[LOCK FAIL]', { order_id });
+                return res.status(409).json({ error: 'Pedido já está sendo processado' });
             }
             orderLocked = true;
-            console.log('[ORDER LOCKED]', { requestId, orderId: order_id || 'unknown' });
+
+            console.log('[PAYMENT FLOW]', {
+                pedido_id: lockedOrder.id,
+                status: lockedOrder.status,
+                antigo_payment_id: lockedOrder.mp_payment_id
+            });
+            console.log('[ORDER LOCKED]', { requestId, orderId: order_id });
 
             if (attempt_id && lockedOrder.payment_attempt_id && lockedOrder.payment_attempt_id === attempt_id) {
                 console.log('[PAYMENT] tentativa duplicada detectada', { attempt_id, order_id });
@@ -219,7 +209,7 @@ module.exports = function (supabase) {
                         ...(customer.cpf ? { identification: { type: 'CPF', number: String(customer.cpf).replace(/\D/g, '') } } : {}),
                         ...(customer.whatsapp ? { phone: { area_code: String(customer.whatsapp).replace(/\D/g, '').slice(0, 2), number: String(customer.whatsapp).replace(/\D/g, '').slice(2) } } : {}),
                     },
-                    external_reference: idemKey,
+                    external_reference: String(order_id),
                     date_of_expiration: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
                     notification_url: isHttps ? `${baseUrl}/api/mercadopago/webhook` : undefined,
                     additional_info: {
@@ -683,59 +673,46 @@ module.exports = function (supabase) {
             if (!payer?.email) {
                 return res.status(400).json({ error: 'payer.email obrigatório.' });
             }
+            if (!order_id) {
+                return res.status(400).json({ error: 'order_id obrigatório' });
+            }
 
-            // Fetch order items + customer for payload enrichment (fail-safe)
+            // 🔒 LOCK — deve acontecer antes de qualquer validação
+            const { data: lockedOrder } = await supabase
+                .from('pedidos')
+                .update({ processing: true, processing_at: new Date().toISOString() })
+                .eq('id', order_id)
+                .eq('processing', false)
+                .in('status', ['pending', 'payment_failed'])
+                .select('*, clientes(name, whatsapp)')
+                .single();
+
+            if (!lockedOrder) {
+                console.log('[LOCK FAIL]', { order_id });
+                return res.status(409).json({ error: 'Pedido já está sendo processado' });
+            }
+            orderLocked = true;
+
+            console.log('[PAYMENT FLOW]', {
+                pedido_id: lockedOrder.id,
+                status: lockedOrder.status,
+                antigo_payment_id: lockedOrder.mp_payment_id
+            });
+            console.log('[ORDER LOCKED]', { requestId, orderId: order_id });
+
+            if (attempt_id && lockedOrder.payment_attempt_id && lockedOrder.payment_attempt_id === attempt_id) {
+                console.log('[PAYMENT] tentativa duplicada detectada (card)', { attempt_id, order_id });
+                return res.json({ reuse: true, status: lockedOrder.status, payment_id: lockedOrder.mp_payment_id, order_id });
+            }
+
+            // Dados do pedido para enriquecer o payload MP
             let orderItems = [];
-            let orderCustomer = null;
-            let orderRow = null;
-            if (order_id) {
-                try {
-                    const { data: fetched } = await supabase
-                        .from('pedidos')
-                        .select('items, status, mp_payment_id, payment_attempt_id, clientes(name, whatsapp)')
-                        .eq('id', order_id)
-                        .maybeSingle();
-                    orderRow = fetched;
-                    if (orderRow) {
-                        let parsed = orderRow.items;
-                        try { if (typeof parsed === 'string') parsed = JSON.parse(parsed); } catch (_) {}
-                        orderItems = parsed?.actual_items || [];
-                        orderCustomer = orderRow.clientes;
-                    }
-                } catch (_) {}
-            }
-
-            if (order_id) {
-                console.log('[PAYMENT FLOW]', {
-                    pedido_id: order_id,
-                    status: orderRow?.status,
-                    antigo_payment_id: orderRow?.mp_payment_id
-                });
-
-                if (orderRow?.status === 'paid') {
-                    return res.status(409).json({ error: 'Pedido já pago' });
-                }
-
-                const { data: lockedOrder } = await supabase
-                    .from('pedidos')
-                    .update({ processing: true, processing_at: new Date().toISOString() })
-                    .eq('id', order_id)
-                    .in('status', ['pending', 'payment_failed'])
-                    .select()
-                    .single();
-
-                if (!lockedOrder) {
-                    console.log('[ORDER LOCK DENIED]', { requestId, orderId: order_id || 'unknown' });
-                    return res.status(409).json({ error: 'Pagamento já está sendo processado' });
-                }
-                orderLocked = true;
-                console.log('[ORDER LOCKED]', { requestId, orderId: order_id || 'unknown' });
-
-                if (attempt_id && lockedOrder.payment_attempt_id && lockedOrder.payment_attempt_id === attempt_id) {
-                    console.log('[PAYMENT] tentativa duplicada detectada (card)', { attempt_id, order_id });
-                    return res.json({ reuse: true, status: lockedOrder.status, payment_id: lockedOrder.mp_payment_id, order_id });
-                }
-            }
+            let orderCustomer = lockedOrder.clientes || null;
+            try {
+                let parsed = lockedOrder.items;
+                if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+                orderItems = parsed?.actual_items || [];
+            } catch (_) {}
 
             const paymentData = {
                 transaction_amount: Number(req.body.amount),
@@ -983,6 +960,21 @@ async function recalcularTotal(supabase, cart) {
 // Processamento de pedido pago via Mercado Pago
 // Executado pelo webhook (e pelo polling como fallback com idempotência)
 async function processPaidMPOrder(supabase, mpId, _mpPayment) {
+    // Guard: ignora pagamentos antigos quando o pedido já tem um mp_payment_id mais recente.
+    // external_reference é o order_id numérico (definido em create-pix-payment e create-card-payment).
+    const extRef = _mpPayment?.external_reference;
+    if (extRef && /^\d+$/.test(String(extRef))) {
+        const { data: pedidoCheck } = await supabase
+            .from('pedidos')
+            .select('mp_payment_id')
+            .eq('id', extRef)
+            .maybeSingle();
+        if (pedidoCheck && String(pedidoCheck.mp_payment_id) !== String(mpId)) {
+            console.log(`[WEBHOOK] ignorando pagamento antigo payment_id=${mpId} pedido_mp_payment_id=${pedidoCheck.mp_payment_id} order_id=${extRef}`);
+            return;
+        }
+    }
+
     const externalId = `mp_${mpId}`;
 
     // UPDATE atômico com condição: só atualiza se status ainda for 'pending'.

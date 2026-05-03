@@ -308,18 +308,18 @@ function injectCaptureModal() {
             <div onclick="closeCaptureModal()" style="position:absolute;inset:0;background:rgba(0,0,0,0.72);"></div>
             <div style="position:relative;background:#141414;padding:28px 24px;border-radius:20px;width:90%;max-width:380px;border:1px solid rgba(255,255,255,0.08);z-index:1;">
                 <button onclick="closeCaptureModal()" style="position:absolute;top:14px;right:16px;background:transparent;border:none;color:#888;font-size:18px;cursor:pointer;line-height:1;">✕</button>
-                <h3 style="font-family:'Anton',sans-serif;font-size:1.35rem;color:#EBB43B;margin:0 0 8px;text-transform:uppercase;">Oi! Uma perguntinha rápida</h3>
-                <p style="color:rgba(255,255,255,0.85);margin:0 0 6px;line-height:1.5;font-size:0.93rem;">Para organizar sua fornada e facilitar seus próximos pedidos, informe seu nome e WhatsApp.</p>
-                <p style="color:rgba(255,255,255,0.4);font-size:0.8rem;margin:0 0 18px;">Assim conseguimos confirmar seu pedido e agilizar seu atendimento.</p>
+                <h3 style="font-family:'Anton',sans-serif;font-size:24px;font-weight:700;color:#EBB43B;margin:0 0 8px;text-transform:uppercase;">Oi! Uma perguntinha rápida</h3>
+                <p style="color:rgba(255,255,255,0.85);margin:0 0 6px;line-height:1.5;font-size:15px;">Para organizar sua fornada e facilitar seus próximos pedidos, informe seu nome e WhatsApp.</p>
+                <p style="color:rgba(255,255,255,0.4);font-size:15px;line-height:1.5;margin:0 0 18px;">Assim conseguimos confirmar seu pedido e agilizar seu atendimento.</p>
                 <div style="margin-bottom:12px;">
                     <input id="capture-name" type="text" placeholder="Seu nome" autocomplete="given-name"
-                        style="width:100%;padding:11px 13px;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:#1e1e1e;color:#fff;font-size:0.93rem;box-sizing:border-box;">
+                        style="width:100%;height:48px;padding:0 13px;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:#1e1e1e;color:#fff;font-size:16px;box-sizing:border-box;">
                 </div>
                 <div style="margin-bottom:18px;">
                     <input id="capture-whatsapp" type="tel" placeholder="(00) 00000-0000" autocomplete="tel"
-                        style="width:100%;padding:11px 13px;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:#1e1e1e;color:#fff;font-size:0.93rem;box-sizing:border-box;">
+                        style="width:100%;height:48px;padding:0 13px;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:#1e1e1e;color:#fff;font-size:16px;box-sizing:border-box;">
                 </div>
-                <button onclick="saveCaptureModal()" style="width:100%;padding:13px;background:#EBB43B;color:#000;border:none;border-radius:10px;font-weight:700;font-size:0.93rem;cursor:pointer;">SALVAR</button>
+                <button onclick="saveCaptureModal()" style="width:100%;height:52px;background:#EBB43B;color:#000;border:none;border-radius:10px;font-weight:700;font-size:16px;cursor:pointer;box-sizing:border-box;">SALVAR</button>
                 <button onclick="closeCaptureModal()" style="width:100%;padding:11px;background:transparent;color:rgba(255,255,255,0.35);border:none;border-radius:10px;cursor:pointer;margin-top:7px;font-size:0.83rem;">Agora não</button>
             </div>
         </div>
