@@ -1,4 +1,11 @@
-require('dotenv').config({ path: __dirname + '/.env' });
+const fs = require('fs');
+const envPath = __dirname + '/.env';
+
+console.log('[ENV PATH]', envPath);
+console.log('[ENV FILE EXISTS]', fs.existsSync(envPath));
+
+require('dotenv').config({ path: envPath });
+
 console.log('[ENV CHECK]', process.env.BASE_URL);
 
 const REQUIRED_ALWAYS = ['BASE_URL', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
