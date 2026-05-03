@@ -2,6 +2,8 @@ const express = require('express');
 const crypto = require('crypto');
 const { MercadoPagoConfig, Payment } = require('mercadopago');
 const { secLog: fileSecLog } = require('../utils/secLogger');
+const { systemAlert } = require('../utils/systemAlert');
+const { sendAlert } = require('../../monitor/alert-dispatcher');
 const QRCode = require('qrcode');
 const { sendOrderEmails, sendOrderWhatsApp } = require('../notification-service');
 const { getUnifiedAvailableStock } = require('../services/stockService');
@@ -136,13 +138,21 @@ module.exports = function (supabase) {
             if (attempt_id) {
                 const hit = await checkIdempotentAttempt(order_id, attempt_id);
                 if (hit) {
-                    console.log('[IDEMPOTENCY HIT]', { attempt_id, order_id });
+                    console.log(JSON.stringify({ tag: 'IDEMPOTENCY_HIT', attempt_id, order_id, timestamp: new Date().toISOString() }));
                     return res.json({ reuse: true, payment_id: hit.mp_payment_id, order_id });
                 }
             }
 
+            // ── PROTEÇÃO DUPLA COBRANÇA ────────────────────────────────────────
+            const { data: alreadyPaid } = await supabase
+                .from('pedidos').select('id').eq('id', order_id).eq('status', 'paid').maybeSingle();
+            if (alreadyPaid) {
+                console.log(JSON.stringify({ tag: 'LOCK_FAIL', order_id, reason: 'already_paid', timestamp: new Date().toISOString() }));
+                return res.status(409).json({ error: 'Pedido já foi pago. Nenhuma cobrança realizada.' });
+            }
+
             // ── LOCK ──────────────────────────────────────────────────────────
-            console.log('[LOCK TRY]', order_id);
+            console.log(JSON.stringify({ tag: 'LOCK_TRY', order_id, timestamp: new Date().toISOString() }));
 
             const staleErr = await cleanStaleProcessingLock(order_id);
             if (isSchemaError(staleErr)) {
@@ -165,11 +175,11 @@ module.exports = function (supabase) {
             }
 
             if (!lockedOrder) {
-                console.log('[LOCK DENIED]', { order_id });
+                console.log(JSON.stringify({ tag: 'LOCK_FAIL', order_id, reason: 'already_processing', timestamp: new Date().toISOString() }));
                 return res.status(409).json({ error: 'Pedido já está sendo processado' });
             }
             orderLocked = true;
-            console.log('[LOCK OK]', order_id);
+            console.log(JSON.stringify({ tag: 'LOCK_OK', order_id, timestamp: new Date().toISOString() }));
 
             console.log('[PAYMENT FLOW]', {
                 pedido_id: lockedOrder.id,
@@ -246,7 +256,10 @@ module.exports = function (supabase) {
 
             // Criar Pagamento no Mercado Pago
             const baseUrl = process.env.BASE_URL || "";
-            const isHttps = baseUrl.startsWith('https://');
+            const notificationUrl = baseUrl ? `${baseUrl}/api/mercadopago/webhook` : undefined;
+            if (!notificationUrl) {
+                console.error('❌ [PIX] BASE_URL não configurado — webhook MP desabilitado. Pedidos PIX podem ficar pending indefinidamente.');
+            }
 
             const paymentData = {
                 body: {
@@ -262,7 +275,7 @@ module.exports = function (supabase) {
                     },
                     external_reference: String(order_id),
                     date_of_expiration: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-                    notification_url: isHttps ? `${baseUrl}/api/mercadopago/webhook` : undefined,
+                    notification_url: notificationUrl,
                     additional_info: {
                         items: cart.map(item => ({
                             id: String(item.id || item._id || ''),
@@ -275,11 +288,11 @@ module.exports = function (supabase) {
                 }
             };
 
-            console.log('[MP CALL] criando pagamento pix', { amount: paymentData.body.transaction_amount });
+            console.log(JSON.stringify({ tag: 'MP_CALL', method: 'pix', amount: paymentData.body.transaction_amount, order_id, timestamp: new Date().toISOString() }));
             const mpResponse = await payment.create(paymentData, { idempotencyKey: attempt_id || idemKey });
             paymentStatus = mpResponse.status || 'unknown';
             const mpId = String(mpResponse.id);
-            console.log('[MP SUCCESS]', mpId);
+            console.log(JSON.stringify({ tag: 'MP_SUCCESS', payment_id: mpId, order_id, timestamp: new Date().toISOString() }));
             const qrCode = mpResponse.point_of_interaction.transaction_data.qr_code;
             const qrCodeBase64 = await /** @type {Promise<string>} */ (QRCode.toDataURL(qrCode));
 
@@ -342,7 +355,7 @@ module.exports = function (supabase) {
 
         } catch (error) {
             paymentStatus = 'error';
-            console.log('[MP ERROR]', { requestId, error: error?.message || JSON.stringify(error) });
+            systemAlert('MP_ERROR', { method: 'pix', request_id: requestId, order_id, error: error?.message || JSON.stringify(error) });
             console.error('❌ [PIX] Erro Crítico:', error.response?.data || error);
             return res.status(error.response?.status || 500).json({
                 error: true,
@@ -732,14 +745,22 @@ module.exports = function (supabase) {
             if (attempt_id) {
                 const hit = await checkIdempotentAttempt(order_id, attempt_id);
                 if (hit) {
-                    console.log('[IDEMPOTENCY HIT]', { attempt_id, order_id });
+                    console.log(JSON.stringify({ tag: 'IDEMPOTENCY_HIT', attempt_id, order_id, timestamp: new Date().toISOString() }));
                     return res.json({ reuse: true, status: hit.status, payment_id: hit.mp_payment_id, order_id });
                 }
             }
 
+            // ── PROTEÇÃO DUPLA COBRANÇA ────────────────────────────────────────
+            const { data: alreadyPaidCard } = await supabase
+                .from('pedidos').select('id').eq('id', order_id).eq('status', 'paid').maybeSingle();
+            if (alreadyPaidCard) {
+                console.log(JSON.stringify({ tag: 'LOCK_FAIL', order_id, reason: 'already_paid', timestamp: new Date().toISOString() }));
+                return res.status(409).json({ error: 'Pedido já foi pago. Nenhuma cobrança realizada.' });
+            }
+
             // ── LOCK ──────────────────────────────────────────────────────────
             console.log('[DB CHECK] tentando acessar colunas processing / processing_at');
-            console.log('[LOCK TRY]', order_id);
+            console.log(JSON.stringify({ tag: 'LOCK_TRY', order_id, timestamp: new Date().toISOString() }));
 
             const staleErr = await cleanStaleProcessingLock(order_id);
             if (isSchemaError(staleErr)) {
@@ -762,11 +783,11 @@ module.exports = function (supabase) {
             }
 
             if (!lockedOrder) {
-                console.log('[LOCK DENIED]', { order_id });
+                console.log(JSON.stringify({ tag: 'LOCK_FAIL', order_id, reason: 'already_processing', timestamp: new Date().toISOString() }));
                 return res.status(409).json({ error: 'Pedido já está sendo processado' });
             }
             orderLocked = true;
-            console.log('[LOCK OK]', order_id);
+            console.log(JSON.stringify({ tag: 'LOCK_OK', order_id, timestamp: new Date().toISOString() }));
 
             console.log('[PAYMENT FLOW]', {
                 pedido_id: lockedOrder.id,
@@ -822,7 +843,7 @@ module.exports = function (supabase) {
 
             const idempotencyKey = attempt_id || crypto.randomUUID();
 
-            console.log('[MP CALL] criando pagamento');
+            console.log(JSON.stringify({ tag: 'MP_CALL', method: 'card', order_id, timestamp: new Date().toISOString() }));
             const mpRes = await fetch('https://api.mercadopago.com/v1/payments', {
                 method: 'POST',
                 headers: {
@@ -843,7 +864,7 @@ module.exports = function (supabase) {
 
             const mpId = String(responseData.id);
             paymentStatus = responseData.status || 'unknown';
-            console.log('[MP SUCCESS]', mpId);
+            console.log(JSON.stringify({ tag: 'MP_SUCCESS', payment_id: mpId, order_id, status: responseData.status, timestamp: new Date().toISOString() }));
             console.log(`💳 [MP Card] Pagamento ${mpId}: ${responseData.status} (${responseData.status_detail})`);
 
             // Atualizar pedido existente criado por prepare-card-order
@@ -898,7 +919,7 @@ module.exports = function (supabase) {
 
         } catch (err) {
             paymentStatus = 'error';
-            console.log('[MP ERROR]', { requestId, error: err?.message || JSON.stringify(err) });
+            systemAlert('MP_ERROR', { method: 'card', request_id: requestId, order_id: req.body?.order_id, error: err?.message || JSON.stringify(err) });
             console.error('MP ERROR COMPLETO:', err.response?.data || err);
             return res.status(500).json({
                 error: err.response?.data?.message ||
@@ -1031,6 +1052,12 @@ async function recalcularTotal(supabase, cart) {
 // Processamento de pedido pago via Mercado Pago
 // Executado pelo webhook (e pelo polling como fallback com idempotência)
 async function processPaidMPOrder(supabase, mpId, _mpPayment) {
+    // Fail-safe: nunca processar sem mp_payment_id — evita cobranças duplicadas silenciosas
+    if (!mpId) {
+        systemAlert('MP_ERROR', { error: '[CRITICAL] mp_payment_id ausente — operação abortada' });
+        return;
+    }
+
     // Guard: ignora pagamentos antigos quando o pedido já tem um mp_payment_id mais recente.
     // external_reference é o order_id numérico (definido em create-pix-payment e create-card-payment).
     const extRef = _mpPayment?.external_reference;
@@ -1066,6 +1093,15 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
             console.log(`[MP] Pagamento ${mpId} ignorado — UNIQUE violation (race condition resolvida pelo banco).`);
         } else {
             console.error(`❌ [MP] Erro ao processar pedido ${externalId}:`, updateErr.message);
+            // Inserir na DLQ para reprocessamento automático
+            supabase.from('failed_payments_queue').insert({
+                order_id: String(extRef || 'unknown'),
+                mp_payment_id: mpId,
+                error_type: 'DB_UPDATE_FAILED',
+                payload: { externalId, error_code: updateErr.code },
+                last_error: updateErr.message
+            }).catch(() => {});
+            sendAlert({ tipo: 'MP_PROCESS_FAILED', order_id: String(extRef || 'unknown'), detail: updateErr.message }).catch(() => {});
         }
         return;
     }
@@ -1129,3 +1165,6 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
 
     console.log(`✅ [MP] Pedido ${order.id} processado com sucesso.`);
 }
+
+// Exportado para uso nos workers de DLQ e reconciliação
+module.exports.processPaidMPOrder = processPaidMPOrder;

@@ -1193,6 +1193,36 @@ module.exports = function (supabase) {
         res.json(coupon ? { valid: true, ...coupon } : { valid: false });
     });
 
+    // Dashboard de saúde do sistema de pagamentos
+    router.get('/payments-health', adminAuth, async (req, res) => {
+        try {
+            const cutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+            const [pendingRes, paidRes, failedRes, staleRes, dlqRes] = await Promise.all([
+                supabase.from('pedidos').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+                supabase.from('pedidos').select('id', { count: 'exact', head: true }).eq('status', 'paid'),
+                supabase.from('pedidos').select('id', { count: 'exact', head: true }).in('status', ['payment_failed', 'error']),
+                supabase.from('pedidos').select('id', { count: 'exact', head: true }).eq('status', 'pending').eq('processing', true).lt('processing_at', cutoff),
+                supabase.from('failed_payments_queue').select('id', { count: 'exact', head: true }).lt('retries', 3)
+            ]);
+            res.json({
+                pending:             pendingRes.count ?? 0,
+                paid:                paidRes.count    ?? 0,
+                failed:              failedRes.count  ?? 0,
+                stale_locks:         staleRes.count   ?? 0,
+                fila_reprocessamento: dlqRes.count    ?? 0,
+                timestamp: new Date().toISOString()
+            });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // Métricas de negócio das últimas 24h
+    router.get('/payment-metrics', adminAuth, async (req, res) => {
+        try {
+            const { getPaymentMetrics } = require('../../metrics/payments_metrics');
+            res.json(await getPaymentMetrics(supabase));
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
     const { sendOrderEmails, sendOrderWhatsApp } = require('../notification-service');
     router.get('/test-notifications', adminAuth, async (req, res) => {
         try {

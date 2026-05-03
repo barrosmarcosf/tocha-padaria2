@@ -363,6 +363,16 @@ app.listen(PORT, '0.0.0.0', () => {
     setInterval(() => checkPendingPayments(supabase), WORKER_INTERVAL);
     checkPendingPayments(supabase);
 
+    // Worker DLQ: reprocessar pagamentos que falharam (a cada 2 min)
+    const { retryFailedPayments } = require('./src/workers/retry-failed-payments');
+    console.log("🚀 [WORKER] Dead Letter Queue Iniciado (intervalo: 2min).");
+    setInterval(() => retryFailedPayments(supabase), 2 * 60 * 1000);
+
+    // Worker de Reconciliação MP: corrigir pagamentos aprovados não processados (a cada 5 min)
+    const { reconcileMPPayments } = require('./src/workers/mp-reconciliation');
+    console.log("🚀 [WORKER] Reconciliação Mercado Pago Iniciada (intervalo: 5min).");
+    setInterval(() => reconcileMPPayments(supabase), WORKER_INTERVAL);
+
     // Iniciar o WhatsApp Bot com um pequeno delay para não impactar o boot
     setTimeout(() => {
         console.log("🤖 [SERVER] Iniciando Tocha Bot (WhatsApp)...");

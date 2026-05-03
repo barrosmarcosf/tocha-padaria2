@@ -399,7 +399,7 @@
                     initialization: {
                         amount: Number(orderData.total),
                         payer: {
-                            email: payerEmail || 'test@test.com'
+                            email: payerEmail || ''
                         }
                     },
                     customization: {
@@ -437,13 +437,18 @@
                                     throw new Error('TOKEN NÃO GERADO');
                                 }
 
+                                const resolvedEmail = cardFormData.payer?.email || payerEmail;
+                                if (!resolvedEmail) {
+                                    throw new Error('Email do pagador não disponível. Verifique seus dados e tente novamente.');
+                                }
+
                                 const payload = {
                                     token: cardFormData.token,
                                     payment_method_id: cardFormData.payment_method_id,
                                     issuer_id: cardFormData.issuer_id,
                                     installments: cardFormData.installments,
                                     payer: {
-                                        email: payerEmail || 'test@test.com'
+                                        email: resolvedEmail
                                     },
                                     amount: Number(orderData.total),
                                     order_id: orderId,
@@ -523,7 +528,7 @@
                                 // ✅ ÚNICO CAMINHO POSSÍVEL
                                 console.log('[MP FLOW REDIRECT OK]', data);
 
-                                window.location.href = `/?status=success&order_id=${orderId}&payment_id=${data.id}`;
+                                window.location.href = `/?status=success&order_id=${orderId}&payment_id=${data.payment_id}`;
 
                             } catch (err) {
                                 console.error("❌ Erro no processamento:", err);
