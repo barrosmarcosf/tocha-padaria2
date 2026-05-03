@@ -72,6 +72,40 @@ module.exports = function (supabase) {
     });
     const payment = new Payment(client);
 
+    const LOCK_STALE_MS = 2 * 60 * 1000;
+
+    function isSchemaError(err) {
+        return !!(err?.message?.includes('schema cache') || err?.message?.includes("'processing'"));
+    }
+
+    function schemaCacheResponse(res) {
+        return res.status(503).json({
+            error: "Schema cache desatualizado. Execute 'NOTIFY pgrst, reload schema' no Supabase SQL Editor e tente novamente em 30s.",
+            schema_cache: true
+        });
+    }
+
+    async function checkIdempotentAttempt(order_id, attempt_id) {
+        const { data } = await supabase
+            .from('pedidos')
+            .select('id, status, mp_payment_id')
+            .eq('id', order_id)
+            .eq('payment_attempt_id', attempt_id)
+            .maybeSingle();
+        return data?.mp_payment_id ? data : null;
+    }
+
+    async function cleanStaleProcessingLock(order_id) {
+        const cutoff = new Date(Date.now() - LOCK_STALE_MS).toISOString();
+        const { error } = await supabase
+            .from('pedidos')
+            .update({ processing: false, processing_at: null })
+            .eq('id', order_id)
+            .eq('processing', true)
+            .or(`processing_at.lt.${cutoff},processing_at.is.null`);
+        return error || null;
+    }
+
     // Rota legada desabilitada — não salva pedido no banco, nunca use.
     router.post('/process-payment', (_req, res) => {
         return res.status(410).json({
@@ -100,34 +134,23 @@ module.exports = function (supabase) {
 
             // ── IDEMPOTÊNCIA PRÉ-LOCK ──────────────────────────────────────────
             if (attempt_id) {
-                const { data: existingAttempt } = await supabase
-                    .from('pedidos')
-                    .select('id, status, mp_payment_id')
-                    .eq('id', order_id)
-                    .eq('payment_attempt_id', attempt_id)
-                    .maybeSingle();
-                if (existingAttempt?.mp_payment_id) {
+                const hit = await checkIdempotentAttempt(order_id, attempt_id);
+                if (hit) {
                     console.log('[IDEMPOTENCY HIT]', { attempt_id, order_id });
-                    return res.json({
-                        reuse: true,
-                        payment_id: existingAttempt.mp_payment_id,
-                        order_id
-                    });
+                    return res.json({ reuse: true, payment_id: hit.mp_payment_id, order_id });
                 }
             }
 
             // ── LOCK ──────────────────────────────────────────────────────────
             console.log('[LOCK TRY]', order_id);
 
-            const staleCutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-            await supabase
-                .from('pedidos')
-                .update({ processing: false, processing_at: null })
-                .eq('id', order_id)
-                .eq('processing', true)
-                .or(`processing_at.lt.${staleCutoff},processing_at.is.null`);
+            const staleErr = await cleanStaleProcessingLock(order_id);
+            if (isSchemaError(staleErr)) {
+                console.error('[SCHEMA CACHE ERROR]', staleErr.message);
+                return schemaCacheResponse(res);
+            }
 
-            const { data: lockedOrder } = await supabase
+            const { data: lockedOrder, error: lockErr } = await supabase
                 .from('pedidos')
                 .update({ processing: true, processing_at: new Date().toISOString() })
                 .eq('id', order_id)
@@ -135,6 +158,11 @@ module.exports = function (supabase) {
                 .in('status', ['pending', 'payment_failed'])
                 .select()
                 .single();
+
+            if (isSchemaError(lockErr)) {
+                console.error('[SCHEMA CACHE ERROR]', lockErr.message);
+                return schemaCacheResponse(res);
+            }
 
             if (!lockedOrder) {
                 console.log('[LOCK DENIED]', { order_id });
@@ -148,7 +176,6 @@ module.exports = function (supabase) {
                 status: lockedOrder.status,
                 antigo_payment_id: lockedOrder.mp_payment_id
             });
-            console.log('[ORDER LOCKED]', { requestId, orderId: order_id });
 
             let { customer, cart } = req.body;
 
@@ -702,23 +729,11 @@ module.exports = function (supabase) {
             }
 
             // ── IDEMPOTÊNCIA PRÉ-LOCK ──────────────────────────────────────────
-            // Verifica attempt_id ANTES de tentar o lock para que double-submit
-            // retorne 200 em vez de 409 quando o primeiro clique já terminou.
             if (attempt_id) {
-                const { data: existingAttempt } = await supabase
-                    .from('pedidos')
-                    .select('id, status, mp_payment_id')
-                    .eq('id', order_id)
-                    .eq('payment_attempt_id', attempt_id)
-                    .maybeSingle();
-                if (existingAttempt?.mp_payment_id) {
+                const hit = await checkIdempotentAttempt(order_id, attempt_id);
+                if (hit) {
                     console.log('[IDEMPOTENCY HIT]', { attempt_id, order_id });
-                    return res.json({
-                        reuse: true,
-                        status: existingAttempt.status,
-                        payment_id: existingAttempt.mp_payment_id,
-                        order_id
-                    });
+                    return res.json({ reuse: true, status: hit.status, payment_id: hit.mp_payment_id, order_id });
                 }
             }
 
@@ -726,22 +741,10 @@ module.exports = function (supabase) {
             console.log('[DB CHECK] tentando acessar colunas processing / processing_at');
             console.log('[LOCK TRY]', order_id);
 
-            // Limpa lock preso de requisição anterior abandonada (> 2 min).
-            // OR cobre linhas cujo processing_at é NULL (criadas antes da migration).
-            const staleCutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-            const { error: staleErr } = await supabase
-                .from('pedidos')
-                .update({ processing: false, processing_at: null })
-                .eq('id', order_id)
-                .eq('processing', true)
-                .or(`processing_at.lt.${staleCutoff},processing_at.is.null`);
-
-            if (staleErr?.message?.includes('schema cache') || staleErr?.message?.includes("'processing'")) {
+            const staleErr = await cleanStaleProcessingLock(order_id);
+            if (isSchemaError(staleErr)) {
                 console.error('[SCHEMA CACHE ERROR]', staleErr.message);
-                return res.status(503).json({
-                    error: "Schema cache desatualizado. Execute 'NOTIFY pgrst, reload schema' no Supabase SQL Editor e tente novamente em 30s.",
-                    schema_cache: true
-                });
+                return schemaCacheResponse(res);
             }
 
             const { data: lockedOrder, error: lockErr } = await supabase
@@ -753,12 +756,9 @@ module.exports = function (supabase) {
                 .select('*, clientes(name, whatsapp)')
                 .single();
 
-            if (lockErr?.message?.includes('schema cache') || lockErr?.message?.includes("'processing'")) {
+            if (isSchemaError(lockErr)) {
                 console.error('[SCHEMA CACHE ERROR]', lockErr.message);
-                return res.status(503).json({
-                    error: "Schema cache desatualizado. Execute 'NOTIFY pgrst, reload schema' no Supabase SQL Editor e tente novamente em 30s.",
-                    schema_cache: true
-                });
+                return schemaCacheResponse(res);
             }
 
             if (!lockedOrder) {
