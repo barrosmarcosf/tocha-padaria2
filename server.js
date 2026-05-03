@@ -1,5 +1,21 @@
 require('dotenv').config({ path: __dirname + '/.env' });
-console.log('[ENV CHECK]', process.env.BASE_URL);
+const REQUIRED_ALWAYS = ['BASE_URL', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
+const REQUIRED_PRODUCTION = ['JWT_SECRET', 'STRIPE_WEBHOOK_SECRET', 'MERCADOPAGO_WEBHOOK_SECRET', 'ADMIN_PASS'];
+
+const missingEnv = [
+    ...REQUIRED_ALWAYS.filter(k => !process.env[k]),
+    ...(process.env.NODE_ENV === 'production' ? REQUIRED_PRODUCTION.filter(k => !process.env[k]) : [])
+];
+
+if (missingEnv.length) {
+    missingEnv.forEach(k => console.error(`[ENV ERROR] ${k} não definido`));
+    process.exit(1);
+}
+
+console.log('[ENV OK]', {
+    BASE_URL: process.env.BASE_URL,
+    NODE_ENV: process.env.NODE_ENV
+});
 
 /**
  * TOCHA PADARIA — Servidor Principal
@@ -8,17 +24,6 @@ console.log('[ENV CHECK]', process.env.BASE_URL);
  * monta as rotas modulares e inicia o worker de abandono.
  */
 console.log("🚀 [SERVER] REINICIADO COM LOG DE DEPURACAO v999");
-
-// Validação de segredos críticos obrigatórios em produção
-if (process.env.NODE_ENV === 'production') {
-    const required = ['JWT_SECRET', 'STRIPE_WEBHOOK_SECRET', 'MERCADOPAGO_WEBHOOK_SECRET', 'ADMIN_PASS'];
-    const missing = required.filter(k => !process.env[k]);
-    if (missing.length) {
-        console.error(`❌ [STARTUP] Segredos obrigatórios ausentes: ${missing.join(', ')}. Configure no .env e reinicie.`);
-        process.exit(1);
-    }
-    console.log('✅ [STARTUP] Validação de segredos críticos: OK');
-}
 
 // CAPTURA DE ERROS TOTAIS (Para diagnosticar exit code 1)
 process.on('uncaughtException', (err) => {
