@@ -43,6 +43,8 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+console.log('[SUPABASE URL]', (supabaseUrl || 'NÃO DEFINIDO').slice(0, 50));
+
 // Diagnóstico de conexão na subida
 (async () => {
     const { error } = await supabase.from('clientes').select('id').limit(1);

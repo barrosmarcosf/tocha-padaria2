@@ -27,6 +27,11 @@ ALTER TABLE pedidos
 ALTER TABLE pedidos
     ADD COLUMN IF NOT EXISTS payment_attempt_id UUID;
 
+-- NULL-safety: linhas criadas antes desta migration teriam processing=NULL
+-- e quebrariam o lock (.eq('processing', false)). NOT NULL DEFAULT false
+-- faz o backfill automaticamente, mas este UPDATE garante explicitamente.
+UPDATE pedidos SET processing = false WHERE processing IS NULL;
+
 -- ─────────────────────────────────────────────────────────────
 -- BLOCO 2: Índice único em payment_attempt_id
 -- O banco rejeita dois pagamentos com o mesmo attempt_id mesmo
