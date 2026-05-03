@@ -482,6 +482,8 @@ window.confirmarPedido = async function() {
             }
 
             const data = await res.json();
+            localStorage.setItem('order_id', data.order_id);
+            console.log('[ORDER ID SAVED]', data.order_id);
             if (data.order_id) localStorage.setItem('tocha-order-id', String(data.order_id));
             window.location.href = `/checkout-mp.html?order_id=${data.order_id}`;
             return;

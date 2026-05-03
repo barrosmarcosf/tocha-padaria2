@@ -485,7 +485,12 @@
 
                                 statusTimer = setTimeout(async () => {
                                     try {
-                                        if (!orderId) return;
+                                        const orderId = localStorage.getItem('order_id');
+                                        if (!orderId) {
+                                            console.error('[ORDER ID ERROR] order_id não encontrado');
+                                            throw new Error('order_id não encontrado');
+                                        }
+                                        console.log('[ORDER ID USING]', orderId);
                                         const statusRes = await fetch(`/api/orders/${orderId}`);
                                         const statusData = await statusRes.json();
                                         console.log('[ORDER STATUS CHECK]', statusData.status);
@@ -493,7 +498,9 @@
                                             hasRedirected = true;
                                             window.location.href = '/sucesso.html';
                                         }
-                                    } catch (_) {}
+                                    } catch (e) {
+                                        console.error('[ORDER STATUS ERROR]', e.message);
+                                    }
                                 }, 3000);
 
                                 if (res.status === 409) {
