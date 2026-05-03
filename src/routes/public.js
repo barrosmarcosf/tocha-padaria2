@@ -128,22 +128,27 @@ module.exports = function (supabase) {
     // STATUS DO PEDIDO (usado pelo checkout-mp.html)
     // ──────────────────────────────────────────────────
     router.get('/orders/:id', async (req, res) => {
+        const { id } = req.params;
         try {
             const { data: pedido, error } = await supabase
                 .from('pedidos')
-                .select('id, status, total_amount, clientes(name, email)')
-                .eq('id', req.params.id)
+                .select('id, status, mp_payment_id, created_at')
+                .eq('id', id)
                 .single();
 
-            if (error || !pedido) return res.status(404).json({ error: 'Pedido não encontrado.' });
+            if (error || !pedido) {
+                console.warn('[ORDER NOT FOUND]', { id });
+                return res.status(404).json({ error: 'Pedido não encontrado.' });
+            }
 
             res.json({
                 id: pedido.id,
                 status: pedido.status,
-                total: pedido.total_amount,
-                customer: pedido.clientes
+                mp_payment_id: pedido.mp_payment_id,
+                created_at: pedido.created_at
             });
         } catch (e) {
+            console.error('[ORDER GET ERROR]', { id, error: e.message });
             res.status(500).json({ error: e.message });
         }
     });
