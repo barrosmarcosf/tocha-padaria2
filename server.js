@@ -1,4 +1,6 @@
 require('dotenv').config({ path: __dirname + '/.env' });
+console.log('[ENV CHECK]', process.env.BASE_URL);
+
 const REQUIRED_ALWAYS = ['BASE_URL', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
 const REQUIRED_PRODUCTION = ['JWT_SECRET', 'STRIPE_WEBHOOK_SECRET', 'MERCADOPAGO_WEBHOOK_SECRET', 'ADMIN_PASS'];
 
