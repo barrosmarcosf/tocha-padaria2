@@ -6,6 +6,7 @@ module.exports = {
             instances: 1,
             autorestart: true,
             watch: false,
+            env_file: '.env',
             env: {
                 NODE_ENV: 'production'
             }
@@ -16,6 +17,7 @@ module.exports = {
             cron_restart: '* * * * *',
             autorestart: true,
             watch: false,
+            env_file: '.env',
             env: {
                 NODE_ENV: 'production'
             }

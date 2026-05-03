@@ -5,7 +5,8 @@
  * monta as rotas modulares e inicia o worker de abandono.
  */
 console.log("🚀 [SERVER] REINICIADO COM LOG DE DEPURACAO v999");
-require('dotenv').config();
+require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
+console.log('[ENV CHECK]', process.env.BASE_URL || '⚠️ BASE_URL não definido');
 
 // Validação de segredos críticos obrigatórios em produção
 if (process.env.NODE_ENV === 'production') {
