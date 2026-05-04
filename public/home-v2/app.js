@@ -22,6 +22,22 @@
   }
   function saveCart(c) { localStorage.setItem('tocha-cart', JSON.stringify(c)); }
 
+  function fetchWithTimeout(url, options, timeout) {
+    timeout = timeout || 10000;
+    const ctrl = new AbortController();
+    const id = setTimeout(function () { ctrl.abort(); }, timeout);
+    return fetch(url, Object.assign({}, options, { signal: ctrl.signal }))
+      .finally(function () { clearTimeout(id); });
+  }
+
+  function safeTrack(event, props) {
+    if (typeof window.track === 'function') {
+      window.track(event, props);
+    } else {
+      console.warn('[track] window.track não está carregado — evento descartado:', event, props);
+    }
+  }
+
   /* ── hooks ── */
   function useScrolled(threshold) {
     threshold = threshold || 40;
