@@ -695,6 +695,35 @@
         .admin-sidebar .sub-nav .nav-item {
           font-size: 0.78em;
         }
+
+        /* Segurança lateral */
+        html, body { max-width: 100%; }
+
+        /* Containers seguros */
+        .main-content, .admin-content, .page-content, .content, .container {
+          max-width: 100%;
+          width: 100%;
+        }
+
+        /* Tabelas: scroll interno sem quebrar display */
+        table, .table {
+          overflow-x: auto;
+        }
+
+        /* Inputs e formulários */
+        input, select, textarea, button { max-width: 100%; }
+
+        /* Imagens */
+        img { max-width: 100%; height: auto; }
+
+        /* Tipografia */
+        body { line-height: 1.5; }
+        h1 { font-size: 1.4em; }
+        h2 { font-size: 1.2em; }
+        h3 { font-size: 1.05em; }
+
+        /* Espaçamento equilibrado */
+        .section, .card, .box { margin-bottom: 16px; }
     </style>
 </head>
 <body>
