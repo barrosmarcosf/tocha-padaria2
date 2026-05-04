@@ -653,6 +653,39 @@
         .admin-sidebar .nav-group:not(:last-child) { border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px; }
         .admin-sidebar .nav-item,
         .admin-sidebar .nav-group-header { padding: 10px 12px; border-radius: 8px; }
+
+        /* Expandir área de conteúdo sem estourar lateral */
+        .admin-content,
+        .main-content,
+        .content,
+        .container {
+          max-width: 100%;
+          width: 100%;
+          padding-right: 16px;
+          box-sizing: border-box;
+        }
+
+        /* Reduzir margens laterais excessivas */
+        .admin-content,
+        .main-content {
+          margin-right: 0;
+        }
+
+        /* Garantir que nada ultrapasse a tela */
+        body, html {
+          overflow-x: hidden;
+        }
+
+        /* Evitar elementos estourando largura */
+        * {
+          max-width: 100%;
+        }
+
+        /* Ajuste fino para tabelas/grids */
+        table, .table, .grid {
+          width: 100%;
+          max-width: 100%;
+        }
     </style>
 </head>
 <body>
