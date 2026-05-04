@@ -724,6 +724,63 @@
 
         /* Espaçamento equilibrado */
         .section, .card, .box { margin-bottom: 16px; }
+
+        /* Conter estouro residual nos containers */
+        .main-content,
+        .admin-content,
+        .page-content,
+        .content,
+        .container {
+          overflow-x: hidden;
+        }
+
+        /* Filhos não forçam largura */
+        .main-content > *,
+        .admin-content > *,
+        .page-content > *,
+        .content > *,
+        .container > * {
+          max-width: 100%;
+          min-width: 0;
+        }
+
+        /* Tabelas largas: rolagem horizontal controlada */
+        .table-wrapper,
+        .table-container {
+          width: 100%;
+          max-width: 100%;
+          overflow-x: auto;
+        }
+        .table-wrapper table,
+        .table-container table {
+          width: max-content;
+          min-width: 100%;
+        }
+
+        /* Grids e flex não estouram */
+        .grid, [class*="grid"],
+        .flex, [class*="flex"] {
+          min-width: 0;
+        }
+
+        /* Textos longos não empurram layout */
+        td, th, p, span, div {
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+
+        /* Botões e inputs não crescem além do container */
+        button, input, select, textarea {
+          min-width: 0;
+        }
+
+        /* Sidebar não empurra conteúdo */
+        .admin-sidebar {
+          flex-shrink: 0;
+        }
+
+        /* Tipografia levemente mais consistente */
+        body { line-height: 1.55; }
     </style>
 </head>
 <body>
