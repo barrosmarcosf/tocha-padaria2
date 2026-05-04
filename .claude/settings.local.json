@@ -17,7 +17,8 @@
       "Read(//c/tmp/vps-deploy\" 2>/dev/**)",
       "Bash(node deploy_webhook_fix.js)",
       "Bash(node -e ' *)",
-      "Bash(VPS_PASS='Romeudodeserto12-' node read_mp.js)"
+      "Bash(VPS_PASS='Romeudodeserto12-' node read_mp.js)",
+      "Bash(tree -d -L 2 /c/Users/tocha/.gemini/antigravity/scratch/tocha-padaria --ignore node_modules)"
     ]
   }
 }
