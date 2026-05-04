@@ -634,6 +634,7 @@
     const [wa, setWa] = useState('');
     const [payment, setPayment] = useState('pix');
     const [err, setErr] = useState('');
+    const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
       if (!open) return;
@@ -659,7 +660,8 @@
     async function handleCheckout() {
       if (!name.trim() || !email.trim() || !wa.trim()) { setErr('Preencha todos os campos obrigatórios.'); return; }
       if (!email.includes('@')) { setErr('E-mail inválido.'); return; }
-      setErr(''); setStep('loading');
+      if (submitting) return;
+      setErr(''); setSubmitting(true); setStep('loading');
 
       const customer = { name: name.trim(), email: email.trim(), whatsapp: wa.trim() };
       localStorage.setItem('tocha-customer', JSON.stringify(customer));
@@ -668,47 +670,56 @@
         body: JSON.stringify(customer),
       }).catch(function () {});
 
-      if (window.track) window.track('start_checkout', { method: payment, items: cart.length });
+      safeTrack('start_checkout', { method: payment, items: cart.length });
 
       const key = crypto.randomUUID();
 
       try {
         if (payment === 'mp_card') {
-          const res = await fetch('/api/mercadopago/prepare-card-order', {
+          const res = await fetchWithTimeout('/api/mercadopago/prepare-card-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-idempotency-key': key },
             body: JSON.stringify({ customer: customer, cart: cart }),
           });
-          if (!res.ok) { const d = await res.json().catch(function () { return {}; }); throw new Error(d.error || 'Erro ao preparar pedido.'); }
+          if (!res.ok) { const d = await res.json().catch(function () { return {}; }); throw new Error(d.error || 'Erro ao preparar pedido com cartão.'); }
           const data = await res.json();
-          if (data.order_id) localStorage.setItem('tocha-order-id', String(data.order_id));
+          if (!data.order_id) throw new Error('Pedido não gerado pelo servidor. Não prossiga — tente novamente.');
+          localStorage.setItem('tocha-order-id', String(data.order_id));
           window.location.href = '/checkout-mp.html?order_id=' + data.order_id;
           return;
         }
 
-        const prepRes = await fetch('/api/mercadopago/prepare-pix-order', {
+        const prepRes = await fetchWithTimeout('/api/mercadopago/prepare-pix-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-idempotency-key': key },
           body: JSON.stringify({ customer: customer, cart: cart }),
         });
         if (!prepRes.ok) { const d = await prepRes.json().catch(function () { return {}; }); throw new Error(d.error || 'Erro ao preparar pedido PIX.'); }
-        const { order_id: pixOrderId } = await prepRes.json();
+        const prepData = await prepRes.json();
+        const pixOrderId = prepData.order_id;
+        if (!pixOrderId) throw new Error('ID do pedido não recebido. Não prossiga — tente novamente.');
 
         const attemptId = crypto.randomUUID();
-        const pixRes = await fetch('/api/mercadopago/create-pix-payment', {
+        const pixRes = await fetchWithTimeout('/api/mercadopago/create-pix-payment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ order_id: pixOrderId, attempt_id: attemptId, customer: customer, cart: cart }),
         });
-        if (!pixRes.ok) { const d = await pixRes.json().catch(function () { return {}; }); throw new Error(d.error || 'Erro ao gerar PIX.'); }
+        if (!pixRes.ok) { const d = await pixRes.json().catch(function () { return {}; }); throw new Error(d.error || 'Erro ao gerar código PIX.'); }
         const pixData = await pixRes.json();
-        if (pixData.order_id) localStorage.setItem('tocha-order-id', String(pixData.order_id));
+        if (!pixData.order_id) throw new Error('Confirmação do pedido não recebida. Não prossiga.');
+        if (!pixData.pix_code && !pixData.checkout_url) throw new Error('Código PIX não recebido. Tente novamente.');
+        localStorage.setItem('tocha-order-id', String(pixData.order_id));
         localStorage.setItem('tocha-pix-data', JSON.stringify(pixData));
         localStorage.removeItem('tocha-cart');
         window.location.href = '/pagamento-pix.html';
       } catch (e) {
+        const msg = e.name === 'AbortError'
+          ? 'Tempo de resposta excedido. Verifique sua conexão e tente novamente.'
+          : (e.message || 'Erro ao processar pagamento.');
         setStep('checkout');
-        setErr(e.message || 'Erro ao processar pagamento.');
+        setErr(msg);
+        setSubmitting(false);
       }
     }
 
@@ -832,12 +843,15 @@
               </div>
               <button
                 onClick=${step === 'summary' ? () => setStep('checkout') : handleCheckout}
+                disabled=${submitting}
                 style=${{
                   width: '100%', height: '52px', background: C.amber, color: C.bg,
                   border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: 700,
-                  cursor: 'pointer', fontFamily: 'DM Sans, system-ui, sans-serif',
+                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  opacity: submitting ? 0.6 : 1,
+                  fontFamily: 'DM Sans, system-ui, sans-serif',
                 }}
-              >${step === 'summary' ? 'Ir para o Checkout →' : 'Confirmar Pedido →'}</button>
+              >${step === 'summary' ? 'Ir para o Checkout →' : submitting ? 'Aguarde...' : 'Confirmar Pedido →'}</button>
               ${step === 'checkout' ? html`
                 <button onClick=${() => { setStep('summary'); setErr(''); }} style=${{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer', fontSize: '14px', textAlign: 'center', fontFamily: 'DM Sans', padding: '4px' }}>← Voltar</button>` : null}
             </div>` : null}
@@ -885,7 +899,7 @@
         newCart.push({ id: product.id, name: product.name, price: product.price, image: product.image_url || null, qty: qty });
       }
       persist(newCart);
-      if (window.track) window.track('add_to_cart', { product_id: product.id, name: product.name, price: product.price, qty: qty });
+        safeTrack('add_to_cart', { product_id: product.id, name: product.name, price: product.price, qty: qty });
       setCartOpen(true);
 
       if (wasEmpty && !sessionStorage.getItem('tocha-capture-shown')) {
