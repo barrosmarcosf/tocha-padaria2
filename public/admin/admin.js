@@ -943,9 +943,28 @@ let state = {
                 renderSection();
             });
         });
+
+        document.querySelectorAll('.nav-group-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const subNav = document.getElementById(header.dataset.group);
+                header.classList.toggle('open');
+                subNav?.classList.toggle('open');
+            });
+        });
+        openGroupForSection(state.currentSection);
     }
 
-    window.navTo = async s => { 
+    function openGroupForSection(section) {
+        const item = document.querySelector(`.nav-item[data-section="${section}"]`);
+        if (!item) return;
+        const subNav = item.closest('.sub-nav');
+        if (!subNav) return;
+        subNav.classList.add('open');
+        const header = document.querySelector(`.nav-group-header[data-group="${subNav.id}"]`);
+        header?.classList.add('open');
+    }
+
+    window.navTo = async s => {
         if (s === 'dashboard' && state.currentSection !== 'dashboard') {
             state.statsPeriod = 'month';
             state.chartPeriod = 'month';
@@ -954,15 +973,16 @@ let state = {
             state.customTo = '';
             await fetchData();
         }
-        state.currentSection = s; 
+        state.currentSection = s;
         localStorage.setItem('tocha_admin_section', s);
-        
+
         document.querySelectorAll('.nav-item').forEach(n => {
             if (n.dataset.section === s) n.classList.add('active');
             else n.classList.remove('active');
         });
+        openGroupForSection(s);
 
-        renderSection(); 
+        renderSection();
     };
 
     window.setPeriod = async (p) => {

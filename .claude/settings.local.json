@@ -16,7 +16,8 @@
       "Bash(node --check src/utils/secLogger.js)",
       "Read(//c/tmp/vps-deploy\" 2>/dev/**)",
       "Bash(node deploy_webhook_fix.js)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(VPS_PASS='Romeudodeserto12-' node read_mp.js)"
     ]
   }
 }

@@ -116,7 +116,7 @@
         .nav-menu { list-style: none; }
         .nav-item { 
             padding: 0.6rem 1.25rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;
-            color: var(--text-muted); font-weight: 600; font-size: 1.05rem; transition: 0.15s; position: relative;
+            color: var(--text-muted); font-weight: 600; font-size: 1.21rem; transition: 0.15s; position: relative;
         }
         .nav-item .icon { color: var(--text-dim); width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; transition: 0.15s; }
         .nav-item svg { width: 18px; height: 18px; stroke-width: 2px; }
@@ -124,10 +124,29 @@
         .nav-item:hover .icon { color: var(--text-main); }
         .nav-item.active { background: rgba(90, 87, 230, 0.08); color: var(--primary); border-left: 3px solid var(--primary); }
         .nav-item.active .icon { color: var(--primary); }
-        .nav-item.indent { padding-left: 3.8rem; font-weight: 500; }
+        .nav-item.indent { padding-left: 3.8rem; font-weight: 500; font-size: 1.15rem; }
         .nav-item.indent:hover { color: var(--text-main); }
         .nav-item.indent.active { border-left-color: transparent; background: var(--card); color: var(--primary); }
         .nav-item span { flex: 1; }
+        .sub-nav { display: none; }
+        .sub-nav.open { display: block; }
+        .nav-group-header {
+            padding: 0.6rem 1.25rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;
+            color: var(--text-muted); font-weight: 700; font-size: 1.21rem; transition: 0.15s; position: relative; user-select: none; list-style: none;
+        }
+        .nav-group-header .icon { color: var(--text-dim); width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; transition: 0.15s; }
+        .nav-group-header svg { width: 18px; height: 18px; stroke-width: 2px; }
+        .nav-group-header:hover { background: var(--bg-secondary); color: var(--text-main); }
+        .nav-group-header:hover .icon { color: var(--text-main); }
+        .nav-group-header span { flex: 1; }
+        .nav-group-header .group-arrow { width: 16px; height: 16px; color: var(--text-dim); flex-shrink: 0; transition: transform 0.2s; }
+        .nav-group-header.open .group-arrow { transform: rotate(180deg); }
+        .nav-group-header.open { color: var(--text-main); }
+        .nav-group-header.open .icon { color: var(--primary); }
+        .admin-sidebar.collapsed .nav-group-header { padding: 0.75rem 0; justify-content: center; }
+        .admin-sidebar.collapsed .nav-group-header span,
+        .admin-sidebar.collapsed .nav-group-header .group-arrow { display: none; }
+        .admin-sidebar.collapsed .nav-group-header .icon { margin: 0; }
 
         /* CONTENT */
         .admin-content { 
@@ -672,19 +691,36 @@
             <li class="nav-item active" data-section="dashboard">
                 <i data-lucide="home" class="icon"></i> <span>Início</span>
             </li>
-            <li class="nav-item" data-section="pedidos">
-                <i data-lucide="clipboard-list" class="icon"></i> <span>Pedidos</span>
+
+            <li class="nav-group-header" data-group="pedidos-group">
+                <i data-lucide="clipboard-list" class="icon"></i>
+                <span>Pedidos</span>
+                <i data-lucide="chevron-down" class="group-arrow"></i>
             </li>
-            <li class="nav-item indent" data-section="historico-pedidos" style="padding-left: 3.8rem; font-size: 0.99rem; color: var(--text-dim);">
-                <span>Histórico de Pedidos</span>
+            <div class="sub-nav" id="pedidos-group">
+                <li class="nav-item indent" data-section="pedidos">
+                    <span>Fila de Pedidos</span>
+                </li>
+                <li class="nav-item indent" data-section="historico-pedidos">
+                    <span>Histórico de Pedidos</span>
+                </li>
+                <li class="nav-item indent" data-section="prevenda">
+                    <span>Pré-venda</span>
+                </li>
+                <li class="nav-item indent" data-section="orders-summary">
+                    <span>Resumo de Pedidos</span>
+                </li>
+                <li class="nav-item indent" data-section="usuarios">
+                    <span>Clientes</span>
+                </li>
+            </div>
+
+            <li class="nav-group-header" data-group="config-group">
+                <i data-lucide="settings-2" class="icon"></i>
+                <span>Configurações</span>
+                <i data-lucide="chevron-down" class="group-arrow"></i>
             </li>
-            <li class="nav-item" data-section="prevenda">
-                <i data-lucide="calendar-clock" class="icon"></i> <span>Pré-venda</span>
-            </li>
-            <li class="nav-item group" style="cursor: default; pointer-events: none; opacity: 0.8;">
-                <i data-lucide="utensils" class="icon"></i> <span>Loja</span>
-            </li>
-            <div class="sub-nav">
+            <div class="sub-nav" id="config-group">
                 <li class="nav-item indent" data-section="sobre-loja">
                     <span>Sobre a Loja</span>
                 </li>
@@ -694,25 +730,29 @@
                 <li class="nav-item indent" data-section="horarios">
                     <span>Horário de Funcionamento</span>
                 </li>
+                <li class="nav-item indent" data-section="pagamentos">
+                    <span>Formas de Pagamento</span>
+                </li>
             </div>
+
             <li class="nav-item" data-section="categories">
                 <i data-lucide="book-open" class="icon"></i> <span>Cardápio</span>
             </li>
-            <li class="nav-item" data-section="pagamentos">
-                <i data-lucide="banknote" class="icon"></i> <span>Formas de Pagamento</span>
+
+            <li class="nav-group-header" data-group="mensagens-group">
+                <i data-lucide="message-square" class="icon"></i>
+                <span>Mensagens</span>
+                <i data-lucide="chevron-down" class="group-arrow"></i>
             </li>
-            <li class="nav-item" data-section="usuarios">
-                <i data-lucide="users" class="icon"></i> <span>Clientes</span>
-            </li>
-            <li class="nav-item" data-section="mensagens">
-                <i data-lucide="message-square" class="icon"></i> <span>Mensagens</span>
-            </li>
-            <li class="nav-item" data-section="config-mensagens">
-                <i data-lucide="settings" class="icon"></i> <span>Configurações mensagem</span>
-            </li>
-            <li class="nav-item" data-section="orders-summary">
-                <i data-lucide="clipboard-list" class="icon"></i> <span>Resumo de Pedidos</span>
-            </li>
+            <div class="sub-nav" id="mensagens-group">
+                <li class="nav-item indent" data-section="mensagens">
+                    <span>Central de Mensagens</span>
+                </li>
+                <li class="nav-item indent" data-section="config-mensagens">
+                    <span>Configurações de Mensagem</span>
+                </li>
+            </div>
+
             <li class="nav-item" data-section="performance">
                 <i data-lucide="bar-chart-3" class="icon"></i> <span>Performance de Vendas</span>
             </li>
