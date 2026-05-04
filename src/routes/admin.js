@@ -1234,6 +1234,39 @@ module.exports = function (supabase) {
         } catch (error) { res.status(500).json({ error: error.message }); }
     });
 
+    router.get('/metrics', adminAuth, async (req, res) => {
+        try {
+            const [ordersRes, evVisitors, evCart, evCheckout, evSuccess] = await Promise.all([
+                supabase.from('pedidos').select('status'),
+                supabase.from('events').select('session_id').eq('event_name', 'view_page'),
+                supabase.from('events').select('session_id').eq('event_name', 'add_to_cart'),
+                supabase.from('events').select('session_id').eq('event_name', 'start_checkout'),
+                supabase.from('events').select('session_id').eq('event_name', 'payment_success'),
+            ]);
+
+            const allOrders = ordersRes.data || [];
+            const total     = allOrders.length;
+            const success   = allOrders.filter(o => o.status === 'paid' || o.status === 'aceito').length;
+            const failed    = allOrders.filter(o => o.status === 'payment_failed' || o.status === 'error').length;
+            const pending   = allOrders.filter(o => o.status === 'pending').length;
+            const approval_rate = total > 0 ? Math.round((success / total) * 100) : 0;
+
+            const uniq = rows => new Set((rows || []).map(e => e.session_id).filter(Boolean)).size;
+
+            res.json({
+                payments: { total, success, failed, pending, approval_rate },
+                funnel: {
+                    visitors:    uniq(evVisitors.data),
+                    add_to_cart: uniq(evCart.data),
+                    checkout:    uniq(evCheckout.data),
+                    success:     uniq(evSuccess.data),
+                }
+            });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
     return router;
 };
 

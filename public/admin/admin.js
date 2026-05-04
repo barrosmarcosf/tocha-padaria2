@@ -6617,9 +6617,17 @@ function initAdminStockRealtime() {
 
 // ─── INTELIGÊNCIA ────────────────────────────────────────────────────────────
 
-function renderPainelPagamentos() {
+async function fetchMetrics() {
+    const r = await fetch('/api/admin/metrics', {
+        headers: { 'Authorization': `Bearer ${state.token}` }
+    });
+    if (!r.ok) throw new Error('metrics ' + r.status);
+    return r.json();
+}
+
+async function renderPainelPagamentos() {
     const adminMain = document.getElementById('admin-main');
-    const mock = {
+    const defaults = {
         total: 247, aprovados: 198, rejeitados: 31, pendentes: 12, estornados: 6,
         aprovadosValor: 18450.00, pendentesValor: 980.00, estornadosValor: 420.00,
         motivosRejeicao: [
@@ -6630,6 +6638,16 @@ function renderPainelPagamentos() {
             { motivo: 'Outros',             qtd: 2,  pct: 6  },
         ]
     };
+    let mock = { ...defaults };
+    try {
+        const data = await fetchMetrics();
+        mock.total      = data.payments.total     ?? defaults.total;
+        mock.aprovados  = data.payments.success   ?? defaults.aprovados;
+        mock.rejeitados = data.payments.failed    ?? defaults.rejeitados;
+        mock.pendentes  = data.payments.pending   ?? defaults.pendentes;
+    } catch (e) {
+        console.log('metrics error', e);
+    }
     const pct = (a, b) => b > 0 ? ((a / b) * 100).toFixed(1) : '0.0';
     const fmtVal = v => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
     adminMain.innerHTML = `
@@ -6689,9 +6707,9 @@ function renderPainelPagamentos() {
     if (window.lucide) lucide.createIcons();
 }
 
-function renderFunilVendas() {
+async function renderFunilVendas() {
     const adminMain = document.getElementById('admin-main');
-    const mock = {
+    const defaults = {
         visitantes: 1842, carrinhos: 423, checkouts: 285, pagamentos: 198,
         carrinhos_abandonados: 138, checkouts_abandonados: 87,
         carrinhos_recuperados: 21, checkouts_recuperados: 14,
@@ -6702,6 +6720,18 @@ function renderFunilVendas() {
             { metodo: 'Cartão de Débito',  qtd: 16,  pct: 8  },
         ]
     };
+    let mock = { ...defaults };
+    try {
+        const data = await fetchMetrics();
+        mock.visitantes = data.funnel.visitors    ?? defaults.visitantes;
+        mock.carrinhos  = data.funnel.add_to_cart ?? defaults.carrinhos;
+        mock.checkouts  = data.funnel.checkout    ?? defaults.checkouts;
+        mock.pagamentos = data.funnel.success     ?? defaults.pagamentos;
+        mock.carrinhos_abandonados  = Math.max(0, mock.carrinhos - mock.checkouts);
+        mock.checkouts_abandonados  = Math.max(0, mock.checkouts - mock.pagamentos);
+    } catch (e) {
+        console.log('metrics error', e);
+    }
     const pct = (a, b) => b > 0 ? ((a / b) * 100).toFixed(1) : '0.0';
     const funil = [
         { label: 'Visitantes',             val: mock.visitantes, icon: 'users',            cor: '#6366f1', width: 100 },
