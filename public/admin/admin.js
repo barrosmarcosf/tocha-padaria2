@@ -1052,6 +1052,10 @@ let state = {
         else if (state.currentSection === 'orders-summary') renderOrdersSummary();
         else if (state.currentSection === 'categories') renderCategories();
         else if (state.currentSection === 'profile') renderProfile();
+        else if (state.currentSection === 'painel-pagamentos') renderPainelPagamentos();
+        else if (state.currentSection === 'funil-vendas') renderFunilVendas();
+        else if (state.currentSection === 'alertas') renderAlertas();
+        else if (state.currentSection === 'insights') renderInsights();
         else { adminMain.innerHTML = `<div class="welcome-section"><h2>${state.currentSection.toUpperCase()}</h2><p>Conteúdo em desenvolvimento...</p></div>`; }
 
         if (window.lucide) lucide.createIcons();
@@ -6610,6 +6614,321 @@ function initAdminStockRealtime() {
         console.error('[ADMIN] Falha ao iniciar SSE:', err);
     }
 }
+
+// ─── INTELIGÊNCIA ────────────────────────────────────────────────────────────
+
+function renderPainelPagamentos() {
+    const adminMain = document.getElementById('admin-main');
+    const mock = {
+        total: 247, aprovados: 198, rejeitados: 31, pendentes: 12, estornados: 6,
+        aprovadosValor: 18450.00, pendentesValor: 980.00, estornadosValor: 420.00,
+        motivosRejeicao: [
+            { motivo: 'Saldo insuficiente', qtd: 14, pct: 45 },
+            { motivo: 'Cartão expirado',    qtd: 7,  pct: 23 },
+            { motivo: 'Dados inválidos',    qtd: 5,  pct: 16 },
+            { motivo: 'Limite excedido',    qtd: 3,  pct: 10 },
+            { motivo: 'Outros',             qtd: 2,  pct: 6  },
+        ]
+    };
+    const pct = (a, b) => b > 0 ? ((a / b) * 100).toFixed(1) : '0.0';
+    const fmtVal = v => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+    adminMain.innerHTML = `
+        <div style="padding:0 2.5rem;max-width:100%;">
+            <div style="margin-bottom:2.5rem;">
+                <p style="font-size:.875rem;color:var(--text-dim);margin-bottom:.4rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Inteligência</p>
+                <h2 style="font-size:1.925rem;font-weight:800;color:var(--text-main);margin-bottom:.5rem;">Painel de Pagamentos</h2>
+                <p style="font-size:1rem;color:var(--text-muted);font-weight:500;">Visão geral de aprovações, rejeições e estornos.</p>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-bottom:2rem;">
+                <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid #10b981;border-radius:16px;padding:1.5rem;">
+                    <div style="font-size:.875rem;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.75rem;">Aprovados</div>
+                    <div style="font-size:1.8rem;font-weight:900;color:var(--text-main);">${mock.aprovados}</div>
+                    <div style="font-size:.875rem;color:var(--text-muted);margin-top:.25rem;">${pct(mock.aprovados, mock.total)}% do total — ${fmtVal(mock.aprovadosValor)}</div>
+                </div>
+                <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid #f59e0b;border-radius:16px;padding:1.5rem;">
+                    <div style="font-size:.875rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.75rem;">Pendentes</div>
+                    <div style="font-size:1.8rem;font-weight:900;color:var(--text-main);">${mock.pendentes}</div>
+                    <div style="font-size:.875rem;color:var(--text-muted);margin-top:.25rem;">${fmtVal(mock.pendentesValor)}</div>
+                </div>
+                <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid #ef4444;border-radius:16px;padding:1.5rem;">
+                    <div style="font-size:.875rem;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.75rem;">Rejeitados</div>
+                    <div style="font-size:1.8rem;font-weight:900;color:var(--text-main);">${mock.rejeitados}</div>
+                    <div style="font-size:.875rem;color:var(--text-muted);margin-top:.25rem;">${pct(mock.rejeitados, mock.total)}% do total</div>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem;margin-bottom:3rem;">
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;">
+                    <div style="font-size:.875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.75rem;">Total de transações</div>
+                    <div style="font-size:1.8rem;font-weight:900;color:var(--text-main);">${mock.total}</div>
+                </div>
+                <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid #8b5cf6;border-radius:16px;padding:1.5rem;">
+                    <div style="font-size:.875rem;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.75rem;">Estornados</div>
+                    <div style="font-size:1.8rem;font-weight:900;color:var(--text-main);">${mock.estornados}</div>
+                    <div style="font-size:.875rem;color:var(--text-muted);margin-top:.25rem;">${fmtVal(mock.estornadosValor)}</div>
+                </div>
+            </div>
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:24px;padding:2rem;margin-bottom:3rem;">
+                <h3 style="font-size:.875rem;font-weight:900;color:var(--text-main);text-transform:uppercase;letter-spacing:1px;margin-bottom:1.5rem;">Motivos de Rejeição</h3>
+                <div style="display:flex;flex-direction:column;gap:1rem;">
+                    ${mock.motivosRejeicao.map(m => `
+                        <div style="display:flex;align-items:center;gap:1rem;">
+                            <div style="flex:1;min-width:0;">
+                                <div style="display:flex;justify-content:space-between;margin-bottom:.35rem;">
+                                    <span style="font-size:.925rem;font-weight:600;color:var(--text-main);">${m.motivo}</span>
+                                    <span style="font-size:.925rem;font-weight:700;color:var(--text-muted);">${m.qtd} ocorrências</span>
+                                </div>
+                                <div style="height:6px;background:var(--border);border-radius:99px;overflow:hidden;">
+                                    <div style="height:100%;width:${m.pct}%;background:#ef4444;border-radius:99px;"></div>
+                                </div>
+                            </div>
+                            <div style="font-size:.875rem;font-weight:800;color:#ef4444;min-width:36px;text-align:right;">${m.pct}%</div>
+                        </div>`).join('')}
+                </div>
+            </div>
+        </div>`;
+    if (window.lucide) lucide.createIcons();
+}
+
+function renderFunilVendas() {
+    const adminMain = document.getElementById('admin-main');
+    const mock = {
+        visitantes: 1842, carrinhos: 423, checkouts: 285, pagamentos: 198,
+        carrinhos_abandonados: 138, checkouts_abandonados: 87,
+        carrinhos_recuperados: 21, checkouts_recuperados: 14,
+        tempo_medio: '8m 32s',
+        origens: [
+            { metodo: 'PIX',               qtd: 134, pct: 68 },
+            { metodo: 'Cartão de Crédito', qtd: 48,  pct: 24 },
+            { metodo: 'Cartão de Débito',  qtd: 16,  pct: 8  },
+        ]
+    };
+    const pct = (a, b) => b > 0 ? ((a / b) * 100).toFixed(1) : '0.0';
+    const funil = [
+        { label: 'Visitantes',             val: mock.visitantes, icon: 'users',            cor: '#6366f1', width: 100 },
+        { label: 'Carrinhos criados',      val: mock.carrinhos,  icon: 'shopping-cart',    cor: '#8b5cf6', width: 85  },
+        { label: 'Checkouts iniciados',    val: mock.checkouts,  icon: 'clipboard-check',  cor: '#a78bfa', width: 70  },
+        { label: 'Pagamentos concluídos',  val: mock.pagamentos, icon: 'check-circle',     cor: '#10b981', width: 55  },
+    ];
+    adminMain.innerHTML = `
+        <div style="padding:0 2.5rem;max-width:100%;">
+            <div style="margin-bottom:2.5rem;">
+                <p style="font-size:.875rem;color:var(--text-dim);margin-bottom:.4rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Inteligência</p>
+                <h2 style="font-size:1.925rem;font-weight:800;color:var(--text-main);margin-bottom:.5rem;">Funil de Vendas</h2>
+                <p style="font-size:1rem;color:var(--text-muted);font-weight:500;">Onde os clientes entram — e onde saem.</p>
+            </div>
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:24px;padding:2rem;margin-bottom:2.5rem;">
+                <div style="display:flex;flex-direction:column;gap:.6rem;align-items:center;">
+                    ${funil.map((step, i) => `
+                        <div style="width:${step.width}%;background:${step.cor}18;border:1px solid ${step.cor}35;border-radius:12px;padding:1.25rem 1.5rem;display:flex;align-items:center;gap:1rem;">
+                            <div style="width:40px;height:40px;border-radius:10px;background:${step.cor}20;color:${step.cor};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <i data-lucide="${step.icon}" style="width:20px;height:20px;"></i>
+                            </div>
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-size:.875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">${step.label}</div>
+                                <div style="font-size:1.5rem;font-weight:900;color:var(--text-main);">${step.val.toLocaleString('pt-BR')}</div>
+                            </div>
+                            <div style="text-align:right;flex-shrink:0;">
+                                <div style="font-size:1.1rem;font-weight:900;color:${step.cor};">${pct(step.val, mock.visitantes)}%</div>
+                                <div style="font-size:.8rem;color:var(--text-muted);font-weight:600;">de conversão</div>
+                            </div>
+                        </div>
+                        ${i < funil.length - 1 ? `<div style="color:var(--text-dim);font-size:1.2rem;line-height:1;">↓</div>` : ''}
+                    `).join('')}
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2.5rem;">
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:24px;padding:2rem;">
+                    <h3 style="font-size:.875rem;font-weight:900;color:var(--text-main);text-transform:uppercase;letter-spacing:1px;margin-bottom:1.5rem;">Abandono</h3>
+                    <div style="display:flex;flex-direction:column;gap:1rem;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem;background:#fef2f2;border-radius:12px;border:1px solid #fecaca;">
+                            <div>
+                                <div style="font-weight:700;color:#1e293b;">Carrinhos abandonados</div>
+                                <div style="font-size:.8rem;color:#64748b;margin-top:2px;">${pct(mock.carrinhos_abandonados, mock.carrinhos)}% dos carrinhos</div>
+                            </div>
+                            <div style="font-size:1.5rem;font-weight:900;color:#ef4444;">${mock.carrinhos_abandonados}</div>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem;background:#fef2f2;border-radius:12px;border:1px solid #fecaca;">
+                            <div>
+                                <div style="font-weight:700;color:#1e293b;">Checkouts abandonados</div>
+                                <div style="font-size:.8rem;color:#64748b;margin-top:2px;">${pct(mock.checkouts_abandonados, mock.checkouts)}% dos checkouts</div>
+                            </div>
+                            <div style="font-size:1.5rem;font-weight:900;color:#ef4444;">${mock.checkouts_abandonados}</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:24px;padding:2rem;">
+                    <h3 style="font-size:.875rem;font-weight:900;color:var(--text-main);text-transform:uppercase;letter-spacing:1px;margin-bottom:1.5rem;">Recuperação</h3>
+                    <div style="display:flex;flex-direction:column;gap:1rem;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem;background:#f0fdf4;border-radius:12px;border:1px solid #bbf7d0;">
+                            <div>
+                                <div style="font-weight:700;color:#1e293b;">Carrinhos recuperados</div>
+                                <div style="font-size:.8rem;color:#64748b;margin-top:2px;">${pct(mock.carrinhos_recuperados, mock.carrinhos_abandonados)}% dos abandonados</div>
+                            </div>
+                            <div style="font-size:1.5rem;font-weight:900;color:#10b981;">${mock.carrinhos_recuperados}</div>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem;background:#f0fdf4;border-radius:12px;border:1px solid #bbf7d0;">
+                            <div>
+                                <div style="font-weight:700;color:#1e293b;">Checkouts recuperados</div>
+                                <div style="font-size:.8rem;color:#64748b;margin-top:2px;">${pct(mock.checkouts_recuperados, mock.checkouts_abandonados)}% dos abandonados</div>
+                            </div>
+                            <div style="font-size:1.5rem;font-weight:900;color:#10b981;">${mock.checkouts_recuperados}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;margin-bottom:3rem;">
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:24px;padding:2rem;">
+                    <h3 style="font-size:.875rem;font-weight:900;color:var(--text-main);text-transform:uppercase;letter-spacing:1px;margin-bottom:1.5rem;">Origem do Pagamento</h3>
+                    <div style="display:flex;flex-direction:column;gap:1rem;">
+                        ${mock.origens.map(o => `
+                            <div style="display:flex;align-items:center;gap:1rem;">
+                                <div style="flex:1;min-width:0;">
+                                    <div style="display:flex;justify-content:space-between;margin-bottom:.35rem;">
+                                        <span style="font-size:.925rem;font-weight:600;color:var(--text-main);">${o.metodo}</span>
+                                        <span style="font-size:.925rem;font-weight:700;color:var(--text-muted);">${o.qtd} pedidos</span>
+                                    </div>
+                                    <div style="height:6px;background:var(--border);border-radius:99px;overflow:hidden;">
+                                        <div style="height:100%;width:${o.pct}%;background:var(--primary);border-radius:99px;"></div>
+                                    </div>
+                                </div>
+                                <div style="font-size:.875rem;font-weight:800;color:var(--primary);min-width:36px;text-align:right;">${o.pct}%</div>
+                            </div>`).join('')}
+                    </div>
+                </div>
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:24px;padding:2rem;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:.75rem;">
+                    <div style="width:56px;height:56px;border-radius:16px;background:#ede9fe;color:#7c3aed;display:flex;align-items:center;justify-content:center;">
+                        <i data-lucide="timer" style="width:28px;height:28px;"></i>
+                    </div>
+                    <div style="font-size:.875rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Tempo médio de conversão</div>
+                    <div style="font-size:2rem;font-weight:900;color:var(--text-main);">${mock.tempo_medio}</div>
+                    <div style="font-size:.8rem;color:var(--text-muted);">do carrinho ao pagamento</div>
+                </div>
+            </div>
+        </div>`;
+    if (window.lucide) lucide.createIcons();
+}
+
+function renderAlertas() {
+    const adminMain = document.getElementById('admin-main');
+    const alertas = [
+        { nivel: 'critico',  titulo: 'Taxa de rejeição',         desc: '18% — acima do threshold de 10%',                   icon: 'x-circle',      cor: '#ef4444', bg: '#fef2f2', borda: '#fecaca' },
+        { nivel: 'atencao',  titulo: 'Ticket médio',             desc: 'Queda de 12% na última semana',                     icon: 'trending-down', cor: '#f59e0b', bg: '#fffbeb', borda: '#fde68a' },
+        { nivel: 'atencao',  titulo: 'Carrinhos abandonados',    desc: '32% de aumento nos últimos 3 dias',                  icon: 'shopping-cart', cor: '#f59e0b', bg: '#fffbeb', borda: '#fde68a' },
+        { nivel: 'atencao',  titulo: 'Queda de visitas',         desc: '8% abaixo da média semanal esperada',               icon: 'users',         cor: '#f59e0b', bg: '#fffbeb', borda: '#fde68a' },
+        { nivel: 'ok',       titulo: 'Taxa de aprovação',        desc: 'Acima de 80% — dentro do esperado',                 icon: 'check-circle',  cor: '#10b981', bg: '#f0fdf4', borda: '#bbf7d0' },
+        { nivel: 'ok',       titulo: 'Taxa de conversão',        desc: 'Estável em 10.8% — dentro da meta',                 icon: 'activity',      cor: '#10b981', bg: '#f0fdf4', borda: '#bbf7d0' },
+        { nivel: 'ok',       titulo: 'Perfil do comprador',      desc: 'Comportamento dentro do padrão histórico',           icon: 'user-check',    cor: '#10b981', bg: '#f0fdf4', borda: '#bbf7d0' },
+    ];
+    const criticos = alertas.filter(a => a.nivel === 'critico').length;
+    const atencoes = alertas.filter(a => a.nivel === 'atencao').length;
+    const oks      = alertas.filter(a => a.nivel === 'ok').length;
+    const label    = { critico: 'Crítico', atencao: 'Atenção', ok: 'OK' };
+    adminMain.innerHTML = `
+        <div style="padding:0 2.5rem;max-width:100%;">
+            <div style="margin-bottom:2.5rem;">
+                <p style="font-size:.875rem;color:var(--text-dim);margin-bottom:.4rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Inteligência</p>
+                <h2 style="font-size:1.925rem;font-weight:800;color:var(--text-main);margin-bottom:.5rem;">Alertas</h2>
+                <p style="font-size:1rem;color:var(--text-muted);font-weight:500;">Indicadores que precisam da sua atenção.</p>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-bottom:3rem;">
+                <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:16px;padding:1.5rem;text-align:center;">
+                    <div style="font-size:2.5rem;font-weight:900;color:#ef4444;">${criticos}</div>
+                    <div style="font-size:.875rem;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:.5px;margin-top:.25rem;">Críticos</div>
+                </div>
+                <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:16px;padding:1.5rem;text-align:center;">
+                    <div style="font-size:2.5rem;font-weight:900;color:#f59e0b;">${atencoes}</div>
+                    <div style="font-size:.875rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.5px;margin-top:.25rem;">Atenção</div>
+                </div>
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:16px;padding:1.5rem;text-align:center;">
+                    <div style="font-size:2.5rem;font-weight:900;color:#10b981;">${oks}</div>
+                    <div style="font-size:.875rem;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.5px;margin-top:.25rem;">OK</div>
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:1rem;margin-bottom:3rem;">
+                ${alertas.map(a => `
+                    <div style="background:${a.bg};border:1px solid ${a.borda};border-radius:16px;padding:1.25rem 1.5rem;display:flex;align-items:center;gap:1.25rem;">
+                        <div style="width:44px;height:44px;border-radius:12px;background:${a.cor}20;color:${a.cor};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i data-lucide="${a.icon}" style="width:22px;height:22px;"></i>
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-weight:800;color:#1e293b;margin-bottom:.2rem;">${a.titulo}</div>
+                            <div style="font-size:.9rem;color:#64748b;font-weight:500;">${a.desc}</div>
+                        </div>
+                        <div style="background:${a.cor};color:#fff;font-size:.75rem;font-weight:800;padding:.3rem .75rem;border-radius:99px;text-transform:uppercase;letter-spacing:.5px;flex-shrink:0;">
+                            ${label[a.nivel]}
+                        </div>
+                    </div>`).join('')}
+            </div>
+        </div>`;
+    if (window.lucide) lucide.createIcons();
+}
+
+function renderInsights() {
+    const adminMain = document.getElementById('admin-main');
+    const grupos = [
+        {
+            titulo: 'Pico de Visitas', icon: 'eye', cor: '#6366f1',
+            itens: [
+                'Sextas e sábados concentram 61% das visitas',
+                'Horário de pico: 19h–21h (38% do tráfego diário)',
+                'Segunda-feira tem queda média de 42% vs. fins de semana',
+            ]
+        },
+        {
+            titulo: 'Pico de Compras', icon: 'shopping-bag', cor: '#f59e0b',
+            itens: [
+                'Sábado é o dia com maior volume de pedidos (34%)',
+                'Melhor horário para compras: 20h–22h',
+                'Compras parceladas são mais frequentes às sextas',
+            ]
+        },
+        {
+            titulo: 'Conversão por Pagamento', icon: 'credit-card', cor: '#10b981',
+            itens: [
+                'PIX tem taxa de conclusão 23% maior que cartão',
+                'Cartão de crédito gera tickets 18% maiores em média',
+                'Débito tem menor taxa de abandono no checkout',
+            ]
+        },
+        {
+            titulo: 'Padrões de Compra', icon: 'lightbulb', cor: '#8b5cf6',
+            itens: [
+                '68% dos clientes repetem pedidos em 7–14 dias',
+                'Clientes que compram no sábado têm LTV 31% maior',
+                'Combos são adicionados ao carrinho em 44% dos pedidos',
+            ]
+        },
+    ];
+    adminMain.innerHTML = `
+        <div style="padding:0 2.5rem;max-width:100%;">
+            <div style="margin-bottom:2.5rem;">
+                <p style="font-size:.875rem;color:var(--text-dim);margin-bottom:.4rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Inteligência</p>
+                <h2 style="font-size:1.925rem;font-weight:800;color:var(--text-main);margin-bottom:.5rem;">Insights Automáticos</h2>
+                <p style="font-size:1rem;color:var(--text-muted);font-weight:500;">Padrões identificados nos dados da sua padaria.</p>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem;margin-bottom:3rem;">
+                ${grupos.map(g => `
+                    <div style="background:var(--card);border:1px solid var(--border);border-radius:24px;padding:2rem;">
+                        <div style="display:flex;align-items:center;gap:.875rem;margin-bottom:1.5rem;">
+                            <div style="width:44px;height:44px;border-radius:12px;background:${g.cor}18;color:${g.cor};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <i data-lucide="${g.icon}" style="width:22px;height:22px;"></i>
+                            </div>
+                            <h3 style="font-size:1rem;font-weight:800;color:var(--text-main);margin:0;">${g.titulo}</h3>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:.75rem;">
+                            ${g.itens.map(item => `
+                                <div style="display:flex;align-items:flex-start;gap:.75rem;">
+                                    <div style="width:6px;height:6px;border-radius:50%;background:${g.cor};margin-top:.45em;flex-shrink:0;"></div>
+                                    <span style="font-size:.925rem;color:var(--text-muted);font-weight:500;line-height:1.5;">${item}</span>
+                                </div>`).join('')}
+                        </div>
+                    </div>`).join('')}
+            </div>
+        </div>`;
+    if (window.lucide) lucide.createIcons();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
     initAdminStockRealtime();
