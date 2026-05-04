@@ -37,8 +37,10 @@
     <script src="/modules/js/instagram.js" defer></script>
     <script src="/modules/js/footer.js" defer></script>
     
+    <script src="/track.js"></script>
     <script src="/cart.js" defer></script>
     <script src="/app.js" defer></script>
+    <script>document.addEventListener('DOMContentLoaded', function() { if (window.track) window.track('view_page', { page: 'home' }); });</script>
 
     <script>
         (function() {

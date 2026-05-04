@@ -162,6 +162,7 @@ app.use('/api/mercadopago', mercadopagoRoutes);
 app.use('/api/customer', customerRoutes);
 app.use('/api', checkoutRoutes);
 app.use('/api', publicRoutes);
+app.use('/api', require('./src/routes/events')(supabase));
 
 // ──────────────────────────────────────────────────
 // MIDDLEWARES GLOBAIS (Arquivos Estáticos após API)
