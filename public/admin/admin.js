@@ -1028,7 +1028,7 @@ let state = {
 
 
     function renderSection() {
-        document.documentElement.style.zoom = state.currentSection === 'dashboard' ? '0.90' : '1.08';
+        document.documentElement.style.zoom = state.currentSection === 'dashboard' ? '0.90' : '0.85';
         // Destrói o DashboardChart adequadamente antes de remover o HTML
         if (dashboardChart) {
             dashboardChart.destroy();
