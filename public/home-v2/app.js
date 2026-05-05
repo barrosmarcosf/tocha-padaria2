@@ -73,6 +73,10 @@
     const [cartOpen, setCartOpen]     = useState(false);
     const [captureOpen, setCaptureOpen] = useState(false);
 
+    // ── Checkout state ───────────────────────────────────────────
+    const [checkoutStatus, setCheckoutStatus] = useState('idle');
+    const [pixData, setPixData]               = useState(null);
+
     // ── Boot: busca status e config da API ───────────────────────
     useEffect(() => {
       fetchWithTimeout('/api/status', {}, 8000)
@@ -139,6 +143,38 @@
       persist(cart.filter(i => String(i.id) !== String(id)));
     }
 
+    async function handleCheckout(payload) {
+      setCheckoutStatus('loading');
+      try {
+        const res = await fetchWithTimeout('/api/checkout', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ items: payload.items, customer: payload.customer }),
+        }, 15000);
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          console.error('[checkout] error response:', res.status, data);
+          setCheckoutStatus(data.tipo === 'error_card' ? 'error_card' : 'error_generic');
+          return;
+        }
+
+        if (data.tipo === 'pix') {
+          setPixData({ qr_code: data.qr_code, copia_e_cola: data.copia_e_cola });
+          setCheckoutStatus('pix_pending');
+        } else if (data.tipo === 'card') {
+          setCheckoutStatus('success');
+        } else {
+          console.error('[checkout] resposta inesperada:', data);
+          setCheckoutStatus('error_generic');
+        }
+      } catch (err) {
+        console.error('[checkout] fetch error:', err);
+        setCheckoutStatus('error_generic');
+      }
+    }
+
     function scrollToMenu() {
       const el = document.getElementById('cardapio');
       if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -185,11 +221,12 @@
         <${EarlyCaptureModal} open=${captureOpen} onClose=${() => setCaptureOpen(false)} />
         <${CartDrawer}
           open=${cartOpen}
-          onClose=${() => setCartOpen(false)}
+          onClose=${() => { setCartOpen(false); setCheckoutStatus('idle'); }}
           cart=${cart}
           onUpdateQty=${handleUpdateQty}
           onRemove=${handleRemove}
-          status=${status}
+          status=${checkoutStatus}
+          onCheckout=${handleCheckout}
         />
       </div>
     `;
