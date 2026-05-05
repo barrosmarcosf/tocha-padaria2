@@ -28,6 +28,7 @@
   const InstagramStrip      = window.InstagramStrip;
   const FoodServiceSection  = window.FoodServiceSection;
   const HistoriaSection     = window.HistoriaSection;
+  const Footer              = window.Footer;
 
   // ─────────────────────────────────────────────────────────────
   // UTILS
@@ -178,6 +179,7 @@
         <${InstagramStrip} />
         <${FoodServiceSection} />
         <${HistoriaSection} />
+        <${Footer} />
         <${EarlyCaptureModal} open=${captureOpen} onClose=${() => setCaptureOpen(false)} />
         <${CartDrawer}
           open=${cartOpen}
