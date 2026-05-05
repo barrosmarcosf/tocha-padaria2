@@ -208,7 +208,7 @@ module.exports = function (supabase, stripe) {
         }).eq('id', newOrder.id);
 
         console.log(`[Checkout PIX] order_id=${newOrder.id} payment_id=${mpId} status=pending`);
-        return res.json({ tipo: 'pix', qr_code: qrCodeBase64, copia_e_cola: pixString });
+        return res.json({ tipo: 'pix', qr_code: qrCodeBase64, copia_e_cola: pixString, payment_id: mpId });
     }
 
     // ──────────────────────────────────────────────────

@@ -93,6 +93,26 @@
       return () => window.removeEventListener('storage', h);
     }, []);
 
+    // ── Polling de confirmação PIX ────────────────────────────────
+    useEffect(() => {
+      if (checkoutStatus !== 'pix_pending' || !pixData?.payment_id) return;
+      const paymentId = pixData.payment_id;
+      async function checkPaymentStatus() {
+        try {
+          const res = await fetch(`/api/mercadopago/check-payment/${paymentId}`);
+          if (!res.ok) return;
+          const d = await res.json();
+          if (d.status === 'approved') {
+            setCheckoutStatus('success');
+          } else if (d.status === 'cancelled') {
+            setCheckoutStatus('error_card_mp');
+          }
+        } catch {}
+      }
+      const intervalId = setInterval(checkPaymentStatus, 3000);
+      return () => clearInterval(intervalId);
+    }, [checkoutStatus, pixData?.payment_id]);
+
     // ── Ações do carrinho ────────────────────────────────────────
     function persist(newCart) {
       saveCart(newCart);
@@ -161,7 +181,7 @@
         }
 
         if (data.tipo === 'pix') {
-          setPixData({ qr_code: data.qr_code, copia_e_cola: data.copia_e_cola });
+          setPixData({ qr_code: data.qr_code, copia_e_cola: data.copia_e_cola, payment_id: data.payment_id });
           setCheckoutStatus('pix_pending');
         } else if (data.tipo === 'success') {
           setCheckoutStatus('success');
