@@ -75,22 +75,22 @@
       }}>
         <div style=${{ maxWidth: 1500, margin: '0 auto', padding: '0 56px' }}>
 
-          <div style=${{ marginBottom: 64, maxWidth: 720 }}>
+          <div style=${{ marginBottom: 80, maxWidth: 760 }}>
             <div style=${{
               fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase',
-              color: 'var(--amber)', marginBottom: 16, fontWeight: 600
+              color: 'var(--amber)', marginBottom: 20, fontWeight: 600
             }}>
               Como funciona
             </div>
             <h2 style=${{
               fontFamily: 'var(--font-serif)',
-              fontSize: 'clamp(36px, 4.5vw, 56px)',
-              fontWeight: 500, color: 'var(--cream)', lineHeight: 1.1, marginBottom: 24
+              fontSize: 'clamp(44px, 5.5vw, 68px)',
+              fontWeight: 500, color: 'var(--cream)', lineHeight: 1.05, marginBottom: 28
             }}>
               Quatro passos<br />
               <em style=${{ color: 'var(--amber)' }}>até a sua mesa</em>
             </h2>
-            <p style=${{ fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.7, fontWeight: 300 }}>
+            <p style=${{ fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.7, fontWeight: 300, maxWidth: 560 }}>
               Trabalhamos por encomenda — nossa fornada é única, semanal e sob demanda. Peça durante a semana e retire no sábado.
             </p>
           </div>
@@ -106,29 +106,32 @@
                   background: 'oklch(15% 0.02 48)',
                   border: '1px solid var(--border)',
                   borderRadius: 8,
-                  padding: 24,
-                  height: '100%'
+                  padding: '32px 28px',
+                  height: '100%',
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  flexDirection: 'column'
                 }}>
-                  <div style=${{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                  <div style=${{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
                     <div style=${{
-                      width: 32, height: 32, borderRadius: 6,
+                      width: 44, height: 44, borderRadius: '50%',
                       border: '1px solid var(--amber)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: 'var(--amber)', fontWeight: 700, fontSize: 12, flexShrink: 0
+                      color: 'var(--amber)', fontWeight: 700, fontSize: 14, flexShrink: 0
                     }}>
                       ${step.n}
                     </div>
-                    <div style=${{ color: 'var(--text-muted)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600 }}>
+                    <div style=${{ color: 'var(--text-muted)', fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600 }}>
                       ${step.label}
                     </div>
                   </div>
-                  <h3 style=${{ color: 'var(--cream)', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
+                  <h3 style=${{ color: 'var(--cream)', fontSize: 18, fontWeight: 600, marginBottom: 12, lineHeight: 1.3 }}>
                     ${step.title}
                   </h3>
-                  <p style=${{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6, marginBottom: 12 }}>
+                  <p style=${{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.65, marginBottom: 20, flexGrow: 1 }}>
                     ${step.desc}
                   </p>
-                  <div style=${{ color: 'var(--amber)', fontSize: 12, letterSpacing: '0.06em' }}>
+                  <div style=${{ color: 'var(--amber)', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 }}>
                     ${step.meta}
                   </div>
                 </div>
@@ -138,7 +141,7 @@
 
           <div ref=${infoRef} style=${{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
+            gridTemplateColumns: '2fr 1fr',
             gap: 32,
             opacity: infoVisible ? 1 : 0,
             transform: infoVisible ? 'translateY(0)' : 'translateY(24px)',
