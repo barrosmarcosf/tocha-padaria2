@@ -25,7 +25,8 @@
   const MenuSection        = window.MenuSection;
   const CartDrawer         = window.CartDrawer;
   const EarlyCaptureModal  = window.EarlyCaptureModal;
-  const InstagramStrip     = window.InstagramStrip;
+  const InstagramStrip      = window.InstagramStrip;
+  const FoodServiceSection  = window.FoodServiceSection;
 
   // ─────────────────────────────────────────────────────────────
   // UTILS
@@ -174,6 +175,7 @@
         <${HowItWorksSection} />
         <${MenuSection} cart=${cart} onAdd=${handleAdd} onUpdateQty=${handleUpdateQty} config=${config} />
         <${InstagramStrip} />
+        <${FoodServiceSection} />
         <${EarlyCaptureModal} open=${captureOpen} onClose=${() => setCaptureOpen(false)} />
         <${CartDrawer}
           open=${cartOpen}
