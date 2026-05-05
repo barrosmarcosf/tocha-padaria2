@@ -30,7 +30,19 @@
       "Read(//c/Users/tocha/.claude/projects/c--Users-tocha--gemini-antigravity-scratch-tocha-padaria/memory//**)",
       "Read(//c/Users/tocha//**)",
       "Bash(git commit *)",
-      "Bash(node deploy_home_v2.js)"
+      "Bash(node deploy_home_v2.js)",
+      "Bash(xxd public/home-v2/index.html)",
+      "Bash(grep -n \"html\\\\`\\\\|return html\\\\|return \\(\" \"/c/Users/tocha/.gemini/antigravity/scratch/tocha-padaria/public/home-v2/sections/Footer.js\")",
+      "Bash(grep -n \"html\\\\`\\\\|return html\\\\|return \\(\" \"/c/Users/tocha/.gemini/antigravity/scratch/tocha-padaria/public/home-v2/sections/AnnouncementBar.js\")",
+      "Bash(grep -n \"html\\\\`\\\\|return html\\\\|return \\(\" \"/c/Users/tocha/.gemini/antigravity/scratch/tocha-padaria/public/home-v2/sections/ManifestoStrip.js\")",
+      "Bash(grep -n \"html\\\\`\\\\|return html\\\\|return \\(\" \"/c/Users/tocha/.gemini/antigravity/scratch/tocha-padaria/public/home-v2/sections/HowItWorksSection.js\")",
+      "Bash(grep -n \"html\\\\`\\\\|return html\\\\|return \\(\" \"/c/Users/tocha/.gemini/antigravity/scratch/tocha-padaria/public/home-v2/components/GlobalStyles.js\")",
+      "Bash(grep -n \"html\\\\`\\\\|return html\\\\|return \\(\" \"/c/Users/tocha/.gemini/antigravity/scratch/tocha-padaria/public/home-v2/components/EarlyCaptureModal.js\")",
+      "Bash(git add *)",
+      "Bash(node deploy_gitpull.js)",
+      "Bash(node c:\\\\tmp\\\\vps-deploy\\\\deploy_gitpull.js)",
+      "Bash(node \"c:\\\\tmp\\\\vps-deploy\\\\deploy_gitpull.js\")",
+      "Bash(git push *)"
     ]
   }
 }
