@@ -12,16 +12,15 @@
   ];
 
   const RETIRADA_ITEMS = [
-    { icon: '📍', title: 'Local', desc: 'São João de Meriti — RJ. Endereço enviado por WhatsApp na confirmação do pedido.' },
-    { icon: '🕒', title: 'Horário', desc: 'Sábados a partir das 15h. Aguarde o aviso antes de sair para buscar.' },
-    { icon: '🚗', title: 'Entrega por app', desc: '99 ou Uber Flash por conta do cliente. Enviamos o endereço para que você configure no app.' }
+    { title: 'Não entregamos', desc: 'Trabalhamos só com retirada — sem serviço de delivery próprio.' },
+    { title: 'Por conta do cliente', desc: 'Opções 99 ou Uber Flash são coordenadas e pagas pelo cliente.' },
+    { title: 'Retire após aviso', desc: 'Aguarde a confirmação por WhatsApp antes de se deslocar até nós.' }
   ];
 
-  const POLITICA_ITEMS = [
-    { icon: '📅', title: 'Janela de pedidos', desc: 'Domingo a quinta-feira, até às 16h. Pedidos fora desse prazo não entram na fornada.' },
-    { icon: '❌', title: 'Cancelamento', desc: 'Somente até quinta-feira às 16h. Após esse horário o pedido já entra em produção.' },
-    { icon: '💸', title: 'Pagamento', desc: 'PIX antecipado na confirmação ou em dinheiro na retirada. Sem cobrança de taxa extra.' }
-  ];
+  const POLITICA_ITEM = {
+    title: 'Sem reembolso após início da produção',
+    desc: 'Como produzimos sob demanda, não conseguimos reverter um pedido depois que a fornada começa.'
+  };
 
   function HowItWorksSection() {
     const sectionRef = React.useRef(null);
@@ -92,7 +91,7 @@
               <em style=${{ color: 'var(--amber)' }}>até a sua mesa</em>
             </h2>
             <p style=${{ fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.7, fontWeight: 300 }}>
-              Trabalhamos por encomenda — nossa fornada é única, semanal e sob demanda.
+              Trabalhamos por encomenda — nossa fornada é única, semanal e sob demanda. Peça durante a semana e retire no sábado.
             </p>
           </div>
 
@@ -110,8 +109,18 @@
                   padding: 24,
                   height: '100%'
                 }}>
-                  <div style=${{ color: 'var(--amber)', marginBottom: 8, fontWeight: 700, fontSize: 13 }}>
-                    ${step.n}
+                  <div style=${{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                    <div style=${{
+                      width: 32, height: 32, borderRadius: 6,
+                      border: '1px solid var(--amber)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'var(--amber)', fontWeight: 700, fontSize: 12, flexShrink: 0
+                    }}>
+                      ${step.n}
+                    </div>
+                    <div style=${{ color: 'var(--text-muted)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600 }}>
+                      ${step.label}
+                    </div>
                   </div>
                   <h3 style=${{ color: 'var(--cream)', fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
                     ${step.title}
@@ -146,28 +155,20 @@
                 fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase',
                 color: 'var(--amber)', marginBottom: 24, fontWeight: 600
               }}>
-                Sobre Retirada
+                + Sobre a Retirada
               </div>
-              ${RETIRADA_ITEMS.map((item, i) => html`
-                <div key=${i} style=${{
-                  display: 'flex', gap: 16,
-                  marginBottom: i < RETIRADA_ITEMS.length - 1 ? 20 : 0,
-                  paddingBottom: i < RETIRADA_ITEMS.length - 1 ? 20 : 0,
-                  borderBottom: i < RETIRADA_ITEMS.length - 1 ? '1px solid oklch(22% 0.02 50)' : 'none'
-                }}>
-                  <div style=${{ fontSize: 20, lineHeight: 1, flexShrink: 0, marginTop: 2 }}>
-                    ${item.icon}
-                  </div>
-                  <div>
-                    <div style=${{ color: 'var(--cream)', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+              <div style=${{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+                ${RETIRADA_ITEMS.map((item, i) => html`
+                  <div key=${i}>
+                    <div style=${{ color: 'var(--cream)', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
                       ${item.title}
                     </div>
                     <div style=${{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6 }}>
                       ${item.desc}
                     </div>
                   </div>
-                </div>
-              `)}
+                `)}
+              </div>
             </div>
 
             <div style=${{
@@ -182,26 +183,12 @@
               }}>
                 Política
               </div>
-              ${POLITICA_ITEMS.map((item, i) => html`
-                <div key=${i} style=${{
-                  display: 'flex', gap: 16,
-                  marginBottom: i < POLITICA_ITEMS.length - 1 ? 20 : 0,
-                  paddingBottom: i < POLITICA_ITEMS.length - 1 ? 20 : 0,
-                  borderBottom: i < POLITICA_ITEMS.length - 1 ? '1px solid oklch(22% 0.02 50)' : 'none'
-                }}>
-                  <div style=${{ fontSize: 20, lineHeight: 1, flexShrink: 0, marginTop: 2 }}>
-                    ${item.icon}
-                  </div>
-                  <div>
-                    <div style=${{ color: 'var(--cream)', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
-                      ${item.title}
-                    </div>
-                    <div style=${{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6 }}>
-                      ${item.desc}
-                    </div>
-                  </div>
-                </div>
-              `)}
+              <div style=${{ color: 'var(--cream)', fontSize: 15, fontWeight: 600, marginBottom: 8 }}>
+                ${POLITICA_ITEM.title}
+              </div>
+              <div style=${{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6 }}>
+                ${POLITICA_ITEM.desc}
+              </div>
             </div>
 
           </div>
