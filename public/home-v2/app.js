@@ -29,6 +29,7 @@
   const FoodServiceSection  = window.FoodServiceSection;
   const HistoriaSection     = window.HistoriaSection;
   const Footer              = window.Footer;
+  const WhatsAppFloating    = window.WhatsAppFloating;
 
   // ─────────────────────────────────────────────────────────────
   // UTILS
@@ -180,6 +181,7 @@
         <${FoodServiceSection} />
         <${HistoriaSection} />
         <${Footer} />
+        <${WhatsAppFloating} />
         <${EarlyCaptureModal} open=${captureOpen} onClose=${() => setCaptureOpen(false)} />
         <${CartDrawer}
           open=${cartOpen}
