@@ -143,7 +143,7 @@
       persist(cart.filter(i => String(i.id) !== String(id)));
     }
 
-    async function handleCheckout(payload) {
+    const handleCheckout = useCallback(async function(payload) {
       setCheckoutStatus('loading');
       try {
         const res = await fetchWithTimeout('/api/checkout', {
@@ -163,7 +163,7 @@
         if (data.tipo === 'pix') {
           setPixData({ qr_code: data.qr_code, copia_e_cola: data.copia_e_cola });
           setCheckoutStatus('pix_pending');
-        } else if (data.tipo === 'card') {
+        } else if (data.tipo === 'success') {
           setCheckoutStatus('success');
         } else {
           console.error('[checkout] resposta inesperada:', data);
@@ -173,7 +173,7 @@
         console.error('[checkout] fetch error:', err);
         setCheckoutStatus('error_generic');
       }
-    }
+    }, []);
 
     function scrollToMenu() {
       const el = document.getElementById('cardapio');
@@ -227,6 +227,7 @@
           onRemove=${handleRemove}
           status=${checkoutStatus}
           onCheckout=${handleCheckout}
+          pixData=${pixData}
         />
       </div>
     `;

@@ -416,8 +416,10 @@
   // VIEW: PIX PENDING
   // ─────────────────────────────────────────────────────────────────
 
-  function ViewPixPending({ cart, onClose }) {
+  function ViewPixPending({ cart, onClose, pixData }) {
     const total = (cart || []).reduce((s, i) => s + i.price * i.qty, 0);
+    const pixCode = pixData?.copia_e_cola || '';
+    const qrImage = pixData?.qr_code || '';
 
     const bodyStyle = {
       flex: 1, overflowY: 'auto', padding: T.space[6],
@@ -428,6 +430,7 @@
       border: `2px dashed var(--border)`, background: T.color.bg2,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       flexDirection: 'column', gap: T.space[3],
+      overflow: 'hidden',
     };
     const qrIconStyle = { fontSize: '48px', opacity: 0.5 };
     const qrLabelStyle = {
@@ -462,7 +465,7 @@
     };
     const [copied, setCopied] = useState(false);
     function copyKey() {
-      navigator.clipboard?.writeText('tocha.padaria@gmail.com').then(() => {
+      navigator.clipboard?.writeText(pixCode).then(() => {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       });
@@ -472,20 +475,27 @@
       <${DrawerHeader} title="Aguardando Pagamento" onClose=${onClose} />
       <div style=${bodyStyle}>
         <div style=${qrBoxStyle}>
-          <span style=${qrIconStyle}>💠</span>
-          <span style=${qrLabelStyle}>QR Code PIX<br/>(disponível em breve)</span>
+          ${qrImage
+            ? html`<img src=${qrImage} alt="QR Code PIX" style=${{ width: '100%', height: '100%', objectFit: 'contain' }} />`
+            : html`
+                <span style=${qrIconStyle}>💠</span>
+                <span style=${qrLabelStyle}>QR Code PIX<br/>(disponível em breve)</span>
+              `
+          }
         </div>
         <p style=${amountStyle}>${fmt(total)}</p>
         <p style=${instrStyle}>
-          Escaneie o QR Code ou copie a chave PIX abaixo.
+          Escaneie o QR Code ou copie o código PIX abaixo.
           O pedido é confirmado após a comprovação do pagamento.
         </p>
-        <div style=${keyBoxStyle}>
-          <span style=${keyTextStyle}>tocha.padaria@gmail.com</span>
-          <button style=${copyBtnStyle} onClick=${copyKey}>
-            ${copied ? '✓ Copiado' : 'Copiar'}
-          </button>
-        </div>
+        ${pixCode && html`
+          <div style=${keyBoxStyle}>
+            <span style=${keyTextStyle}>${pixCode}</span>
+            <button style=${copyBtnStyle} onClick=${copyKey}>
+              ${copied ? '✓ Copiado' : 'Copiar'}
+            </button>
+          </div>
+        `}
       </div>
     `;
   }
@@ -573,7 +583,7 @@
   // CART DRAWER
   // ─────────────────────────────────────────────────────────────────
 
-  function CartDrawer({ cart, open, onClose, onUpdateQty, onRemove, status, onCheckout }) {
+  function CartDrawer({ cart, open, onClose, onUpdateQty, onRemove, status, onCheckout, pixData }) {
     const isMobile  = useIsMobile();
     const [view, setView] = useState('cart');
 
@@ -626,7 +636,7 @@
       cart:          html`<${ViewCart}        ...${sharedProps} onNext=${() => setView('checkout')} />`,
       checkout:      html`<${ViewCheckout}    ...${sharedProps} onBack=${() => setView('cart')} onCheckout=${handleCheckout} />`,
       loading:       html`<${ViewLoading} />`,
-      pix_pending:   html`<${ViewPixPending}  cart=${cart} onClose=${onClose} />`,
+      pix_pending:   html`<${ViewPixPending}  cart=${cart} onClose=${onClose} pixData=${pixData} />`,
       success:       html`<${ViewSuccess}     onClose=${onClose} />`,
       error_card:    html`<${ViewError}
                             icon="💳"
