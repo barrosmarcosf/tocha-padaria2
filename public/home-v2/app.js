@@ -99,14 +99,11 @@
     function addToCart(item) {
       setCart((prev) => {
         const existing = prev.find((i) => i.id === item.id);
-
-        if (existing) {
-          return prev.map((i) =>
-            i.id === item.id ? { ...i, qty: i.qty + 1 } : i
-          );
-        }
-
-        return [...prev, { ...item, qty: 1 }];
+        const newCart = existing
+          ? prev.map((i) => i.id === item.id ? { ...i, qty: i.qty + 1 } : i)
+          : [...prev, { ...item, qty: 1 }];
+        saveCart(newCart);
+        return newCart;
       });
 
       if (customerInfo) {
