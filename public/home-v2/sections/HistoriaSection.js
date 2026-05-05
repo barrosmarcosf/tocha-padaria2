@@ -1,9 +1,10 @@
 (function () {
   'use strict';
 
-  const html        = window.htm.bind(window.React.createElement);
-  const T           = window.T;
-  const useIsMobile = window.useIsMobile;
+  const html          = window.htm.bind(window.React.createElement);
+  const T             = window.T;
+  const useIsMobile   = window.useIsMobile;
+  const StoryScroller = window.StoryScroller;
 
   const MILESTONES = [
     {
@@ -271,20 +272,6 @@
       marginTop:   T.space[6],
     };
 
-    // Placeholder para StoryScroller (será implementado depois)
-    const scrollerPlaceholderStyle = {
-      marginTop:    T.space[16],
-      padding:      T.space[8],
-      borderRadius: T.radius.card,
-      border:       `1px dashed var(--border)`,
-      background:   T.color.bg2,
-      textAlign:    'center',
-      fontFamily:   T.font.sans,
-      fontSize:     T.fontSize.sm,
-      color:        T.color.textDim,
-      letterSpacing:T.letterSpacing.base,
-    };
-
     return html`
       <section id="nossa-historia" style=${sectionStyle} aria-label="Nossa história">
         <div style=${containerStyle}>
@@ -303,11 +290,13 @@
             : html`<${TimelineDesktop} />`
           }
 
-          <div style=${scrollerPlaceholderStyle}>
-            StoryScroller — será implementado em etapa futura
-          </div>
-
         </div>
+
+        <!-- StoryScroller full-bleed abaixo da timeline -->
+        <div style=${{ marginTop: T.space[16] }}>
+          <${StoryScroller} />
+        </div>
+
       </section>
     `;
   }
