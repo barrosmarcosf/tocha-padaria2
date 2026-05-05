@@ -17,7 +17,8 @@
   const useIsMobile     = window.useIsMobile;
 
   // ── Sections ──────────────────────────────────────────────────
-  const Navbar = window.Navbar;
+  const AnnouncementBar = window.AnnouncementBar;
+  const Navbar          = window.Navbar;
 
   // ─────────────────────────────────────────────────────────────
   // UTILS
@@ -159,6 +160,7 @@
 
     return html`
       <div id="app-root">
+        <${AnnouncementBar} status=${status} />
         <${Navbar} cart=${cart} setCartOpen=${setCartOpen} scrollToMenu=${scrollToMenu} />
       </div>
     `;
