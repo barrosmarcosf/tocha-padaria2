@@ -24,6 +24,7 @@
   const HowItWorksSection  = window.HowItWorksSection;
   const MenuSection        = window.MenuSection;
   const CartDrawer         = window.CartDrawer;
+  const EarlyCaptureModal  = window.EarlyCaptureModal;
 
   // ─────────────────────────────────────────────────────────────
   // UTILS
@@ -115,7 +116,7 @@
       if (wasEmpty && !sessionStorage.getItem('tocha-capture-shown')) {
         let stored = null;
         try { stored = JSON.parse(localStorage.getItem('tocha-customer') || 'null'); } catch {}
-        if (!stored || !stored.whatsapp) {
+        if (!stored) {
           setTimeout(() => {
             setCaptureOpen(true);
             sessionStorage.setItem('tocha-capture-shown', '1');
@@ -171,6 +172,7 @@
         <${ManifestoStrip} />
         <${HowItWorksSection} />
         <${MenuSection} cart=${cart} onAdd=${handleAdd} onUpdateQty=${handleUpdateQty} config=${config} />
+        <${EarlyCaptureModal} open=${captureOpen} onClose=${() => setCaptureOpen(false)} />
         <${CartDrawer}
           open=${cartOpen}
           onClose=${() => setCartOpen(false)}
