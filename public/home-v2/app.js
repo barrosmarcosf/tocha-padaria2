@@ -23,6 +23,7 @@
   const ManifestoStrip     = window.ManifestoStrip;
   const HowItWorksSection  = window.HowItWorksSection;
   const MenuSection        = window.MenuSection;
+  const CartDrawer         = window.CartDrawer;
 
   // ─────────────────────────────────────────────────────────────
   // UTILS
@@ -170,6 +171,14 @@
         <${ManifestoStrip} />
         <${HowItWorksSection} />
         <${MenuSection} cart=${cart} onAdd=${handleAdd} onUpdateQty=${handleUpdateQty} config=${config} />
+        <${CartDrawer}
+          open=${cartOpen}
+          onClose=${() => setCartOpen(false)}
+          cart=${cart}
+          onUpdateQty=${handleUpdateQty}
+          onRemove=${handleRemove}
+          status=${status}
+        />
       </div>
     `;
   }
