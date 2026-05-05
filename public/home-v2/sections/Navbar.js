@@ -5,13 +5,7 @@
   const html = window.html;
 
   function Navbar({ cartCount, onCartOpen }) {
-    const [scrolled, setScrolled] = React.useState(false);
-
-    React.useEffect(() => {
-      const handle = () => setScrolled(window.scrollY > 60);
-      window.addEventListener('scroll', handle, { passive: true });
-      return () => window.removeEventListener('scroll', handle);
-    }, []);
+    const scrolled = window.useScrolled(60);
 
     const navStyle = {
       position: 'fixed',
