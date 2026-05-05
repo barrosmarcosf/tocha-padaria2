@@ -22,6 +22,7 @@
   const Hero            = window.Hero;
   const ManifestoStrip     = window.ManifestoStrip;
   const HowItWorksSection  = window.HowItWorksSection;
+  const MenuSection        = window.MenuSection;
 
   // ─────────────────────────────────────────────────────────────
   // UTILS
@@ -168,6 +169,7 @@
         <${Hero} scrollToMenu=${scrollToMenu} />
         <${ManifestoStrip} />
         <${HowItWorksSection} />
+        <${MenuSection} cart=${cart} onAdd=${handleAdd} onUpdateQty=${handleUpdateQty} config=${config} />
       </div>
     `;
   }
