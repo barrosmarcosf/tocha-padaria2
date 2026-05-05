@@ -23,7 +23,8 @@
       "Bash(git log *)",
       "Bash(curl -s --max-time 8 http://187.127.251.209:3333/api/health)",
       "Bash(curl -s --max-time 8 http://187.127.251.209:3333/home-v2/app.js)",
-      "Bash(curl -s --max-time 8 http://187.127.251.209:3333/home-v2/components/CartDrawer.js)"
+      "Bash(curl -s --max-time 8 http://187.127.251.209:3333/home-v2/components/CartDrawer.js)",
+      "Bash(curl -s --max-time 10 http://187.127.251.209:3333/api/health)"
     ]
   }
 }
