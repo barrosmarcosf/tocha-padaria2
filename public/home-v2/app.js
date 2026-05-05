@@ -20,6 +20,7 @@
   const AnnouncementBar = window.AnnouncementBar;
   const Navbar          = window.Navbar;
   const Hero            = window.Hero;
+  const ManifestoStrip  = window.ManifestoStrip;
 
   // ─────────────────────────────────────────────────────────────
   // UTILS
@@ -164,6 +165,7 @@
         <${AnnouncementBar} status=${status} />
         <${Navbar} cart=${cart} setCartOpen=${setCartOpen} scrollToMenu=${scrollToMenu} />
         <${Hero} scrollToMenu=${scrollToMenu} />
+        <${ManifestoStrip} />
       </div>
     `;
   }
