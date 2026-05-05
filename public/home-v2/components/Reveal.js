@@ -1,15 +1,10 @@
 // ============================================================
-// REVEAL WRAPPER (robusto)
+// REVEAL WRAPPER
 // ============================================================
-function Reveal({
-  children,
-  delay = 0,
-  duration = 0.7,
-  y = 32,
-  once = true,
-  style = {}
-}) {
-  const [ref, visible] = useScrollReveal({ once });
+const html = window.html;
+
+function Reveal({ children, delay = 0, duration = 0.7, y = 32, once = true, style = {} }) {
+  const [ref, visible] = window.useScrollReveal({ once });
 
   const prefersReducedMotion =
     typeof window !== 'undefined' &&
@@ -25,11 +20,7 @@ function Reveal({
         willChange: 'opacity, transform'
       };
 
-  return (
-    <div ref={ref} style={{ ...baseStyle, ...style }}>
-      {children}
-    </div>
-  );
+  return html`<div ref=${ref} style=${{ ...baseStyle, ...style }}>${children}</div>`;
 }
 
 window.Reveal = Reveal;

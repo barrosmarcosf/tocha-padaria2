@@ -122,7 +122,7 @@
 <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script>window.html = window.htm.bind(window.React.createElement);</script>
 <script src="/track.js"></script>
 
 <!-- Design system (IIFE, sem JSX) -->
@@ -138,28 +138,28 @@
 <!-- Dados (sem JSX) -->
 <script src="./data/menu-data.js"></script>
 
-<!-- Utils (JSX — ImagePlaceholder) -->
-<script type="text/babel" src="./utils/index.js"></script>
+<!-- Utils -->
+<script src="./utils/index.js"></script>
 
-<!-- Components (JSX) -->
-<script type="text/babel" src="./components/GlobalStyles.js"></script>
-<script type="text/babel" src="./components/Reveal.js"></script>
-<script type="text/babel" src="./components/CartDrawer.js"></script>
-<script type="text/babel" src="./components/WhatsAppFloating.js"></script>
-<script type="text/babel" src="./components/EarlyCaptureModal.js"></script>
+<!-- Components -->
+<script src="./components/GlobalStyles.js"></script>
+<script src="./components/Reveal.js"></script>
+<script src="./components/CartDrawer.js"></script>
+<script src="./components/WhatsAppFloating.js"></script>
+<script src="./components/EarlyCaptureModal.js"></script>
 
-<!-- Sections (JSX) -->
-<script type="text/babel" src="./sections/AnnouncementBar.js"></script>
-<script type="text/babel" src="./sections/Navbar.js"></script>
-<script type="text/babel" src="./sections/Hero.js"></script>
-<script type="text/babel" src="./sections/ManifestoStrip.js"></script>
-<script type="text/babel" src="./sections/HowItWorksSection.js"></script>
-<script type="text/babel" src="./sections/MenuSection.js"></script>
-<script type="text/babel" src="./sections/InstagramStrip.js"></script>
-<script type="text/babel" src="./sections/FoodServiceSection.js"></script>
-<script type="text/babel" src="./sections/Footer.js"></script>
+<!-- Sections -->
+<script src="./sections/AnnouncementBar.js"></script>
+<script src="./sections/Navbar.js"></script>
+<script src="./sections/Hero.js"></script>
+<script src="./sections/ManifestoStrip.js"></script>
+<script src="./sections/HowItWorksSection.js"></script>
+<script src="./sections/MenuSection.js"></script>
+<script src="./sections/InstagramStrip.js"></script>
+<script src="./sections/FoodServiceSection.js"></script>
+<script src="./sections/Footer.js"></script>
 
-<!-- App (deve ser o último — Babel garante que rode após todos os componentes) -->
-<script type="text/babel" src="./app.js"></script>
+<!-- App -->
+<script src="./app.js"></script>
 </body>
 </html>

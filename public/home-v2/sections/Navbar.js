@@ -1,8 +1,9 @@
 // ============================================================
-// NAVBAR (FIEL AO CLAUDE + AJUSTADO PRO HOME-V2)
+// NAVBAR
 // ============================================================
+const html = window.html;
 
-function Navbar({ cartCount, onCartOpen, tweaks }) {
+function Navbar({ cartCount, onCartOpen }) {
   const [scrolled, setScrolled] = React.useState(false);
 
   React.useEffect(() => {
@@ -37,27 +38,27 @@ function Navbar({ cartCount, onCartOpen, tweaks }) {
     { label: 'Fale Conosco', href: '#contato' }
   ];
 
-  return (
-    <nav style={navStyle}>
-      <a href="#hero" style={{ textDecoration: 'none' }}>
+  return html`
+    <nav style=${navStyle}>
+      <a href="#hero" style=${{ textDecoration: 'none' }}>
         <img
           src="https://www.tochapadaria.com/assets/logo.png"
           alt="Tocha Padaria"
-          style={{ height: 40, filter: 'brightness(1.1)' }}
+          style=${{ height: 40, filter: 'brightness(1.1)' }}
         />
       </a>
 
-      <div style={{
+      <div style=${{
         display: 'flex',
         gap: 32,
         alignItems: 'center',
         fontFamily: '"DM Sans"'
       }}>
-        {links.map((l) => (
+        ${links.map((l) => html`
           <a
-            key={l.label}
-            href={l.href}
-            style={{
+            key=${l.label}
+            href=${l.href}
+            style=${{
               color: 'var(--text-muted)',
               textDecoration: 'none',
               fontSize: 13,
@@ -66,16 +67,16 @@ function Navbar({ cartCount, onCartOpen, tweaks }) {
               fontWeight: 500,
               transition: 'color 0.2s'
             }}
-            onMouseEnter={(e) => (e.target.style.color = 'var(--amber)')}
-            onMouseLeave={(e) => (e.target.style.color = 'var(--text-muted)')}
+            onMouseEnter=${(e) => (e.target.style.color = 'var(--amber)')}
+            onMouseLeave=${(e) => (e.target.style.color = 'var(--text-muted)')}
           >
-            {l.label}
+            ${l.label}
           </a>
-        ))}
+        `)}
 
         <button
-          onClick={onCartOpen}
-          style={{
+          onClick=${onCartOpen}
+          style=${{
             background: 'none',
             border: '1px solid var(--border)',
             borderRadius: 999,
@@ -91,12 +92,12 @@ function Navbar({ cartCount, onCartOpen, tweaks }) {
             transition: 'all 0.2s',
             fontFamily: 'var(--font-sans)'
           }}
-          onMouseEnter={(e) => {
+          onMouseEnter=${(e) => {
             e.currentTarget.style.background = 'var(--amber)';
             e.currentTarget.style.color = 'var(--bg)';
-            e.currentTarget.style.borderColor = 'var(--amber';
+            e.currentTarget.style.borderColor = 'var(--amber)';
           }}
-          onMouseLeave={(e) => {
+          onMouseLeave=${(e) => {
             e.currentTarget.style.background = 'none';
             e.currentTarget.style.color = 'var(--text)';
             e.currentTarget.style.borderColor = 'var(--border)';
@@ -104,9 +105,8 @@ function Navbar({ cartCount, onCartOpen, tweaks }) {
         >
           <span>🧺</span>
           <span>Pedido</span>
-
-          {cartCount > 0 && (
-            <span style={{
+          ${cartCount > 0 && html`
+            <span style=${{
               background: 'var(--amber)',
               color: 'var(--bg)',
               borderRadius: '50%',
@@ -118,13 +118,13 @@ function Navbar({ cartCount, onCartOpen, tweaks }) {
               fontSize: 11,
               fontWeight: 700
             }}>
-              {cartCount}
+              ${cartCount}
             </span>
-          )}
+          `}
         </button>
       </div>
     </nav>
-  );
+  `;
 }
 
 window.Navbar = Navbar;
