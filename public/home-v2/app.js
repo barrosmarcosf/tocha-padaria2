@@ -19,6 +19,7 @@
   // ── Sections ──────────────────────────────────────────────────
   const AnnouncementBar = window.AnnouncementBar;
   const Navbar          = window.Navbar;
+  const Hero            = window.Hero;
 
   // ─────────────────────────────────────────────────────────────
   // UTILS
@@ -162,6 +163,7 @@
       <div id="app-root">
         <${AnnouncementBar} status=${status} />
         <${Navbar} cart=${cart} setCartOpen=${setCartOpen} scrollToMenu=${scrollToMenu} />
+        <${Hero} scrollToMenu=${scrollToMenu} />
       </div>
     `;
   }
