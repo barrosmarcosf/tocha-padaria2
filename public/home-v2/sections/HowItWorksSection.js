@@ -68,24 +68,24 @@
 
     return html`
       <section id="como-funciona" ref=${sectionRef} style=${{
-        padding: '120px 0 100px',
+        padding: '88px 0 80px',
         background: 'var(--bg2)',
         position: 'relative',
         overflow: 'hidden'
       }}>
         <div style=${{ maxWidth: 1500, margin: '0 auto', padding: '0 56px' }}>
 
-          <div style=${{ marginBottom: 80, maxWidth: 760 }}>
+          <div style=${{ marginBottom: 64, maxWidth: 760 }}>
             <div style=${{
               fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase',
-              color: 'var(--amber)', marginBottom: 20, fontWeight: 600
+              color: 'var(--amber)', marginBottom: 16, fontWeight: 600
             }}>
               Como funciona
             </div>
             <h2 style=${{
               fontFamily: 'var(--font-serif)',
-              fontSize: 'clamp(44px, 5.5vw, 68px)',
-              fontWeight: 500, color: 'var(--cream)', lineHeight: 1.05, marginBottom: 28
+              fontSize: 'clamp(36px, 3.8vw, 54px)',
+              fontWeight: 400, color: 'var(--cream)', lineHeight: 1.08, marginBottom: 24
             }}>
               Quatro passos<br />
               <em style=${{ color: 'var(--amber)' }}>até a sua mesa</em>
