@@ -248,7 +248,7 @@
   // VIEW: CHECKOUT
   // ─────────────────────────────────────────────────────────────────
 
-  function ViewCheckout({ cart, onBack, onClose, onPay }) {
+  function ViewCheckout({ cart, onBack, onClose, onCheckout }) {
     const items = cart || [];
     const total = items.reduce((s, i) => s + i.price * i.qty, 0);
 
@@ -318,7 +318,8 @@
           localStorage.setItem('tocha-customer', JSON.stringify({ name: name.trim(), whatsapp: whatsapp.trim() }));
         } catch {}
       }
-      onPay();
+      const customer = JSON.parse(localStorage.getItem('tocha-customer') || '{}');
+      onCheckout({ items: cart, customer });
     }
 
     const canPay = name.trim().length > 1 && whatsapp.replace(/\D/g, '').length >= 10;
@@ -384,13 +385,7 @@
   // VIEW: LOADING
   // ─────────────────────────────────────────────────────────────────
 
-  function ViewLoading({ onNext }) {
-    // Simula processamento para demo de UI
-    useEffect(() => {
-      const id = setTimeout(() => onNext('pix_pending'), 2000);
-      return () => clearTimeout(id);
-    }, []);
-
+  function ViewLoading() {
     const centerStyle = {
       flex: 1, display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', gap: T.space[6],
@@ -578,7 +573,7 @@
   // CART DRAWER
   // ─────────────────────────────────────────────────────────────────
 
-  function CartDrawer({ cart, open, onClose, onUpdateQty, onRemove, status }) {
+  function CartDrawer({ cart, open, onClose, onUpdateQty, onRemove, status, onCheckout }) {
     const isMobile  = useIsMobile();
     const [view, setView] = useState('cart');
 
@@ -590,7 +585,14 @@
       }
     }, [open]);
 
+    function handleCheckout(payload) {
+      setView('loading');
+      onCheckout(payload);
+    }
+
     if (!open) return null;
+
+    const activeView = (status && status !== 'idle') ? status : view;
 
     const drawerW = isMobile ? '100%' : '420px';
 
@@ -622,8 +624,8 @@
 
     const viewMap = {
       cart:          html`<${ViewCart}        ...${sharedProps} onNext=${() => setView('checkout')} />`,
-      checkout:      html`<${ViewCheckout}    ...${sharedProps} onBack=${() => setView('cart')} onPay=${() => setView('loading')} />`,
-      loading:       html`<${ViewLoading}     onNext=${setView} />`,
+      checkout:      html`<${ViewCheckout}    ...${sharedProps} onBack=${() => setView('cart')} onCheckout=${handleCheckout} />`,
+      loading:       html`<${ViewLoading} />`,
       pix_pending:   html`<${ViewPixPending}  cart=${cart} onClose=${onClose} />`,
       success:       html`<${ViewSuccess}     onClose=${onClose} />`,
       error_card:    html`<${ViewError}
@@ -651,7 +653,7 @@
           aria-modal="true"
           aria-label="Carrinho de compras"
         >
-          ${viewMap[view] || viewMap.cart}
+          ${viewMap[activeView] || viewMap.cart}
         </div>
       </div>
     `;
