@@ -19,7 +19,11 @@
       "Bash(node -e ' *)",
       "Bash(VPS_PASS='Romeudodeserto12-' node read_mp.js)",
       "Bash(tree -d -L 2 /c/Users/tocha/.gemini/antigravity/scratch/tocha-padaria --ignore node_modules)",
-      "Read(//c/Users/tocha/Downloads/Site Tocha Padaria-handoff/site-tocha-padaria/project/**)"
+      "Read(//c/Users/tocha/Downloads/Site Tocha Padaria-handoff/site-tocha-padaria/project/**)",
+      "Bash(git log *)",
+      "Bash(curl -s --max-time 8 http://187.127.251.209:3333/api/health)",
+      "Bash(curl -s --max-time 8 http://187.127.251.209:3333/home-v2/app.js)",
+      "Bash(curl -s --max-time 8 http://187.127.251.209:3333/home-v2/components/CartDrawer.js)"
     ]
   }
 }
