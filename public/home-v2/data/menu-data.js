@@ -112,3 +112,6 @@ Lanches: {
 // FLAT
 // ============================================================
 const PRODUCTS_FLAT = Object.values(MENU_DATA).flatMap(cat => cat.items);
+
+window.MENU_DATA = MENU_DATA;
+window.PRODUCTS_FLAT = PRODUCTS_FLAT;

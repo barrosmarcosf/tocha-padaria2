@@ -77,3 +77,5 @@ function WhatsAppFloating() {
     </a>
   );
 }
+
+window.WhatsAppFloating = WhatsAppFloating;

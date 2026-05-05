@@ -130,3 +130,5 @@ function InstagramStrip() {
     </section>
   );
 }
+
+window.InstagramStrip = InstagramStrip;

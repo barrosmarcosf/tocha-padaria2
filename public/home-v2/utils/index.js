@@ -2,15 +2,12 @@
 // UTILS
 // ============================================================
 
-// Formata preço em padrão BRL
-export function formatPrice(p) {
+window.formatPrice = function formatPrice(p) {
   if (typeof p !== 'number') return 'R$ 0,00';
-
   return `R$ ${p.toFixed(2).replace('.', ',')}`;
-}
+};
 
-// Placeholder de imagem (para grid / loading / mock)
-export function ImagePlaceholder({ label = '', style = {} }) {
+window.ImagePlaceholder = function ImagePlaceholder({ label = '', style = {} }) {
   return (
     <div
       style={{
@@ -43,4 +40,4 @@ export function ImagePlaceholder({ label = '', style = {} }) {
       </span>
     </div>
   );
-}
+};

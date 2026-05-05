@@ -31,3 +31,5 @@ function Reveal({
     </div>
   );
 }
+
+window.Reveal = Reveal;

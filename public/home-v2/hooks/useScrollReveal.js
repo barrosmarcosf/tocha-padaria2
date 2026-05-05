@@ -42,3 +42,5 @@ function useScrollReveal(options = {}) {
 
   return [ref, visible];
 }
+
+window.useScrollReveal = useScrollReveal;

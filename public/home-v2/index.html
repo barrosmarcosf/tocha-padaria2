@@ -1,3 +1,13 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tocha Padaria — Fermentação Natural &amp; Pães Artesanais</title>
+<meta name="description" content="Pães de fermentação natural, brioches e doces artesanais. Fornadas aos sábados em São João de Meriti.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -5,7 +15,10 @@
     --font-serif: 'Playfair Display', Georgia, serif;
     --font-sans:  'DM Sans', system-ui, sans-serif;
 
+    --bg-deep:  oklch(8%  0.015 46);
+    --bg-dark:  oklch(9%  0.015 48);
     --bg:       oklch(12% 0.018 50);
+    --bg-menu:  oklch(11% 0.018 49);
     --bg2:      oklch(16% 0.02  48);
     --bg3:      oklch(20% 0.022 47);
     --surface:  oklch(18% 0.02  48);
@@ -15,16 +28,42 @@
     --text-dim:   oklch(45% 0.012 60);
     --cream:      oklch(94% 0.01  75);
 
-    --amber:         oklch(72% 0.12 60);
-    --amber-bright:  oklch(80% 0.14 58);
-    --terra:         oklch(55% 0.1  30);
+    --amber:        oklch(72% 0.12 60);
+    --amber-bright: oklch(80% 0.14 58);
+    --terra:        oklch(55% 0.1  30);
 
     --border:        oklch(28% 0.02  50);
     --border-hover:  oklch(36% 0.028 55);
+    --border-focus:  oklch(72% 0.12  60);
+    --border-subtle: oklch(22% 0.02  50);
+
+    --success: oklch(55% 0.12 140);
+    --error:   oklch(60% 0.12  25);
+
+    --overlay:       oklch(0% 0 0 / 0.65);
+    --overlay-heavy: oklch(0% 0 0 / 0.70);
+
+    --section-pad:    120px 0;
+    --section-pad-sm: 100px 0;
+    --container-pad:  0 40px;
+
+    --announce-h: 40px;
+    --navbar-h:   64px;
+
+    --radius-sharp: 2px;
+    --radius-tag:   3px;
+    --radius-sm:    6px;
+    --radius-card:  8px;
+    --radius-lg:    10px;
+    --radius-pill:  999px;
+
+    --t-fast:   0.2s ease;
+    --t-base:   0.25s ease;
+    --t-slow:   0.4s ease;
+    --t-reveal: 0.7s ease;
   }
 
   html { scroll-behavior: smooth; }
-
   body {
     background: var(--bg);
     color: var(--text);
@@ -32,14 +71,95 @@
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
   }
-
-  /* Scrollbar */
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--amber); border-radius: 2px; }
-
-  /* Selection */
   ::selection { background: var(--amber); color: var(--bg); }
-
   #root { min-height: 100vh; }
+  input::placeholder { color: oklch(40% 0.01 60); }
+  input:focus { outline: none; }
+  a { transition: color 0.2s; }
+  select { appearance: none; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes slideIn {
+    from { transform: translateX(100%); }
+    to   { transform: translateX(0); }
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);   opacity: 1; }
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-33.333%); }
+  }
+  @keyframes scrollLine {
+    0%,100% { opacity: 0.3; transform: scaleY(0.6); }
+    50%     { opacity: 1;   transform: scaleY(1); }
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  @keyframes popIn {
+    0%  { transform: scale(0.5); opacity: 0; }
+    70% { transform: scale(1.1); }
+    100%{ transform: scale(1);   opacity: 1; }
+  }
 </style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Runtime -->
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="/track.js"></script>
+
+<!-- Design system (IIFE, sem JSX) -->
+<script src="./tokens.js"></script>
+
+<!-- Hooks (sem JSX) -->
+<script src="./hooks/useScrollReveal.js"></script>
+<script src="./hooks/useParallax.js"></script>
+<script src="./hooks/useCountdown.js"></script>
+<script src="./hooks/useScrolled.js"></script>
+<script src="./hooks/useIsMobile.js"></script>
+
+<!-- Dados (sem JSX) -->
+<script src="./data/menu-data.js"></script>
+
+<!-- Utils (JSX — ImagePlaceholder) -->
+<script type="text/babel" src="./utils/index.js"></script>
+
+<!-- Components (JSX) -->
+<script type="text/babel" src="./components/GlobalStyles.js"></script>
+<script type="text/babel" src="./components/Reveal.js"></script>
+<script type="text/babel" src="./components/CartDrawer.js"></script>
+<script type="text/babel" src="./components/WhatsAppFloating.js"></script>
+<script type="text/babel" src="./components/EarlyCaptureModal.js"></script>
+
+<!-- Sections (JSX) -->
+<script type="text/babel" src="./sections/AnnouncementBar.js"></script>
+<script type="text/babel" src="./sections/Navbar.js"></script>
+<script type="text/babel" src="./sections/Hero.js"></script>
+<script type="text/babel" src="./sections/ManifestoStrip.js"></script>
+<script type="text/babel" src="./sections/HowItWorksSection.js"></script>
+<script type="text/babel" src="./sections/MenuSection.js"></script>
+<script type="text/babel" src="./sections/InstagramStrip.js"></script>
+<script type="text/babel" src="./sections/FoodServiceSection.js"></script>
+<script type="text/babel" src="./sections/Footer.js"></script>
+
+<!-- App (deve ser o último — Babel garante que rode após todos os componentes) -->
+<script type="text/babel" src="./app.js"></script>
+</body>
+</html>

@@ -54,3 +54,5 @@ function getTime(target) {
     s: Math.floor((diff % 60000) / 1000)
   };
 }
+
+window.useCountdown = useCountdown;

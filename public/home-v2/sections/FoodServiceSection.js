@@ -138,3 +138,5 @@ function FoodserviceSection() {
     </section>
   );
 }
+
+window.FoodServiceSection = FoodserviceSection;

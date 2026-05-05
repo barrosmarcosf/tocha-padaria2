@@ -27,3 +27,5 @@ function useParallax(speed = 0.3) {
 
   return offset;
 }
+
+window.useParallax = useParallax;

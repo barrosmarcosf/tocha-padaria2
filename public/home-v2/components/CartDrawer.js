@@ -131,3 +131,5 @@ function CartDrawer({ cart, onClose, onRemove, onAddOne, onClear, customerInfo, 
     </>
   );
 }
+
+window.CartDrawer = CartDrawer;
