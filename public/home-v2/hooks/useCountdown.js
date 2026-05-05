@@ -1,35 +1,56 @@
-// hooks/useCountdown.js
-// Conta regressivamente até `target` (Date, ISO string ou timestamp ms).
-// Retorna { d, h, m, s } — todos zerados quando o tempo acaba.
-(function () {
-  'use strict';
+// ============================================================
+// COUNTDOWN (robusto)
+// ============================================================
+function useCountdown(target) {
+  const [time, setTime] = React.useState(() => getTime(target));
 
-  const { useState, useEffect } = window.React;
+  React.useEffect(() => {
+    if (!target) return;
 
-  function useCountdown(target) {
-    const [time, setTime] = useState({ d: 0, h: 0, m: 0, s: 0 });
+    const interval = setInterval(() => {
+      const next = getTime(target);
 
-    useEffect(() => {
-      if (!target) return;
+      setTime((prev) => {
+        // evita re-render desnecessário
+        if (
+          prev.d === next.d &&
+          prev.h === next.h &&
+          prev.m === next.m &&
+          prev.s === next.s
+        ) {
+          return prev;
+        }
+        return next;
+      });
 
-      function tick() {
-        const diff = new Date(target) - Date.now();
-        if (diff <= 0) { setTime({ d: 0, h: 0, m: 0, s: 0 }); return; }
-        setTime({
-          d: Math.floor(diff / 86400000),
-          h: Math.floor((diff % 86400000) / 3600000),
-          m: Math.floor((diff % 3600000) / 60000),
-          s: Math.floor((diff % 60000) / 1000),
-        });
+      // para o timer quando chegar em zero
+      if (next.total <= 0) {
+        clearInterval(interval);
       }
+    }, 1000);
 
-      tick();
-      const id = setInterval(tick, 1000);
-      return () => clearInterval(id);
-    }, [target]);
+    return () => clearInterval(interval);
+  }, [target]);
 
-    return time;
-  }
+  return {
+    days: time.d,
+    hours: time.h,
+    minutes: time.m,
+    seconds: time.s,
+    isFinished: time.total <= 0
+  };
+}
 
-  window.useCountdown = useCountdown;
-}());
+// helper isolado (melhor legibilidade + testável)
+function getTime(target) {
+  const now = Date.now();
+  const diff = Math.max(0, target - now);
+
+  return {
+    total: diff,
+    d: Math.floor(diff / 86400000),
+    h: Math.floor((diff % 86400000) / 3600000),
+    m: Math.floor((diff % 3600000) / 60000),
+    s: Math.floor((diff % 60000) / 1000)
+  };
+}

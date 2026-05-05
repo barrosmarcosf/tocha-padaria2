@@ -1,240 +1,140 @@
-(function () {
-  'use strict';
+// ============================================================
+// FOODSERVICE SECTION (B2B)
+// ============================================================
+function FoodserviceSection() {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 900;
 
-  const { useState } = window.React;
-  const html        = window.htm.bind(window.React.createElement);
-  const T           = window.T;
-  const useIsMobile = window.useIsMobile;
-
-  const BULLETS = [
-    { icon: '📦', text: 'Produção consistente — volume garantido a cada fornada' },
-    { icon: '✋', text: 'Qualidade artesanal — fermentação natural em cada lote'   },
-    { icon: '🗓', text: 'Entrega programada — combine o calendário do seu negócio' },
-  ];
-
-  const IMAGES = [
-    { id: 1, emoji: '🍞', gradient: `linear-gradient(135deg, oklch(18% 0.03 50), oklch(26% 0.05 45))` },
-    { id: 2, emoji: '☕', gradient: `linear-gradient(135deg, oklch(16% 0.025 48), oklch(22% 0.04 52))` },
-    { id: 3, emoji: '🌾', gradient: `linear-gradient(135deg, oklch(20% 0.03 46), oklch(14% 0.02 50))` },
-    { id: 4, emoji: '🥐', gradient: `linear-gradient(135deg, oklch(22% 0.035 49), oklch(17% 0.03 47))` },
-  ];
-
-  // ── Componentes internos ─────────────────────────────────────────
-
-  function ImageTile({ img }) {
-    const [hovered, setHovered] = useState(false);
-
-    const tileStyle = {
-      aspectRatio:  '4 / 3',
-      borderRadius: T.radius.card,
-      border:       `1px solid ${hovered ? T.color.borderHover : T.color.borderSubtle}`,
-      overflow:     'hidden',
-      position:     'relative',
-      transition:   `border-color ${T.transition.base}`,
-    };
-
-    const bgStyle = {
-      position:       'absolute',
-      inset:          0,
-      background:     img.gradient,
-      display:        'flex',
-      alignItems:     'center',
-      justifyContent: 'center',
-      fontSize:       '40px',
-      transition:     `transform ${T.transition.slow}`,
-      transform:      hovered ? 'scale(1.05)' : 'scale(1)',
-    };
-
-    return html`
-      <div
-        style=${tileStyle}
-        onMouseEnter=${() => setHovered(true)}
-        onMouseLeave=${() => setHovered(false)}
-        aria-hidden="true"
-      >
-        <div style=${bgStyle}>${img.emoji}</div>
-      </div>
-    `;
-  }
-
-  function BulletItem({ item }) {
-    const rowStyle = {
-      display:    'flex',
-      alignItems: 'flex-start',
-      gap:        T.space[4],
-    };
-    const iconWrapStyle = {
-      width:          '36px',
-      height:         '36px',
-      borderRadius:   T.radius.sm,
-      background:     T.color.bg3,
-      border:         `1px solid var(--border-subtle)`,
-      display:        'flex',
-      alignItems:     'center',
-      justifyContent: 'center',
-      fontSize:       '16px',
-      flexShrink:     0,
-      marginTop:      '2px',
-    };
-    const textStyle = {
-      fontFamily:  T.font.sans,
-      fontSize:    T.fontSize.base,
-      fontWeight:  T.fontWeight.light,
-      color:       T.color.textMuted,
-      lineHeight:  T.lineHeight.relaxed,
-    };
-    return html`
-      <div style=${rowStyle}>
-        <div style=${iconWrapStyle}>${item.icon}</div>
-        <p style=${textStyle}>${item.text}</p>
-      </div>
-    `;
-  }
-
-  // ── Seção principal ──────────────────────────────────────────────
-
-  function FoodServiceSection() {
-    const isMobile = useIsMobile();
-    const [btnHov, setBtnHov] = useState(false);
-
-    const sectionStyle = {
-      padding:    T.space.sectionPad,
-      background: T.color.bg3,
-      borderTop:  `1px solid var(--border-subtle)`,
-    };
-
-    const containerStyle = {
-      maxWidth: T.space.containerMd,
-      margin:   '0 auto',
-      padding:  T.space.containerPad,
-    };
-
-    // 2 colunas no desktop, stack no mobile
-    const bodyStyle = {
-      display:             'grid',
-      gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-      gap:                 T.space.gridLg,
-      alignItems:          'center',
-    };
-
-    // Imagens (2x2)
-    const imgGridStyle = {
-      display:             'grid',
-      gridTemplateColumns: 'repeat(2, 1fr)',
-      gap:                 T.space.grid,
-    };
-
-    // Bloco de texto
-    const textBlockStyle = {
-      display:       'flex',
-      flexDirection: 'column',
-      gap:           T.space[7],
-    };
-
-    const eyebrowStyle = {
-      fontFamily:    T.font.sans,
-      fontSize:      T.fontSize.xs,
-      fontWeight:    T.fontWeight.semibold,
-      letterSpacing: T.letterSpacing['4xl'],
-      textTransform: 'uppercase',
-      color:         T.color.amber,
-    };
-
-    const titleStyle = {
-      fontFamily:  T.font.serif,
-      fontSize:    T.fontSize.h3,
-      fontWeight:  T.fontWeight.regular,
-      lineHeight:  T.lineHeight.tight,
-      color:       T.color.cream,
-    };
-
-    const descStyle = {
-      fontFamily:  T.font.sans,
-      fontSize:    T.fontSize.base,
-      fontWeight:  T.fontWeight.light,
-      color:       T.color.textMuted,
-      lineHeight:  T.lineHeight.loose,
-    };
-
-    const bulletsStyle = {
-      display:       'flex',
-      flexDirection: 'column',
-      gap:           T.space[5],
-    };
-
-    const btnStyle = {
-      alignSelf:     'flex-start',
-      display:       'inline-flex',
-      alignItems:    'center',
-      gap:           T.space[2],
-      padding:       `14px ${T.space[8]}`,
-      borderRadius:  T.radius.pill,
-      border:        `1px solid ${btnHov ? T.color.amber : T.color.border}`,
-      background:    btnHov ? T.color.amber : 'transparent',
-      color:         btnHov ? T.color.bg    : T.color.text,
-      fontFamily:    T.font.sans,
-      fontSize:      T.fontSize.sm,
-      fontWeight:    T.fontWeight.semibold,
-      letterSpacing: T.letterSpacing.xl,
-      textTransform: 'uppercase',
-      cursor:        'pointer',
-      textDecoration:'none',
-      transition:    `background ${T.transition.fast}, border-color ${T.transition.fast}, color ${T.transition.fast}`,
-    };
-
-    const waHref = 'https://wa.me/5521000000000?text=Ol%C3%A1!%20Tenho%20interesse%20em%20fornecimento%20para%20meu%20neg%C3%B3cio.';
-
-    // No mobile, imagens ficam abaixo do texto
-    const imgBlock = html`
-      <div style=${imgGridStyle}>
-        ${IMAGES.map(img => html`<${ImageTile} key=${img.id} img=${img} />`)}
-      </div>
-    `;
-
-    const textBlock = html`
-      <div style=${textBlockStyle}>
-        <p style=${eyebrowStyle}>Foodservice</p>
-
-        <h2 style=${titleStyle}>
-          Fornecimento para<br />o seu negócio
-        </h2>
-
-        <p style=${descStyle}>
-          Levamos a qualidade da fermentação natural para cafés, restaurantes e
-          mercados especializados. Produção sob medida, ingredientes selecionados
-          e o cuidado artesanal que seu cliente merece.
-        </p>
-
-        <div style=${bulletsStyle}>
-          ${BULLETS.map((b, i) => html`<${BulletItem} key=${i} item=${b} />`)}
-        </div>
-
-        <a
-          href=${waHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          style=${btnStyle}
-          onMouseEnter=${() => setBtnHov(true)}
-          onMouseLeave=${() => setBtnHov(false)}
+  return (
+    <section
+      id="foodservice"
+      data-screen-label="Foodservice"
+      style={{
+        padding: isMobile ? '80px 0' : '100px 0',
+        background: 'oklch(10% 0.018 48)',
+        borderTop: '1px solid var(--border)'
+      }}
+    >
+      <div style={{ maxWidth: 1480, margin: '0 auto', padding: '0 24px' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+            gap: isMobile ? 48 : 64,
+            alignItems: 'center'
+          }}
         >
-          Fale conosco →
-        </a>
-      </div>
-    `;
+          {/* Left — imagens */}
+          <Reveal>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 10,
+                aspectRatio: '1'
+              }}
+            >
+              {[
+                'restaurante mesa posta elegante',
+                'cesta de paes artesanal',
+                'cafeteria vitrine paes',
+                'brunch tostas gourmet'
+              ].map((label, i) => (
+                <div
+                  key={i}
+                  style={{
+                    borderRadius: 6,
+                    overflow: 'hidden',
+                    background: 'oklch(20% 0.02 48)'
+                  }}
+                >
+                  <ImagePlaceholder label={label} />
+                </div>
+              ))}
+            </div>
+          </Reveal>
 
-    return html`
-      <section id="foodservice" style=${sectionStyle} aria-label="Fornecimento para negócios">
-        <div style=${containerStyle}>
-          <div style=${bodyStyle}>
-            ${isMobile
-              ? html`${textBlock}${imgBlock}`
-              : html`${imgBlock}${textBlock}`
-            }
-          </div>
+          {/* Right — conteúdo */}
+          <Reveal delay={0.1}>
+            <div>
+              <div
+                style={{
+                  fontSize: 11,
+                  letterSpacing: '0.18em',
+                  textTransform: 'uppercase',
+                  color: 'var(--amber)',
+                  marginBottom: 16,
+                  fontWeight: 600
+                }}
+              >
+                B2B & Parcerias
+              </div>
+
+              <h2
+                style={{
+                  fontFamily: 'var(--font-serif)',
+                  fontSize: 'clamp(32px, 4vw, 52px)',
+                  fontWeight: 600,
+                  color: 'var(--cream)',
+                  lineHeight: 1.1,
+                  marginBottom: 20,
+                  letterSpacing: '-0.01em'
+                }}
+              >
+                Foodservice
+              </h2>
+
+              <p
+                style={{
+                  fontSize: 15,
+                  color: 'var(--text-muted)',
+                  lineHeight: 1.75,
+                  fontWeight: 300,
+                  marginBottom: 28,
+                  maxWidth: 520
+                }}
+              >
+                Pães artesanais com padrão consistente para restaurantes,
+                cafeterias e operações que valorizam qualidade e experiência.
+                Produção organizada, fornecimento confiável e possibilidade de
+                adaptação conforme sua demanda.
+              </p>
+
+              {/* CTA melhorado */}
+              <a
+                href="https://wa.me/5521966278965?text=Olá! Tenho interesse em foodservice."
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 12,
+                  background: 'var(--cream)',
+                  color: 'oklch(12% 0.018 50)',
+                  padding: '16px 32px',
+                  borderRadius: 6,
+                  textDecoration: 'none',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  transition: 'all 0.25s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--amber)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--cream)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                Falar no WhatsApp →
+              </a>
+            </div>
+          </Reveal>
         </div>
-      </section>
-    `;
-  }
-
-  window.FoodServiceSection = FoodServiceSection;
-}());
+      </div>
+    </section>
+  );
+}

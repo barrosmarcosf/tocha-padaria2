@@ -1,27 +1,44 @@
-// hooks/useScrollReveal.js
-// Observa um elemento via IntersectionObserver e dispara uma única vez
-// quando ele entra na viewport. Retorna [ref, visible].
-(function () {
-  'use strict';
+// ============================================================
+// SCROLL REVEAL HOOK (robusto)
+// ============================================================
+function useScrollReveal(options = {}) {
+  const {
+    threshold = 0.1,
+    rootMargin = '0px 0px -10% 0px', // começa antes de entrar totalmente
+    once = true // anima só uma vez por padrão
+  } = options;
 
-  const { useRef, useState, useEffect } = window.React;
+  const ref = React.useRef(null);
+  const [visible, setVisible] = React.useState(false);
 
-  function useScrollReveal(threshold) {
-    const ref = useRef(null);
-    const [visible, setVisible] = useState(false);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
 
-    useEffect(() => {
-      const el = ref.current;
-      if (!el) return;
-      const obs = new IntersectionObserver(([entry]) => {
-        if (entry.isIntersecting) { setVisible(true); obs.disconnect(); }
-      }, { threshold: threshold || 0.08 });
-      obs.observe(el);
-      return () => obs.disconnect();
-    }, []);
+    // fallback (navegadores antigos / edge cases)
+    if (!('IntersectionObserver' in window)) {
+      setVisible(true);
+      return;
+    }
 
-    return [ref, visible];
-  }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
 
-  window.useScrollReveal = useScrollReveal;
-}());
+          if (once) observer.unobserve(el);
+        } else {
+          // se quiser permitir reanimar ao sair/entrar
+          if (!once) setVisible(false);
+        }
+      },
+      { threshold, rootMargin }
+    );
+
+    observer.observe(el);
+
+    return () => observer.disconnect();
+  }, [threshold, rootMargin, once]);
+
+  return [ref, visible];
+}

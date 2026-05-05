@@ -1,193 +1,132 @@
-(function () {
-  'use strict';
+// ============================================================
+// INSTAGRAM STRIP
+// ============================================================
+function InstagramStrip() {
+  const [hoverIndex, setHoverIndex] = React.useState(null);
 
-  const { useState } = window.React;
-  const html        = window.htm.bind(window.React.createElement);
-  const T           = window.T;
-  const useIsMobile = window.useIsMobile;
-
-  const IG_URL = 'https://instagram.com/tocha.padaria';
-
-  // Mock: substituir por URLs reais quando disponíveis
-  const POSTS = [
-    { id: 1, emoji: '🍞', label: 'Fornada de pães de fermentação natural'   },
-    { id: 2, emoji: '🥐', label: 'Brioche recém saído do forno'              },
-    { id: 3, emoji: '🌾', label: 'Detalhe do miolo aberto'                  },
-    { id: 4, emoji: '✨', label: 'Mesa de pães artesanais do sábado'         },
+  const items = [
+    'bastidores da fornada',
+    'o levain crescendo',
+    'pão saindo do forno',
+    'corte do sourdough'
   ];
 
-  // Gradientes placeholder que simulam tonalidades de foto
-  const GRADIENTS = [
-    `linear-gradient(135deg, oklch(18% 0.03 50), oklch(24% 0.04 45))`,
-    `linear-gradient(135deg, oklch(16% 0.025 48), oklch(22% 0.035 52))`,
-    `linear-gradient(135deg, oklch(20% 0.03 46), oklch(14% 0.02  50))`,
-    `linear-gradient(135deg, oklch(22% 0.035 49), oklch(17% 0.03  47))`,
-  ];
-
-  function PostTile({ post, gradient }) {
-    const [hovered, setHovered] = useState(false);
-
-    const linkStyle = {
-      display:  'block',
-      position: 'relative',
-      overflow: 'hidden',
-      borderRadius: T.radius.card,
-      aspectRatio:  '1 / 1',
-      border:       `1px solid ${hovered ? T.color.borderHover : T.color.borderSubtle}`,
-      transition:   `border-color ${T.transition.base}`,
-      textDecoration: 'none',
-    };
-
-    const bgStyle = {
-      position:   'absolute',
-      inset:      0,
-      background: gradient,
-      display:    'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize:   '52px',
-      transition: `transform ${T.transition.slow}`,
-      transform:  hovered ? 'scale(1.06)' : 'scale(1)',
-    };
-
-    // Overlay de hover com ícone do Instagram
-    const overlayStyle = {
-      position:   'absolute',
-      inset:      0,
-      background: T.color.overlayLight,
-      display:    'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      opacity:    hovered ? 1 : 0,
-      transition: `opacity ${T.transition.base}`,
-    };
-
-    const igIconStyle = {
-      fontFamily:    T.font.sans,
-      fontSize:      T.fontSize.xs,
-      fontWeight:    T.fontWeight.semibold,
-      letterSpacing: T.letterSpacing.lg,
-      textTransform: 'uppercase',
-      color:         T.color.cream,
-    };
-
-    return html`
-      <a
-        href=${IG_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        style=${linkStyle}
-        aria-label=${post.label}
-        onMouseEnter=${() => setHovered(true)}
-        onMouseLeave=${() => setHovered(false)}
-      >
-        <div style=${bgStyle} aria-hidden="true">${post.emoji}</div>
-        <div style=${overlayStyle} aria-hidden="true">
-          <span style=${igIconStyle}>Ver no Instagram</span>
-        </div>
-      </a>
-    `;
-  }
-
-  function InstagramStrip() {
-    const isMobile = useIsMobile();
-
-    const sectionStyle = {
-      padding:    T.space.sectionPad,
-      background: T.color.bg2,
-      borderTop:  `1px solid var(--border-subtle)`,
-    };
-
-    const containerStyle = {
-      maxWidth: T.space.containerMd,
-      margin:   '0 auto',
-      padding:  T.space.containerPad,
-    };
-
-    const headerStyle = {
-      display:        'flex',
-      alignItems:     'flex-end',
-      justifyContent: 'space-between',
-      flexWrap:       'wrap',
-      gap:            T.space[4],
-      marginBottom:   T.space[10],
-    };
-
-    const titleBlockStyle = {
-      display:       'flex',
-      flexDirection: 'column',
-      gap:           T.space[3],
-    };
-
-    const eyebrowStyle = {
-      fontFamily:    T.font.sans,
-      fontSize:      T.fontSize.xs,
-      fontWeight:    T.fontWeight.semibold,
-      letterSpacing: T.letterSpacing['4xl'],
-      textTransform: 'uppercase',
-      color:         T.color.amber,
-    };
-
-    const titleStyle = {
-      fontFamily:  T.font.serif,
-      fontSize:    T.fontSize.h3,
-      fontWeight:  T.fontWeight.regular,
-      lineHeight:  T.lineHeight.tight,
-      color:       T.color.cream,
-    };
-
-    const igLinkStyle = {
-      display:       'inline-flex',
-      alignItems:    'center',
-      gap:           T.space[2],
-      fontFamily:    T.font.sans,
-      fontSize:      T.fontSize.sm,
-      fontWeight:    T.fontWeight.medium,
-      letterSpacing: T.letterSpacing.base,
-      color:         T.color.textMuted,
-      textDecoration:'none',
-      transition:    `color ${T.transition.fast}`,
-      flexShrink:    0,
-    };
-
-    const gridStyle = {
-      display:             'grid',
-      gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
-      gap:                 T.space.gridMd,
-    };
-
-    return html`
-      <section id="instagram" style=${sectionStyle} aria-label="Instagram">
-        <div style=${containerStyle}>
-
-          <div style=${headerStyle}>
-            <div style=${titleBlockStyle}>
-              <p style=${eyebrowStyle}>Instagram</p>
-              <h2 style=${titleStyle}>Acompanhe nossa rotina</h2>
+  return (
+    <section
+      data-screen-label="Instagram"
+      style={{ padding: '100px 0', background: 'var(--bg)' }}
+    >
+      <div style={{ maxWidth: 1500, margin: '0 auto', padding: '0 56px' }}>
+        
+        <Reveal>
+          <div style={{ textAlign: 'center', marginBottom: 56 }}>
+            <div
+              style={{
+                fontSize: 11,
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                color: 'var(--amber)',
+                marginBottom: 16,
+                fontWeight: 600
+              }}
+            >
+              Nos acompanhe
             </div>
 
+            <h2
+              style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: 'clamp(32px, 4vw, 48px)',
+                fontWeight: 500,
+                color: 'var(--cream)'
+              }}
+            >
+              Cada fornada,<br />
+              <em style={{ color: 'var(--amber)', fontStyle: 'italic' }}>
+                uma história
+              </em>
+            </h2>
+          </div>
+        </Reveal>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: 12,
+            marginBottom: 40
+          }}
+        >
+          {items.map((label, i) => (
+            <Reveal key={i} delay={i * 0.1}>
+              <div
+                style={{
+                  aspectRatio: '1',
+                  borderRadius: 4,
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  position: 'relative'
+                }}
+                onMouseEnter={() => setHoverIndex(i)}
+                onMouseLeave={() => setHoverIndex(null)}
+              >
+                <ImagePlaceholder label={label} />
+
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'oklch(72% 0.12 60 / 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: hoverIndex === i ? 1 : 0,
+                    transition: 'opacity 0.25s'
+                  }}
+                >
+                  <span style={{ color: 'white', fontSize: 28 }}>♥</span>
+                </div>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+
+        <Reveal delay={0.3}>
+          <div style={{ textAlign: 'center' }}>
             <a
-              href=${IG_URL}
+              href="https://instagram.com/tocha.padaria"
               target="_blank"
               rel="noopener noreferrer"
-              style=${igLinkStyle}
-              onMouseEnter=${e => { e.currentTarget.style.color = T.color.amber; }}
-              onMouseLeave=${e => { e.currentTarget.style.color = T.color.textMuted; }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 10,
+                border: '1px solid var(--border)',
+                color: 'var(--text-muted)',
+                padding: '14px 32px',
+                borderRadius: 2,
+                textDecoration: 'none',
+                fontSize: 13,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                transition: 'all 0.25s',
+                fontWeight: 500
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--amber)';
+                e.currentTarget.style.color = 'var(--amber)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border)';
+                e.currentTarget.style.color = 'var(--text-muted)';
+              }}
             >
-              @tocha.padaria ↗
+              @tocha.padaria →
             </a>
           </div>
+        </Reveal>
 
-          <div style=${gridStyle}>
-            ${POSTS.map((post, i) => html`
-              <${PostTile} key=${post.id} post=${post} gradient=${GRADIENTS[i]} />
-            `)}
-          </div>
-
-        </div>
-      </section>
-    `;
-  }
-
-  window.InstagramStrip = InstagramStrip;
-}());
+      </div>
+    </section>
+  );
+}

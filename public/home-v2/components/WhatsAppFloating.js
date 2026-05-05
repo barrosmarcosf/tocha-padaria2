@@ -1,114 +1,79 @@
-(function () {
-  'use strict';
+// ============================================================
+// FLOATING WHATSAPP BUTTON (bottom-left, discreet)
+// ============================================================
+function WhatsAppFloating() {
+  const [hovered, setHovered] = React.useState(false);
 
-  const { useState } = window.React;
-  const html        = window.htm.bind(window.React.createElement);
-  const T           = window.T;
-  const useIsMobile = window.useIsMobile;
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
-  const WA_HREF = 'https://wa.me/5521000000000?text=Ol%C3%A1!%20Gostaria%20de%20fazer%20um%20pedido.';
-
-  // Ícone SVG do WhatsApp (inline, sem dependências)
-  function WAIcon({ size }) {
-    return html`
+  return (
+    <a
+      href="https://wa.me/5521966278965"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Falar no WhatsApp"
+      onMouseEnter={() => !isMobile && setHovered(true)}
+      onMouseLeave={() => !isMobile && setHovered(false)}
+      style={{
+        position: 'fixed',
+        left: 20,
+        bottom: 20,
+        zIndex: 150,
+        width: 48,
+        height: 48,
+        borderRadius: '50%',
+        background: 'oklch(60% 0.16 145)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: hovered
+          ? '0 8px 24px oklch(0% 0 0 / 0.4), 0 0 0 4px oklch(60% 0.16 145 / 0.18)'
+          : '0 4px 14px oklch(0% 0 0 / 0.3)',
+        transition: 'all 0.25s ease',
+        transform: hovered ? 'scale(1.06)' : 'scale(1)',
+        textDecoration: 'none'
+      }}
+    >
+      {/* WhatsApp icon */}
       <svg
-        width=${size}
-        height=${size}
-        viewBox="0 0 24 24"
-        fill="currentColor"
+        viewBox="0 0 32 32"
+        width="24"
+        height="24"
+        fill="#fff"
         aria-hidden="true"
-        style=${{ display:'block', flexShrink:0 }}
       >
-        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+        <path d="M16.003 3C9.376 3 4 8.376 4 15.003c0 2.117.555 4.183 1.61 6.003L4 28l7.184-1.583a12 12 0 0 0 4.819 1.005h.004C22.633 27.422 28 22.046 28 15.42 28 8.793 22.633 3 16.003 3Zm0 22.012a9.97 9.97 0 0 1-4.882-1.27l-.35-.21-4.265.94.91-4.156-.227-.36a9.97 9.97 0 0 1-1.523-5.35c0-5.514 4.488-10 10.005-10 5.516 0 9.998 4.486 9.998 10 0 5.516-4.485 10.406-9.666 10.406Zm5.476-7.477c-.3-.15-1.776-.876-2.052-.976-.275-.1-.475-.15-.676.15-.2.3-.776.976-.951 1.176-.175.2-.35.225-.65.075-.3-.15-1.265-.466-2.41-1.486-.89-.794-1.49-1.774-1.665-2.074-.175-.3-.018-.462.131-.611.135-.135.3-.35.45-.525.15-.175.2-.3.3-.5.1-.2.05-.375-.025-.525-.075-.15-.676-1.625-.926-2.225-.244-.585-.491-.506-.676-.515l-.575-.011a1.1 1.1 0 0 0-.8.375c-.275.3-1.05 1.025-1.05 2.5 0 1.475 1.075 2.9 1.225 3.1.15.2 2.116 3.231 5.13 4.531.717.31 1.276.495 1.71.633.717.228 1.37.196 1.886.119.575-.086 1.776-.726 2.026-1.426.25-.7.25-1.3.175-1.426-.075-.125-.275-.2-.575-.35Z"/>
       </svg>
-    `;
-  }
 
-  function WhatsAppFloating() {
-    const isMobile = useIsMobile();
-    const [hovered, setHovered] = useState(false);
-
-    const BTN_SIZE = isMobile ? '48px' : '52px';
-
-    // Wrapper: posição fixa, mantém btn + tooltip alinhados
-    const wrapStyle = {
-      position:  'fixed',
-      bottom:    T.space[8],
-      left:      T.space[8],
-      zIndex:    T.z.whatsapp,           // 150 — abaixo de drawerBg (200)
-      display:   'flex',
-      alignItems:'center',
-      gap:       T.space[3],
-    };
-
-    const btnStyle = {
-      width:        BTN_SIZE,
-      height:       BTN_SIZE,
-      borderRadius: T.radius.circle,
-      border:       'none',
-      background:   T.color.amber,
-      color:        T.color.bg,
-      display:      'flex',
-      alignItems:   'center',
-      justifyContent:'center',
-      cursor:       'pointer',
-      flexShrink:   0,
-      // Hover: scale + shadow (aplicados inline via estado)
-      transform:    hovered ? 'scale(1.08)' : 'scale(1)',
-      boxShadow:    hovered ? T.shadow.whatsapp : '0 2px 8px oklch(0% 0 0 / 0.2)',
-      transition:   [
-        `transform ${T.transition.fast}`,
-        `box-shadow ${T.transition.fast}`,
-      ].join(', '),
-    };
-
-    // Tooltip: visível apenas em desktop e no hover
-    const tooltipVisible = !isMobile && hovered;
-
-    const tooltipStyle = {
-      padding:       `${T.space[2]} ${T.space[4]}`,
-      borderRadius:  T.radius.pill,
-      background:    T.color.surface,
-      border:        `1px solid var(--border)`,
-      fontFamily:    T.font.sans,
-      fontSize:      T.fontSize.xs,
-      fontWeight:    T.fontWeight.medium,
-      letterSpacing: T.letterSpacing.base,
-      color:         T.color.text,
-      whiteSpace:    'nowrap',
-      boxShadow:     T.shadow.whatsapp,
-      // Fade in/out
-      opacity:       tooltipVisible ? 1 : 0,
-      transform:     tooltipVisible ? 'translateX(0)' : 'translateX(-6px)',
-      transition:    [
-        `opacity ${T.transition.base}`,
-        `transform ${T.transition.base}`,
-      ].join(', '),
-      pointerEvents: tooltipVisible ? 'none' : 'none',
-    };
-
-    return html`
-      <div
-        style=${wrapStyle}
-        onMouseEnter=${() => setHovered(true)}
-        onMouseLeave=${() => setHovered(false)}
-      >
-        <a
-          href=${WA_HREF}
-          target="_blank"
-          rel="noopener noreferrer"
-          style=${btnStyle}
-          aria-label="Fale conosco pelo WhatsApp"
+      {/* Tooltip (somente desktop) */}
+      {!isMobile && (
+        <span
+          role="tooltip"
+          style={{
+            position: 'absolute',
+            left: 'calc(100% + 12px)',
+            top: '50%',
+            transform: hovered
+              ? 'translateY(-50%) translateX(0)'
+              : 'translateY(-50%) translateX(-6px)',
+            background: 'oklch(15% 0.02 48)',
+            border: '1px solid var(--border)',
+            color: 'var(--cream)',
+            padding: '8px 14px',
+            borderRadius: 6,
+            fontSize: 12,
+            letterSpacing: '0.04em',
+            whiteSpace: 'nowrap',
+            opacity: hovered ? 1 : 0,
+            pointerEvents: 'none',
+            transition: 'all 0.2s ease',
+            fontFamily: 'var(--font-sans)',
+            fontWeight: 500
+          }}
         >
-          <${WAIcon} size=${isMobile ? 22 : 24} />
-        </a>
-
-        <span style=${tooltipStyle} aria-hidden="true">
-          Fale conosco
+          Fale com a gente
         </span>
-      </div>
-    `;
-  }
-
-  window.WhatsAppFloating = WhatsAppFloating;
-}());
+      )}
+    </a>
+  );
+}

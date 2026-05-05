@@ -1,23 +1,29 @@
-// hooks/useParallax.js
-// Retorna o offset vertical calculado por window.scrollY * speed.
-// Usar em elementos com transform: translateY(${offset}px).
-(function () {
-  'use strict';
+// ============================================================
+// PARALLAX HOOK (performático)
+// ============================================================
+function useParallax(speed = 0.3) {
+  const [offset, setOffset] = React.useState(0);
+  const ticking = React.useRef(false);
 
-  const { useState, useEffect } = window.React;
+  React.useEffect(() => {
+    function update() {
+      setOffset(window.scrollY * speed);
+      ticking.current = false;
+    }
 
-  function useParallax(speed) {
-    const [offset, setOffset] = useState(0);
+    function onScroll() {
+      if (!ticking.current) {
+        requestAnimationFrame(update);
+        ticking.current = true;
+      }
+    }
 
-    useEffect(() => {
-      const factor = speed || 0.3;
-      const handle = () => setOffset(window.scrollY * factor);
-      window.addEventListener('scroll', handle, { passive: true });
-      return () => window.removeEventListener('scroll', handle);
-    }, [speed]);
+    window.addEventListener('scroll', onScroll, { passive: true });
 
-    return offset;
-  }
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, [speed]);
 
-  window.useParallax = useParallax;
-}());
+  return offset;
+}

@@ -1,266 +1,99 @@
-// @ts-nocheck — variáveis declaradas aqui serão consumidas pelas seções/componentes dos próximos passos
-(function () {
-  'use strict';
+const [customerInfo, setCustomerInfo] = useState(null);
+const [pendingItem, setPendingItem] = useState(null);
 
-  // ── Runtime globals ───────────────────────────────────────────
-  const { useState, useEffect, useRef, useMemo, useCallback } = window.React;
-  const html = window.htm.bind(window.React.createElement);
+function addToCart(item) {
+  setCart((prev) => {
+    const existing = prev.find((i) => i.id === item.id);
 
-  // ── Design tokens (tokens.js carregado antes deste arquivo) ──
-  const T = window.T;
-
-  // ── Hooks (hooks/*.js carregados antes deste arquivo) ─────────
-  const useScrollReveal = window.useScrollReveal;
-  const useScrolled     = window.useScrolled;
-  const useParallax     = window.useParallax;
-  const useCountdown    = window.useCountdown;
-  const useIsMobile     = window.useIsMobile;
-
-  // ── Sections ──────────────────────────────────────────────────
-  const AnnouncementBar = window.AnnouncementBar;
-  const Navbar          = window.Navbar;
-  const Hero            = window.Hero;
-  const ManifestoStrip     = window.ManifestoStrip;
-  const HowItWorksSection  = window.HowItWorksSection;
-  const MenuSection        = window.MenuSection;
-  const CartDrawer         = window.CartDrawer;
-  const EarlyCaptureModal  = window.EarlyCaptureModal;
-  const InstagramStrip      = window.InstagramStrip;
-  const FoodServiceSection  = window.FoodServiceSection;
-  const HistoriaSection     = window.HistoriaSection;
-  const Footer              = window.Footer;
-  const WhatsAppFloating    = window.WhatsAppFloating;
-
-  // ─────────────────────────────────────────────────────────────
-  // UTILS
-  // ─────────────────────────────────────────────────────────────
-
-  function formatPrice(v) {
-    return 'R$ ' + Number(v).toFixed(2).replace('.', ',');
-  }
-
-  function getCart() {
-    try { return JSON.parse(localStorage.getItem('tocha-cart') || '[]'); } catch { return []; }
-  }
-
-  function saveCart(c) {
-    localStorage.setItem('tocha-cart', JSON.stringify(c));
-  }
-
-  function fetchWithTimeout(url, options, timeout) {
-    const ctrl = new AbortController();
-    const id = setTimeout(() => ctrl.abort(), timeout || 10000);
-    return fetch(url, { ...options, signal: ctrl.signal })
-      .finally(() => clearTimeout(id));
-  }
-
-  function safeTrack(event, props) {
-    if (typeof window.track === 'function') window.track(event, props);
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // APP
-  // ─────────────────────────────────────────────────────────────
-
-  function App() {
-
-    // ── Server state ────────────────────────────────────────────
-    const [status, setStatus] = useState(null);
-    const [config, setConfig] = useState(null);
-
-    // ── UI state ────────────────────────────────────────────────
-    const [cart, setCart]             = useState(getCart);
-    const [cartOpen, setCartOpen]     = useState(false);
-    const [captureOpen, setCaptureOpen] = useState(false);
-
-    // ── Checkout state ───────────────────────────────────────────
-    const [checkoutStatus, setCheckoutStatus] = useState('idle');
-    const [pixData, setPixData]               = useState(null);
-
-    // ── Boot: busca status e config da API ───────────────────────
-    useEffect(() => {
-      fetchWithTimeout('/api/status', {}, 8000)
-        .then(r => r.json()).then(setStatus).catch(() => {});
-
-      fetchWithTimeout('/api/config', {}, 8000)
-        .then(r => r.json()).then(setConfig).catch(() => {});
-    }, []);
-
-    // ── Sincroniza carrinho entre abas ───────────────────────────
-    useEffect(() => {
-      const h = () => setCart(getCart());
-      window.addEventListener('storage', h);
-      return () => window.removeEventListener('storage', h);
-    }, []);
-
-    // ── Polling de confirmação PIX ────────────────────────────────
-    useEffect(() => {
-      if (checkoutStatus !== 'pix_pending' || !pixData?.payment_id) return;
-      const paymentId = pixData.payment_id;
-      async function checkPaymentStatus() {
-        try {
-          const res = await fetch(`/api/mercadopago/check-payment/${paymentId}`);
-          if (!res.ok) return;
-          const d = await res.json();
-          if (d.status === 'approved') {
-            setCheckoutStatus('success');
-          } else if (d.status === 'cancelled') {
-            setCheckoutStatus('error_card_mp');
-          }
-        } catch {}
-      }
-      const intervalId = setInterval(checkPaymentStatus, 3000);
-      return () => clearInterval(intervalId);
-    }, [checkoutStatus, pixData?.payment_id]);
-
-    // ── Ações do carrinho ────────────────────────────────────────
-    function persist(newCart) {
-      saveCart(newCart);
-      setCart(newCart);
+    if (existing) {
+      return prev.map((i) =>
+        i.id === item.id ? { ...i, qty: i.qty + 1 } : i
+      );
     }
 
-    function handleAdd(product, qty) {
-      qty = qty || 1;
-      const wasEmpty = cart.length === 0;
-      const newCart = cart.map(i => ({ ...i }));
-      const existing = newCart.find(i => String(i.id) === String(product.id));
+    return [...prev, { ...item, qty: 1 }];
+  });
 
-      if (existing) {
-        existing.qty += qty;
-      } else {
-        newCart.push({
-          id:    product.id,
-          name:  product.name,
-          price: product.price,
-          image: product.image_url || null,
-          qty,
-        });
-      }
+  if (customerInfo) {
+    setCartOpen(true);
+  }
+}
 
-      persist(newCart);
-      safeTrack('add_to_cart', { product_id: product.id, name: product.name, qty });
-      setCartOpen(true);
+function handleAdd(item) {
+  if (!customerInfo) {
+    setPendingItem(item);
+    setCaptureOpen(true);
+    return;
+  }
 
-      // Early capture: pede dados na primeira adição se ainda não salvos
-      if (wasEmpty && !sessionStorage.getItem('tocha-capture-shown')) {
-        let stored = null;
-        try { stored = JSON.parse(localStorage.getItem('tocha-customer') || 'null'); } catch {}
-        if (!stored) {
-          setTimeout(() => {
-            setCaptureOpen(true);
-            sessionStorage.setItem('tocha-capture-shown', '1');
-          }, 700);
+  addToCart(item);
+}
+
+return html`
+  <div id="app-root">
+    <${GlobalStyles} />
+
+    <${AnnouncementBar} status=${status} />
+
+    <${Navbar}
+      cartCount=${totalItems}
+      onCartOpen=${() => setCartOpen(true)}
+    />
+
+    <${Hero} status=${status} scrollToMenu=${scrollToMenu} />
+
+    <${ManifestoStrip} />
+
+    <!-- ✅ MANTIDO -->
+    <${HowItWorksSection} />
+
+    <${MenuSection}
+      cart=${cart}
+      onAdd=${handleAdd}
+      onUpdateQty=${handleUpdateQty}
+      config=${config}
+    />
+
+    <${InstagramStrip} />
+    <${FoodServiceSection} />
+
+    <!-- ❌ REMOVIDO -->
+    <!-- <${HistoriaSection} /> -->
+
+    <${Footer} />
+    <${WhatsAppFloating} />
+
+    <${EarlyCaptureModal}
+      open=${captureOpen}
+      onClose=${() => {
+        setCaptureOpen(false);
+        setPendingItem(null);
+      }}
+      onConfirm=${(data) => {
+        setCustomerInfo(data);
+        setCaptureOpen(false);
+
+        if (pendingItem) {
+          addToCart(pendingItem);
+          setPendingItem(null);
         }
-      }
-    }
+      }}
+    />
 
-    function handleUpdateQty(id, qty) {
-      if (qty <= 0) { persist(cart.filter(i => String(i.id) !== String(id))); return; }
-      persist(cart.map(i => String(i.id) === String(id) ? { ...i, qty } : i));
-    }
-
-    function handleRemove(id) {
-      persist(cart.filter(i => String(i.id) !== String(id)));
-    }
-
-    const handleCheckout = useCallback(async function(payload) {
-      setCheckoutStatus('loading');
-      try {
-        const res = await fetchWithTimeout('/api/checkout', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ items: payload.items, customer: payload.customer, method: payload.method }),
-        }, 15000);
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          console.error('[checkout] error response:', res.status, data);
-          setCheckoutStatus(data.tipo === 'error_card' ? 'error_card' : 'error_generic');
-          return;
-        }
-
-        if (data.tipo === 'pix') {
-          setPixData({ qr_code: data.qr_code, copia_e_cola: data.copia_e_cola, payment_id: data.payment_id });
-          setCheckoutStatus('pix_pending');
-        } else if (data.tipo === 'success') {
-          setCheckoutStatus('success');
-        } else if (data.tipo === 'error_card_mp') {
-          setCheckoutStatus('error_card_mp');
-        } else if (data.tipo === 'stripe_redirect') {
-          window.location.href = data.url;
-        } else {
-          console.error('[checkout] resposta inesperada:', data);
-          setCheckoutStatus('error_generic');
-        }
-      } catch (err) {
-        console.error('[checkout] fetch error:', err);
-        setCheckoutStatus('error_generic');
-      }
-    }, []);
-
-    function scrollToMenu() {
-      const el = document.getElementById('cardapio');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    const totalItems = cart.reduce((s, i) => s + i.qty, 0);
-
-    // ── Render ───────────────────────────────────────────────────
-    // Seções serão adicionadas aqui, uma por vez, nos próximos passos.
-    // Cada componente receberá as props necessárias listadas abaixo:
-    //
-    //   <AnnouncementBar status=${status} />
-    //   <Navbar cartCount=${totalItems} onCartOpen=${() => setCartOpen(true)} />
-    //   <Hero status=${status} onShop=${scrollToMenu} />
-    //   <ManifestoStrip />
-    //   <HowItWorksSection />
-    //   <MenuSection config=${config} onAdd=${handleAdd} />
-    //   <FoodserviceSection />
-    //   <Footer />
-    //   <WhatsAppFloat />
-    //   <EarlyCaptureModal open=${captureOpen} onClose=${() => setCaptureOpen(false)} />
-    //   <CartDrawer
-    //     open=${cartOpen}
-    //     onClose=${() => setCartOpen(false)}
-    //     cart=${cart}
-    //     onUpdateQty=${handleUpdateQty}
-    //     onRemove=${handleRemove}
-    //     status=${status}
-    //   />
-
-    return html`
-      <div id="app-root">
-        <${AnnouncementBar} status=${status} />
-        <${Navbar} cart=${cart} setCartOpen=${setCartOpen} scrollToMenu=${scrollToMenu} />
-        <${Hero} scrollToMenu=${scrollToMenu} />
-        <${ManifestoStrip} />
-        <${HowItWorksSection} />
-        <${MenuSection} cart=${cart} onAdd=${handleAdd} onUpdateQty=${handleUpdateQty} config=${config} />
-        <${InstagramStrip} />
-        <${FoodServiceSection} />
-        <${HistoriaSection} />
-        <${Footer} />
-        <${WhatsAppFloating} />
-        <${EarlyCaptureModal} open=${captureOpen} onClose=${() => setCaptureOpen(false)} />
-        <${CartDrawer}
-          open=${cartOpen}
-          onClose=${() => { setCartOpen(false); setCheckoutStatus('idle'); }}
-          cart=${cart}
-          onUpdateQty=${handleUpdateQty}
-          onRemove=${handleRemove}
-          status=${checkoutStatus}
-          onCheckout=${handleCheckout}
-          pixData=${pixData}
-        />
-      </div>
-    `;
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // MOUNT
-  // ─────────────────────────────────────────────────────────────
-  window.ReactDOM.createRoot(document.getElementById('root'))
-    .render(window.React.createElement(App));
-
-}());
+    <${CartDrawer}
+      open=${cartOpen}
+      onClose=${() => {
+        setCartOpen(false);
+        setCheckoutStatus('idle');
+      }}
+      cart=${cart}
+      onUpdateQty=${handleUpdateQty}
+      onRemove=${handleRemove}
+      status=${checkoutStatus}
+      onCheckout=${handleCheckout}
+      pixData=${pixData}
+      customerInfo=${customerInfo}
+      onUpdateCustomer=${setCustomerInfo}
+    />
+  </div>
+`;
