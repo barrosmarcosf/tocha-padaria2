@@ -149,7 +149,7 @@
         const res = await fetchWithTimeout('/api/checkout', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ items: payload.items, customer: payload.customer }),
+          body:    JSON.stringify({ items: payload.items, customer: payload.customer, method: payload.method }),
         }, 15000);
 
         const data = await res.json().catch(() => ({}));
@@ -165,6 +165,10 @@
           setCheckoutStatus('pix_pending');
         } else if (data.tipo === 'success') {
           setCheckoutStatus('success');
+        } else if (data.tipo === 'error_card_mp') {
+          setCheckoutStatus('error_card_mp');
+        } else if (data.tipo === 'stripe_redirect') {
+          window.location.href = data.url;
         } else {
           console.error('[checkout] resposta inesperada:', data);
           setCheckoutStatus('error_generic');

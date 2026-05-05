@@ -540,6 +540,54 @@
   }
 
   // ─────────────────────────────────────────────────────────────────
+  // VIEW: ERROR CARD MP
+  // ─────────────────────────────────────────────────────────────────
+
+  function ViewErrorCardMP({ cart, onCheckout, onRetry }) {
+    let customer = {};
+    try { customer = JSON.parse(localStorage.getItem('tocha-customer') || '{}'); } catch {}
+
+    const centerStyle = {
+      flex: 1, display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      gap: T.space[5], padding: T.space[6], textAlign: 'center',
+    };
+    const iconStyle = { fontSize: '48px' };
+    const titleStyle = {
+      fontFamily: T.font.serif, fontSize: T.fontSize.h4,
+      fontWeight: T.fontWeight.medium, color: T.color.cream,
+    };
+    const msgStyle = {
+      fontFamily: T.font.sans, fontSize: T.fontSize.base,
+      color: T.color.textMuted, lineHeight: T.lineHeight.relaxed,
+      maxWidth: '280px',
+    };
+    const secBtnStyle = {
+      background: 'none', border: `1px solid var(--border)`, borderRadius: T.radius.pill,
+      color: T.color.textMuted, fontFamily: T.font.sans, fontSize: T.fontSize.sm,
+      padding: `10px ${T.space[6]}`, cursor: 'pointer', width: '100%',
+      transition: `border-color ${T.transition.fast}, color ${T.transition.fast}`,
+    };
+
+    return html`
+      <div style=${{ flex:1, display:'flex', flexDirection:'column' }}>
+        <div style=${centerStyle}>
+          <span style=${iconStyle}>💳</span>
+          <h3 style=${titleStyle}>Pagamento não aprovado</h3>
+          <p style=${msgStyle}>O pagamento com cartão não foi autorizado.</p>
+          <${PrimaryBtn} label="Tentar novamente" onClick=${onRetry} />
+          <button style=${secBtnStyle} onClick=${() => onCheckout({ items: cart, customer, method: 'mp_pix' })}>
+            Pagar com Pix
+          </button>
+          <button style=${secBtnStyle} onClick=${() => onCheckout({ items: cart, customer, method: 'stripe_card' })}>
+            Pagar com outro cartão
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // ─────────────────────────────────────────────────────────────────
   // VIEW: ERRORS
   // ─────────────────────────────────────────────────────────────────
 
@@ -651,6 +699,11 @@
                             message="Algo deu errado. Tente novamente ou fale conosco pelo WhatsApp."
                             onRetry=${() => setView('checkout')}
                             onClose=${onClose}
+                          />`,
+      error_card_mp: html`<${ViewErrorCardMP}
+                            cart=${cart}
+                            onCheckout=${handleCheckout}
+                            onRetry=${() => setView('checkout')}
                           />`,
     };
 
