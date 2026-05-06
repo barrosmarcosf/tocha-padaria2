@@ -1448,6 +1448,12 @@ footer {
 .pix-icon {
   font-size: 48px; margin-bottom: 16px; line-height: 1;
 }
+img.pix-icon {
+  width: 20px; height: 20px;
+  object-fit: contain;
+  font-size: unset; margin-bottom: 0;
+  filter: brightness(0.9) contrast(1.1);
+}
 .drawer-state-title {
   font-family: var(--font-serif); font-size: 22px;
   color: var(--cream); font-weight: 500; margin-bottom: 12px;

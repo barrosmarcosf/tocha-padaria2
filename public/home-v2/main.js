@@ -750,7 +750,7 @@
     }).join('');
 
     var paymentOpts = [
-      { key: 'mp_pix',  icon: '⚡', title: 'PIX',              desc: 'Via Mercado Pago · instantâneo · sem taxas' },
+      { key: 'mp_pix',  icon: '<img src="/assets/icons/pix.svg" class="pix-icon" alt="PIX">', title: 'PIX', desc: 'Via Mercado Pago · instantâneo · sem taxas' },
       { key: 'mp_card', icon: '💳', title: 'Cartão de Crédito', desc: 'Via Mercado Pago · parcelamento disponível' },
     ];
 
@@ -1187,11 +1187,21 @@
         cart: state.cart
       };
 
-      var r    = await fetch('/api/checkout', {
+      console.log('PIX payload:', payload);
+
+      var r = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+
+      if (!r.ok) {
+        console.error('PIX ERROR:', await r.text());
+        state.drawerView = 'error_generic';
+        renderDrawerBody();
+        return;
+      }
+
       var data = await r.json();
 
       if (data.tipo === 'pix' && data.qr_code) {
