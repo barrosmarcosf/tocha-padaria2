@@ -446,10 +446,10 @@ button { font-family: var(--font-sans); }
 .step-title {
   font-family: var(--font-serif); font-size: 18px;
   font-weight: 500; color: var(--cream);
-  margin-top: 20px; margin-bottom: 0; line-height: 1.3;
+  margin-top: 16px; margin-bottom: 0; line-height: 1.3;
 }
 .step-desc {
-  font-size: 14px; color: var(--text-muted);
+  font-size: 13px; color: var(--text-muted);
   line-height: 1.5; flex-grow: 1; margin-top: 12px; margin-bottom: 0; max-width: 260px;
 }
 .step-meta {
@@ -468,11 +468,11 @@ button { font-family: var(--font-sans); }
 }
 .info-label {
   font-size: 11px; text-transform: uppercase;
-  color: var(--amber); margin-bottom: 24px;
+  color: var(--amber); margin-bottom: 16px;
 }
 .retirada-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 .info-item-title { color: var(--cream); font-family: var(--font-serif); font-size: 16px; font-weight: 500; margin-bottom: 6px; }
-.info-item-desc  { color: var(--text-muted); font-size: 14px; line-height: 1.5; max-width: 240px; }
+.info-item-desc  { color: var(--text-muted); font-size: 13px; line-height: 1.6; max-width: 240px; }
 .politica-title  { color: var(--cream); font-family: var(--font-serif); font-size: 16px; font-weight: 500; margin-bottom: 8px; }
 .politica-desc   { color: var(--text-muted); font-size: 13px; line-height: 1.6; }
 
