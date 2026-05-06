@@ -8,158 +8,403 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --font-serif: 'Playfair Display', Georgia, serif;
-    --font-sans:  'DM Sans', system-ui, sans-serif;
-
-    --bg-deep:  oklch(8%  0.015 46);
-    --bg-dark:  oklch(9%  0.015 48);
-    --bg:       oklch(12% 0.018 50);
-    --bg-menu:  oklch(11% 0.018 49);
-    --bg2:      oklch(16% 0.02  48);
-    --bg3:      oklch(20% 0.022 47);
-    --surface:  oklch(18% 0.02  48);
-
-    --text:       oklch(92% 0.012 70);
-    --text-muted: oklch(65% 0.015 65);
-    --text-dim:   oklch(45% 0.012 60);
-    --cream:      oklch(94% 0.01  75);
-
-    --amber:        oklch(72% 0.12 60);
-    --amber-bright: oklch(80% 0.14 58);
-    --terra:        oklch(55% 0.1  30);
-
-    --border:        oklch(28% 0.02  50);
-    --border-hover:  oklch(36% 0.028 55);
-    --border-focus:  oklch(72% 0.12  60);
-    --border-subtle: oklch(22% 0.02  50);
-
-    --success: oklch(55% 0.12 140);
-    --error:   oklch(60% 0.12  25);
-
-    --overlay:       oklch(0% 0 0 / 0.65);
-    --overlay-heavy: oklch(0% 0 0 / 0.70);
-
-    --section-pad:    120px 0;
-    --section-pad-sm: 100px 0;
-    --container-pad:  0 40px;
-
-    --announce-h: 40px;
-    --navbar-h:   64px;
-
-    --radius-sharp: 2px;
-    --radius-tag:   3px;
-    --radius-sm:    6px;
-    --radius-card:  8px;
-    --radius-lg:    10px;
-    --radius-pill:  999px;
-
-    --t-fast:   0.2s ease;
-    --t-base:   0.25s ease;
-    --t-slow:   0.4s ease;
-    --t-reveal: 0.7s ease;
-  }
-
-  html { scroll-behavior: smooth; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-sans);
-    overflow-x: hidden;
-    -webkit-font-smoothing: antialiased;
-  }
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--amber); border-radius: 2px; }
-  ::selection { background: var(--amber); color: var(--bg); }
-  #root { min-height: 100vh; }
-  input::placeholder { color: oklch(40% 0.01 60); }
-  input:focus { outline: none; }
-  a { transition: color 0.2s; }
-  select { appearance: none; }
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(24px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-  }
-  @keyframes slideIn {
-    from { transform: translateX(100%); }
-    to   { transform: translateX(0); }
-  }
-  @keyframes slideUp {
-    from { transform: translateY(100%); opacity: 0; }
-    to   { transform: translateY(0);   opacity: 1; }
-  }
-  @keyframes marquee {
-    from { transform: translateX(0); }
-    to   { transform: translateX(-33.333%); }
-  }
-  @keyframes scrollLine {
-    0%,100% { opacity: 0.3; transform: scaleY(0.6); }
-    50%     { opacity: 1;   transform: scaleY(1); }
-  }
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
-  }
-  @keyframes popIn {
-    0%  { transform: scale(0.5); opacity: 0; }
-    70% { transform: scale(1.1); }
-    100%{ transform: scale(1);   opacity: 1; }
-  }
-</style>
+<link rel="stylesheet" href="./style.css">
 </head>
 <body>
-<div id="root"></div>
 
-<!-- Runtime -->
-<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.js"></script>
-<script>window.html = window.htm.bind(window.React.createElement);</script>
+<!-- ============================================================
+     ANNOUNCEMENT BAR
+     ============================================================ -->
+<div id="announcement-bar" role="banner" aria-live="polite">
+  <span>🔥 Fornada sábado — encerra em</span>
+  <span id="countdown" aria-label="Contador regressivo">00:00:00</span>
+  <span>— garanta seu pão</span>
+</div>
+
+<!-- ============================================================
+     NAVBAR
+     ============================================================ -->
+<nav id="navbar" role="navigation" aria-label="Navegação principal">
+  <a href="#hero" aria-label="Tocha Padaria — início">
+    <img
+      src="https://www.tochapadaria.com/assets/logo.png"
+      alt="Tocha Padaria"
+      class="navbar-logo"
+    >
+  </a>
+  <div class="navbar-links">
+    <a href="#hero"           class="nav-link">Início</a>
+    <a href="#cardapio"       class="nav-link">Cardápio</a>
+    <a href="#como-funciona"  class="nav-link">Como pedir</a>
+    <a href="#foodservice"    class="nav-link">Food Service</a>
+    <a href="nossa-historia.html" class="nav-link">Nossa História</a>
+    <a href="fale-conosco.html"   class="nav-link">Fale Conosco</a>
+    <button id="cart-btn" class="cart-btn" aria-label="Abrir pedido">
+      <span aria-hidden="true">🧺</span>
+      <span>Pedido</span>
+      <span id="cart-badge" class="cart-badge" data-count="0" aria-label="itens no pedido">0</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ============================================================
+     HERO
+     ============================================================ -->
+<section id="hero" data-screen-label="Hero">
+  <div class="hero-bg" id="hero-bg">
+    <img
+      src="https://www.tochapadaria.com/assets/sourdough.jpg"
+      alt=""
+      class="hero-img"
+    >
+    <div class="hero-overlay"></div>
+  </div>
+  <div class="hero-noise" aria-hidden="true"></div>
+
+  <div class="hero-content">
+    <div class="hero-tag">Fermentação Natural · São João de Meriti</div>
+    <h1 class="hero-h1">
+      O pão que<br>
+      <em>transforma</em><br>
+      o seu dia
+    </h1>
+    <p class="hero-desc">
+      Cada pão nasce de levain vivo, farinha de qualidade e tempo.
+      Não tem atalho — tem respeito.
+    </p>
+    <div class="hero-actions">
+      <a href="#cardapio" class="btn-primary">
+        Ver Cardápio <span aria-hidden="true" style="font-size:18px">→</span>
+      </a>
+      <a href="#como-funciona" class="btn-outline" id="hero-how-link">Como pedir</a>
+    </div>
+  </div>
+
+  <div class="scroll-indicator" aria-hidden="true">
+    <div class="scroll-line"></div>
+    scroll
+  </div>
+</section>
+
+<!-- ============================================================
+     MANIFESTO STRIP
+     ============================================================ -->
+<div class="manifesto-strip" aria-hidden="true">
+  <div class="marquee-track" id="marquee-track"></div>
+</div>
+
+<!-- ============================================================
+     HOW IT WORKS
+     ============================================================ -->
+<section id="como-funciona" data-screen-label="How">
+  <div class="how-container">
+
+    <div class="how-header reveal-wrap">
+      <div class="section-label">Como funciona</div>
+      <h2 class="how-h2">
+        <span class="cream">Quatro passos</span>
+        <em>até a sua mesa</em>
+      </h2>
+      <p class="how-desc">
+        Trabalhamos por encomenda — nossa fornada é única, semanal e sob demanda.
+        Peça durante a semana e retire no sábado.
+      </p>
+    </div>
+
+    <div class="steps-grid" id="steps-grid">
+      <!-- Steps rendered by JS -->
+    </div>
+
+    <div class="info-grid reveal-wrap" id="info-grid">
+      <div class="info-card">
+        <div class="info-label">+ Sobre a Retirada</div>
+        <div class="retirada-grid">
+          <div>
+            <div class="info-item-title">Não entregamos</div>
+            <div class="info-item-desc">Trabalhamos só com retirada — sem serviço de delivery próprio.</div>
+          </div>
+          <div>
+            <div class="info-item-title">Por conta do cliente</div>
+            <div class="info-item-desc">Opções 99 ou Uber Flash são coordenadas e pagas pelo cliente.</div>
+          </div>
+          <div>
+            <div class="info-item-title">Retire após aviso</div>
+            <div class="info-item-desc">Aguarde a confirmação por WhatsApp antes de se deslocar até nós.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <div class="info-label">Política</div>
+        <div class="politica-title">Sem reembolso após início da produção</div>
+        <div class="politica-desc">
+          Como produzimos sob demanda, não conseguimos reverter um pedido depois
+          que a fornada começa.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================================================
+     MENU SECTION
+     ============================================================ -->
+<section id="cardapio" data-screen-label="Menu">
+  <div class="menu-container">
+
+    <div class="menu-header reveal-wrap">
+      <div>
+        <div class="menu-label">Cardápio</div>
+        <h2 class="menu-h2">
+          O que sai do<br>
+          <em>nosso forno</em>
+        </h2>
+      </div>
+      <div class="menu-search-wrap">
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <input
+          id="menu-search"
+          class="menu-search"
+          type="text"
+          placeholder="Buscar produto..."
+          aria-label="Buscar produto"
+          autocomplete="off"
+        >
+        <button id="search-clear" class="search-clear" aria-label="Limpar busca">×</button>
+      </div>
+    </div>
+
+    <div class="menu-layout" id="menu-layout">
+      <nav class="category-nav" id="category-nav" aria-label="Categorias do cardápio">
+        <!-- Category buttons rendered by JS -->
+      </nav>
+      <div class="products-area" id="products-area">
+        <!-- Products rendered by JS -->
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================================================
+     INSTAGRAM STRIP
+     ============================================================ -->
+<section class="instagram-section" data-screen-label="Instagram">
+  <div class="instagram-container">
+
+    <div class="instagram-header reveal-wrap">
+      <div class="instagram-label">Nos acompanhe</div>
+      <h2 class="instagram-h2">
+        Cada fornada,<br>
+        <em>uma história</em>
+      </h2>
+    </div>
+
+    <div class="instagram-grid reveal-wrap">
+      <div class="ig-item">
+        <div class="ig-placeholder">bastidores da fornada</div>
+        <div class="ig-hover" aria-hidden="true"><span class="ig-heart">♥</span></div>
+      </div>
+      <div class="ig-item">
+        <div class="ig-placeholder">o levain crescendo</div>
+        <div class="ig-hover" aria-hidden="true"><span class="ig-heart">♥</span></div>
+      </div>
+      <div class="ig-item">
+        <div class="ig-placeholder">pão saindo do forno</div>
+        <div class="ig-hover" aria-hidden="true"><span class="ig-heart">♥</span></div>
+      </div>
+      <div class="ig-item">
+        <div class="ig-placeholder">corte do sourdough</div>
+        <div class="ig-hover" aria-hidden="true"><span class="ig-heart">♥</span></div>
+      </div>
+    </div>
+
+    <div class="instagram-cta reveal-wrap">
+      <a
+        href="https://instagram.com/tocha.padaria"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="btn-ig"
+      >
+        @tocha.padaria →
+      </a>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================================================
+     FOODSERVICE
+     ============================================================ -->
+<section id="foodservice" data-screen-label="Foodservice">
+  <div class="fs-container">
+    <div class="fs-grid">
+
+      <div class="reveal-wrap">
+        <div class="fs-img-grid">
+          <div class="fs-img-cell">
+            <div class="fs-img-placeholder">restaurante mesa posta elegante</div>
+          </div>
+          <div class="fs-img-cell">
+            <div class="fs-img-placeholder">cesta de paes artesanal</div>
+          </div>
+          <div class="fs-img-cell">
+            <div class="fs-img-placeholder">cafeteria vitrine paes</div>
+          </div>
+          <div class="fs-img-cell">
+            <div class="fs-img-placeholder">brunch tostas gourmet</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal-wrap" style="transition-delay: 0.1s">
+        <div class="fs-label">B2B &amp; Parcerias</div>
+        <h2 class="fs-h2">Foodservice</h2>
+        <p class="fs-desc">
+          Pães artesanais com padrão consistente para restaurantes,
+          cafeterias e operações que valorizam qualidade e experiência.
+          Produção organizada, fornecimento confiável e possibilidade de
+          adaptação conforme sua demanda.
+        </p>
+        <a
+          href="https://wa.me/5521966278965?text=Ol%C3%A1%21+Tenho+interesse+em+foodservice."
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn-fs"
+        >
+          Falar no WhatsApp →
+        </a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<footer data-screen-label="Footer">
+  <div class="footer-inner">
+    <div class="footer-grid">
+
+      <div>
+        <img
+          src="https://www.tochapadaria.com/assets/logo-footer%20(1).png"
+          alt="Tocha Padaria"
+          class="footer-logo"
+        >
+        <p class="footer-tagline">
+          Padaria informal com respeito à longa fermentação.
+          Fornadas aos sábados. Peça com antecedência.
+        </p>
+      </div>
+
+      <div>
+        <div class="footer-col-title">Site</div>
+        <a href="#cardapio"           class="footer-link">Cardápio</a>
+        <a href="#como-funciona"      class="footer-link">Como pedir</a>
+        <a href="#foodservice"        class="footer-link">Food Service</a>
+        <a href="nossa-historia.html" class="footer-link">Nossa História</a>
+        <a href="fale-conosco.html"   class="footer-link">Fale Conosco</a>
+      </div>
+
+      <div>
+        <div class="footer-col-title">Contato</div>
+        <a href="https://wa.me/5521966278965" target="_blank" rel="noopener" class="footer-contact-link">
+          WhatsApp →
+        </a>
+        <a href="https://instagram.com/tocha.padaria" target="_blank" rel="noopener" class="footer-contact-link">
+          @tocha.padaria →
+        </a>
+      </div>
+
+    </div>
+
+    <div class="footer-bottom">
+      <span class="footer-copy">
+        © Tocha Padaria desde 2022 — entre idas e vindas, erros e acertos. Nascido e produzido em São João de Meriti.
+      </span>
+      <span class="footer-made">Feito com paciência e levain. ✦</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ============================================================
+     WHATSAPP FLOATING
+     ============================================================ -->
+<a
+  id="whatsapp-btn"
+  href="https://wa.me/5521966278965"
+  target="_blank"
+  rel="noopener noreferrer"
+  aria-label="Falar no WhatsApp"
+>
+  <svg viewBox="0 0 32 32" width="24" height="24" fill="#fff" aria-hidden="true">
+    <path d="M16.003 3C9.376 3 4 8.376 4 15.003c0 2.117.555 4.183 1.61 6.003L4 28l7.184-1.583a12 12 0 0 0 4.819 1.005h.004C22.633 27.422 28 22.046 28 15.42 28 8.793 22.633 3 16.003 3Zm0 22.012a9.97 9.97 0 0 1-4.882-1.27l-.35-.21-4.265.94.91-4.156-.227-.36a9.97 9.97 0 0 1-1.523-5.35c0-5.514 4.488-10 10.005-10 5.516 0 9.998 4.486 9.998 10 0 5.516-4.485 10.406-9.666 10.406Zm5.476-7.477c-.3-.15-1.776-.876-2.052-.976-.275-.1-.475-.15-.676.15-.2.3-.776.976-.951 1.176-.175.2-.35.225-.65.075-.3-.15-1.265-.466-2.41-1.486-.89-.794-1.49-1.774-1.665-2.074-.175-.3-.018-.462.131-.611.135-.135.3-.35.45-.525.15-.175.2-.3.3-.5.1-.2.05-.375-.025-.525-.075-.15-.676-1.625-.926-2.225-.244-.585-.491-.506-.676-.515l-.575-.011a1.1 1.1 0 0 0-.8.375c-.275.3-1.05 1.025-1.05 2.5 0 1.475 1.075 2.9 1.225 3.1.15.2 2.116 3.231 5.13 4.531.717.31 1.276.495 1.71.633.717.228 1.37.196 1.886.119.575-.086 1.776-.726 2.026-1.426.25-.7.25-1.3.175-1.426-.075-.125-.275-.2-.575-.35Z"/>
+  </svg>
+  <span class="whatsapp-tooltip">Fale com a gente</span>
+</a>
+
+<!-- ============================================================
+     EARLY CAPTURE MODAL
+     ============================================================ -->
+<div id="early-capture" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-overlay" id="modal-overlay"></div>
+  <div class="modal-sheet">
+    <div class="modal-handle" aria-hidden="true"></div>
+    <h3 class="modal-title" id="modal-title">Ótima escolha! 🍞</h3>
+    <input
+      id="modal-name"
+      class="modal-input"
+      type="text"
+      placeholder="Seu nome"
+      autocomplete="name"
+    >
+    <input
+      id="modal-whatsapp"
+      class="modal-input"
+      type="tel"
+      placeholder="(21) 99999-9999"
+      autocomplete="tel"
+    >
+    <div id="modal-error" class="modal-error" role="alert"></div>
+    <button id="btn-modal-confirm" class="btn-modal-confirm">Adicionar ao pedido →</button>
+    <button id="btn-modal-skip"    class="btn-modal-skip">Pular →</button>
+    <button id="btn-modal-cancel"  class="btn-modal-cancel">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     CART DRAWER
+     ============================================================ -->
+<div id="cart-drawer" role="dialog" aria-modal="true" aria-label="Meu Pedido">
+  <div class="drawer-overlay" id="drawer-overlay"></div>
+  <div class="drawer-panel">
+    <div class="drawer-header">
+      <h2 class="drawer-title">Meu Pedido</h2>
+      <button class="drawer-close" id="drawer-close" aria-label="Fechar pedido">×</button>
+    </div>
+    <div class="drawer-body" id="drawer-body">
+      <!-- Cart items rendered by JS -->
+    </div>
+    <div class="drawer-footer" id="drawer-footer" style="display:none">
+      <div class="cart-total-row">
+        <span class="cart-total-label">Total</span>
+        <strong id="cart-total" class="cart-total-value">R$ 0,00</strong>
+      </div>
+      <a id="whatsapp-order-btn" href="#" target="_blank" rel="noopener noreferrer" class="btn-whatsapp-order">
+        Pedir via WhatsApp
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
 <script src="/track.js"></script>
-
-<!-- Design system (IIFE, sem JSX) -->
-<script src="./tokens.js"></script>
-
-<!-- Hooks (sem JSX) -->
-<script src="./hooks/useScrollReveal.js"></script>
-<script src="./hooks/useParallax.js"></script>
-<script src="./hooks/useCountdown.js"></script>
-<script src="./hooks/useScrolled.js"></script>
-<script src="./hooks/useIsMobile.js"></script>
-
-<!-- Dados (sem JSX) -->
 <script src="./data/menu-data.js"></script>
-
-<!-- Utils -->
-<script src="./utils/index.js"></script>
-
-<!-- Components -->
-<script src="./components/GlobalStyles.js"></script>
-<script src="./components/Reveal.js"></script>
-<script src="./components/CartDrawer.js"></script>
-<script src="./components/WhatsAppFloating.js"></script>
-<script src="./components/EarlyCaptureModal.js"></script>
-
-<!-- Sections -->
-<script src="./sections/AnnouncementBar.js"></script>
-<script src="./sections/Navbar.js"></script>
-<script src="./sections/Hero.js"></script>
-<script src="./sections/ManifestoStrip.js"></script>
-<script src="./sections/HowItWorksSection.js"></script>
-<script src="./sections/MenuSection.js"></script>
-<script src="./sections/InstagramStrip.js"></script>
-<script src="./sections/FoodServiceSection.js"></script>
-<script src="./sections/Footer.js"></script>
-
-<!-- App -->
-<script src="./app.js"></script>
+<script src="./main.js"></script>
 </body>
 </html>
