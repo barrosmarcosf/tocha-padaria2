@@ -1009,7 +1009,6 @@
     initManifestoStrip();
     initHowItWorks();
     initScrollReveal();
-    initHistoriaSection();
     initMenu();
     initCartDrawer();
     initEarlyCaptureModal();
