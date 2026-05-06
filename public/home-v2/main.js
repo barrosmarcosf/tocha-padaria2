@@ -22,6 +22,18 @@
   function qs(sel, ctx) { return (ctx || document).querySelector(sel); }
   function qsa(sel, ctx) { return Array.from((ctx || document).querySelectorAll(sel)); }
 
+  function normalizePhone(input) {
+    if (!input) return '';
+    var phone = input.replace(/\D/g, '');
+    if (phone.startsWith('55')) phone = phone.slice(2);
+    if (phone.startsWith('0')) phone = phone.slice(1);
+    return phone.slice(0, 11);
+  }
+
+  function isValidPhone(phone) {
+    return phone.length === 10 || phone.length === 11;
+  }
+
   // ──────────────────────────────────────────────
   // TAG COLORS
   // ──────────────────────────────────────────────
@@ -774,6 +786,13 @@
         '<div class="payment-options">' + paymentHTML + '</div>' +
       '</div>';
 
+    var coPhoneInput = qs('#co-phone', body);
+    if (coPhoneInput) {
+      coPhoneInput.addEventListener('input', function (e) {
+        e.target.value = normalizePhone(e.target.value);
+      });
+    }
+
     qsa('.payment-opt', body).forEach(function (btn) {
       btn.addEventListener('click', function () {
         state.checkoutPayment = btn.dataset.payment;
@@ -800,9 +819,9 @@
           var coName  = qs('#co-name');
           var coPhone = qs('#co-phone');
           var coEmail = qs('#co-email');
-          var name2   = coName  ? coName.value.trim()  : name;
-          var phone2  = coPhone ? coPhone.value.trim() : phone;
-          var email2  = coEmail ? coEmail.value.trim() : email;
+          var name2   = coName  ? coName.value.trim()           : name;
+          var phone2  = coPhone ? normalizePhone(coPhone.value) : normalizePhone(phone);
+          var email2  = coEmail ? coEmail.value.trim()          : email;
           var errEl   = qs('#co-error');
           if (errEl) { errEl.textContent = ''; errEl.classList.remove('visible'); }
 
@@ -810,7 +829,7 @@
           if (!name2 || name2.length < 2) {
             if (errEl) { errEl.textContent = 'Informe seu nome completo'; errEl.classList.add('visible'); }
             hasError = true;
-          } else if (!phone2.replace(/\D/g, '').match(/^\d{10,11}$/)) {
+          } else if (!isValidPhone(phone2)) {
             if (errEl) { errEl.textContent = 'WhatsApp inválido (ex: 21 99999-9999)'; errEl.classList.add('visible'); }
             hasError = true;
           } else if (!email2 || !/^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{2,}$/.test(email2)) {
@@ -1297,10 +1316,9 @@
 
     overlay.addEventListener('click', closeCapture);
 
-    function validateWA(val) {
-      if (!val.trim()) return true; // optional
-      return val.replace(/\D/g, '').match(/^\d{10,11}$/) !== null;
-    }
+    waInput.addEventListener('input', function (e) {
+      e.target.value = normalizePhone(e.target.value);
+    });
 
     function confirm(data) {
       state.customerInfo = data;
@@ -1314,8 +1332,8 @@
 
     btnConfirm.addEventListener('click', function () {
       clearModalError();
-      const wa = waInput.value;
-      if (!validateWA(wa)) {
+      var wa = normalizePhone(waInput.value);
+      if (wa && !isValidPhone(wa)) {
         errEl.textContent = 'Formato inválido (ex: 21 99999-9999)';
         errEl.classList.add('visible');
         return;
