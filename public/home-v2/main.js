@@ -1090,7 +1090,15 @@
       _mpBricksCtrl = await bricks.create('cardPayment', 'mp-bricks-container', {
         initialization: { amount: totalVal, payer: { email: customer.email } },
         customization: {
-          visual: { style: { theme: 'dark', customVariables: { baseColor: '#C47A2C', borderRadius: '10px' } } },
+          visual: { style: { theme: 'dark', customVariables: {
+                  baseColor: '#C47A2C',
+                  borderRadius: '10px',
+                  backgroundColor: '#0b0b0b',
+                  formBackgroundColor: '#0f0f0f',
+                  inputBackgroundColor: '#121212',
+                  textPrimaryColor: '#EDEDED',
+                  textSecondaryColor: '#A1A1A1'
+                } } },
           paymentMethods: { maxInstallments: 1 }
         },
         callbacks: {
