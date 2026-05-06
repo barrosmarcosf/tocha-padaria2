@@ -50,7 +50,8 @@
       "Bash(grep -v \".js$\")",
       "PowerShell(node \"c:\\\\tmp\\\\vps-deploy\\\\deploy_gitpull.js\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://187.127.251.209:3333/home-v2/)",
-      "Bash(curl -s http://187.127.251.209:3333/home-v2/)"
+      "Bash(curl -s http://187.127.251.209:3333/home-v2/)",
+      "Bash(ssh-keygen -l -f ~/.ssh/id_rsa)"
     ]
   }
 }
