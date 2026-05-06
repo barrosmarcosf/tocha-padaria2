@@ -1464,3 +1464,76 @@ footer {
   transition: all var(--t-fast);
 }
 .btn-success-close:hover { border-color: var(--border-hover); color: var(--text); }
+
+/* ============================================================
+   PIX PENDING — QR code + copia e cola
+   ============================================================ */
+.pix-pending-view { padding: 28px 20px; }
+.pix-qr-img {
+  width: 180px; height: 180px; border-radius: var(--radius-card);
+  border: 2px solid oklch(28% 0.02 50); margin-bottom: 16px;
+  image-rendering: pixelated;
+}
+.pix-copia-wrap {
+  width: 100%; margin: 16px 0 0;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.pix-copia-code {
+  width: 100%; padding: 10px 14px;
+  background: oklch(16% 0.02 48); border: 1px solid oklch(28% 0.02 50);
+  border-radius: var(--radius-sm); font-size: 11px; color: var(--text-muted);
+  font-family: monospace; word-break: break-all; text-align: left;
+}
+.btn-copy-pix {
+  width: 100%; padding: 11px; background: oklch(20% 0.02 48);
+  border: 1px solid oklch(32% 0.025 55); border-radius: var(--radius-sm);
+  color: var(--amber); font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background var(--t-fast), border-color var(--t-fast);
+  font-family: var(--font-sans);
+}
+.btn-copy-pix:hover { background: oklch(24% 0.025 50); border-color: var(--amber); }
+
+/* ============================================================
+   ERROR — ações de fallback (cartão recusado)
+   ============================================================ */
+.error-actions {
+  display: flex; flex-direction: column; gap: 10px;
+  width: 100%; margin-top: 20px;
+}
+.btn-error-action {
+  width: 100%; padding: 12px 16px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: var(--font-sans); transition: all var(--t-fast);
+}
+.btn-error-retry {
+  background: none; border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.btn-error-retry:hover { border-color: var(--border-hover); color: var(--text); }
+.btn-error-pix {
+  background: oklch(20% 0.02 48); border: 1px solid oklch(34% 0.03 55);
+  color: var(--amber);
+}
+.btn-error-pix:hover { background: oklch(24% 0.025 50); border-color: var(--amber); }
+.btn-error-stripe {
+  background: oklch(60% 0.16 145 / 0.1); border: 1px solid oklch(60% 0.16 145 / 0.35);
+  color: var(--success);
+}
+.btn-error-stripe:hover { background: oklch(60% 0.16 145 / 0.18); }
+
+/* ============================================================
+   MP BRICKS — wrapper no drawer
+   ============================================================ */
+.mp-bricks-wrap {
+  padding: 16px 4px;
+}
+.mp-bricks-title {
+  font-size: 13px; font-weight: 600; color: var(--text-muted);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  margin-bottom: 16px; padding: 0 4px;
+}
+.mp-bricks-loading {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 32px 0; gap: 12px;
+}
+#mp-bricks-container { width: 100%; min-height: 40px; }

@@ -56,8 +56,17 @@
     search: '',
     drawerView: 'cart',
     orderNote: '',
-    checkoutPayment: 'pix',
+    checkoutPayment: 'mp_pix',
+    pixData: null,
+    stripeUrl: null,
+    mpCardFormActive: false,
+    checkoutCustomer: null,
   };
+
+  // ── Payment runtime vars (module-level, survives re-renders) ──
+  var _mpBricksCtrl = null;
+  var _mpPublicKey  = null;
+  var _pixPollTimer = null;
 
   // ──────────────────────────────────────────────
   // ANNOUNCEMENT BAR — countdown
@@ -523,7 +532,7 @@
       badge.textContent = total;
       badge.dataset.count = total;
     }
-    if (['success', 'error_card', 'error_generic'].includes(state.drawerView)) {
+    if (['success', 'error_card', 'error_generic', 'stripe_checkout'].includes(state.drawerView)) {
       state.drawerView = 'cart';
     }
     renderDrawerBody();
@@ -534,7 +543,7 @@
   // ──────────────────────────────────────────────
   function openCart() {
     state.cartOpen = true;
-    if (['success', 'error_card', 'error_generic'].includes(state.drawerView)) {
+    if (['success', 'error_card', 'error_generic', 'stripe_checkout'].includes(state.drawerView)) {
       state.drawerView = 'cart';
     }
     const drawer = qs('#cart-drawer');
@@ -545,6 +554,9 @@
 
   function closeCart() {
     state.cartOpen = false;
+    cleanupMPBricks();
+    stopPixPoll();
+    state.mpCardFormActive = false;
     const drawer = qs('#cart-drawer');
     if (drawer) drawer.classList.remove('open');
     document.body.style.overflow = '';
@@ -560,7 +572,7 @@
   }
 
   function updateDrawerHeader() {
-    const isCheckout = ['checkout', 'pix_pending', 'success', 'error_card', 'error_generic'].includes(state.drawerView);
+    const isCheckout = ['checkout', 'pix_pending', 'success', 'error_card', 'error_generic', 'stripe_checkout'].includes(state.drawerView);
     const titleEl = qs('#drawer-title');
     const backBtn = qs('#drawer-back');
     if (titleEl) titleEl.textContent = isCheckout ? 'Finalizar Pedido' : 'Meu Pedido';
@@ -573,7 +585,7 @@
     if (!tabsEl) return;
     const v = state.drawerView;
     const cartActive = v === 'cart' || v === 'loading';
-    const coActive   = v === 'checkout' || v === 'pix_pending' || v === 'success' || v === 'error_card' || v === 'error_generic';
+    const coActive   = v === 'checkout' || v === 'pix_pending' || v === 'success' || v === 'error_card' || v === 'error_generic' || v === 'stripe_checkout';
     tabsEl.innerHTML =
       '<button class="drawer-tab' + (cartActive ? ' active' : '') + '" data-tab="cart">1. Resumo</button>' +
       '<button class="drawer-tab' + (coActive   ? ' active' : '') + '" data-tab="checkout">2. Pagamento</button>';
@@ -599,13 +611,14 @@
     if (!body) return;
 
     switch (state.drawerView) {
-      case 'checkout':    renderCheckoutView(body, footer);   break;
-      case 'loading':     renderLoadingView(body, footer);    break;
-      case 'pix_pending': renderPixPendingView(body, footer); break;
-      case 'success':     renderSuccessView(body, footer);    break;
+      case 'checkout':        renderCheckoutView(body, footer);        break;
+      case 'loading':         renderLoadingView(body, footer);         break;
+      case 'pix_pending':     renderPixPendingView(body, footer);      break;
+      case 'success':         renderSuccessView(body, footer);         break;
+      case 'stripe_checkout': renderStripeCheckoutView(body, footer);  break;
       case 'error_card':
-      case 'error_generic': renderErrorView(body, footer);   break;
-      default:            renderCartView(body, footer);
+      case 'error_generic':   renderErrorView(body, footer);           break;
+      default:                renderCartView(body, footer);
     }
   }
 
@@ -688,14 +701,32 @@
   }
 
   function getPaymentBtnText() {
-    if (state.checkoutPayment === 'pix') return 'Gerar Pix';
-    if (state.checkoutPayment === 'card') return 'Pagar com Cartão';
-    return 'Pagar com Mercado Pago';
+    if (state.checkoutPayment === 'mp_pix')  return 'Gerar PIX';
+    if (state.checkoutPayment === 'mp_card') return 'Continuar para cartão';
+    return 'Continuar';
   }
 
   function renderCheckoutView(body, footer) {
+    // ── Sub-view: MP Bricks card form ──────────────────────────────────────
+    if (state.mpCardFormActive) {
+      body.innerHTML =
+        '<div class="mp-bricks-wrap">' +
+          '<p class="mp-bricks-title">💳 Dados do Cartão</p>' +
+          '<div id="mp-bricks-loading" class="mp-bricks-loading">' +
+            '<div class="drawer-spinner"></div>' +
+            '<p class="drawer-state-text" style="margin:0">Carregando formulário seguro...</p>' +
+          '</div>' +
+          '<div id="mp-bricks-container"></div>' +
+        '</div>';
+      if (footer) footer.style.display = 'none';
+      initMPBricks(state.checkoutCustomer);
+      return;
+    }
+
+    // ── Normal checkout form ───────────────────────────────────────────────
     var name  = state.customerInfo && state.customerInfo.name     ? state.customerInfo.name     : '';
     var phone = state.customerInfo && state.customerInfo.whatsapp ? state.customerInfo.whatsapp : '';
+    var email = state.customerInfo && state.customerInfo.email    ? state.customerInfo.email    : '';
     var totalVal = state.cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0);
 
     var summaryRows = state.cart.map(function (item) {
@@ -706,9 +737,8 @@
     }).join('');
 
     var paymentOpts = [
-      { key: 'pix',  icon: '🔸', title: 'Pix',              desc: 'Instantâneo · sem taxas' },
-      { key: 'card', icon: '💳', title: 'Cartão de Crédito', desc: 'Via Stripe · redirecionamento seguro' },
-      { key: 'mp',   icon: '🟡', title: 'Mercado Pago',      desc: 'Cartão ou saldo MP' },
+      { key: 'mp_pix',  icon: '⚡', title: 'PIX',              desc: 'Via Mercado Pago · instantâneo · sem taxas' },
+      { key: 'mp_card', icon: '💳', title: 'Cartão de Crédito', desc: 'Via Mercado Pago · parcelamento disponível' },
     ];
 
     var paymentHTML = paymentOpts.map(function (opt) {
@@ -725,11 +755,10 @@
 
     body.innerHTML =
       '<div class="checkout-form">' +
-        '<div class="checkout-section-label">Seus Dados *</div>' +
-        '<input id="co-name"  class="checkout-input" type="text" placeholder="Nome completo *" value="' + escHtml(name) + '" autocomplete="name">' +
-        '<input id="co-phone" class="checkout-input" type="tel"  placeholder="WhatsApp (21) 99999-9999 *" value="' + escHtml(phone) + '" autocomplete="tel">' +
-        '<div class="checkout-section-label" style="margin-top:14px">Cadastre email para receber recibo</div>' +
-        '<input id="co-email" class="checkout-input" type="email" placeholder="Email para recibo (opcional)">' +
+        '<div class="checkout-section-label">Seus Dados</div>' +
+        '<input id="co-name"  class="checkout-input" type="text"  placeholder="Nome completo *"          value="' + escHtml(name)  + '" autocomplete="name">' +
+        '<input id="co-phone" class="checkout-input" type="tel"   placeholder="WhatsApp (21) 99999-9999 *" value="' + escHtml(phone) + '" autocomplete="tel">' +
+        '<input id="co-email" class="checkout-input" type="email" placeholder="Email para recibo *"        value="' + escHtml(email) + '" autocomplete="email">' +
         '<div id="co-error" class="modal-error"></div>' +
 
         '<div class="checkout-section-label" style="margin-top:20px">Resumo</div>' +
@@ -770,39 +799,37 @@
         btn.onclick = function () {
           var coName  = qs('#co-name');
           var coPhone = qs('#co-phone');
+          var coEmail = qs('#co-email');
           var name2   = coName  ? coName.value.trim()  : name;
           var phone2  = coPhone ? coPhone.value.trim() : phone;
+          var email2  = coEmail ? coEmail.value.trim() : email;
           var errEl   = qs('#co-error');
           if (errEl) { errEl.textContent = ''; errEl.classList.remove('visible'); }
 
           var hasError = false;
-          if (!name2) {
+          if (!name2 || name2.length < 2) {
             if (errEl) { errEl.textContent = 'Informe seu nome completo'; errEl.classList.add('visible'); }
             hasError = true;
           } else if (!phone2.replace(/\D/g, '').match(/^\d{10,11}$/)) {
-            if (errEl) { errEl.textContent = 'Formato inválido (ex: 21 99999-9999)'; errEl.classList.add('visible'); }
+            if (errEl) { errEl.textContent = 'WhatsApp inválido (ex: 21 99999-9999)'; errEl.classList.add('visible'); }
+            hasError = true;
+          } else if (!email2 || !/^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{2,}$/.test(email2)) {
+            if (errEl) { errEl.textContent = 'Email inválido (necessário para recibo)'; errEl.classList.add('visible'); }
             hasError = true;
           }
           if (hasError) return;
 
-          state.customerInfo = { name: name2, whatsapp: phone2 };
+          var customer = { name: name2, whatsapp: phone2, email: email2 };
+          state.customerInfo = customer;
           safeTrack('payment_attempt', { payment: state.checkoutPayment, total: totalVal });
 
-          if (state.checkoutPayment === 'pix') {
-            state.drawerView = 'pix_pending';
-            renderDrawerBody();
+          if (state.checkoutPayment === 'mp_pix') {
+            submitPixCheckout(customer);
           } else {
-            var lines = state.cart.map(function (i) {
-              return '• ' + i.name + ' x' + i.qty + ' — ' + fmt(i.price * i.qty);
-            });
-            var payLabel = state.checkoutPayment === 'card' ? 'Cartão de Crédito' : 'Mercado Pago';
-            var msg = 'Olá! Quero fazer um pedido:\n' + lines.join('\n') + '\n\nTotal: ' + fmt(totalVal) + '\nPagamento: ' + payLabel;
-            state.drawerView = 'success';
+            // mp_card: show Bricks form inline
+            state.checkoutCustomer = customer;
+            state.mpCardFormActive = true;
             renderDrawerBody();
-            safeTrack('purchase_success', { payment: state.checkoutPayment, total: totalVal });
-            setTimeout(function () {
-              window.open('https://wa.me/5521966278965?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer');
-            }, 400);
           }
         };
       }
@@ -819,23 +846,59 @@
   }
 
   function renderPixPendingView(body, footer) {
+    var pix = state.pixData;
     body.innerHTML =
-      '<div class="drawer-state-view">' +
-        '<div class="pix-icon">⚡</div>' +
-        '<h3 class="drawer-state-title">PIX gerado</h3>' +
-        '<p class="drawer-state-text">Chave PIX: <strong style="color:var(--cream)">21966278965</strong></p>' +
-        '<p class="drawer-state-text pix-hint">Após o pagamento, envie o comprovante no WhatsApp.</p>' +
-        '<a href="https://wa.me/5521966278965" target="_blank" rel="noopener" class="btn-whatsapp-order" style="margin-top:24px;text-decoration:none;display:block;text-align:center">Enviar comprovante →</a>' +
+      '<div class="drawer-state-view pix-pending-view">' +
+        (pix && pix.qr_code
+          ? '<img class="pix-qr-img" src="' + pix.qr_code + '" alt="QR Code PIX">'
+          : '<div class="pix-icon">⚡</div>'
+        ) +
+        '<h3 class="drawer-state-title">PIX gerado!</h3>' +
+        '<p class="drawer-state-text">Escaneie o QR Code ou copie o código Pix abaixo.</p>' +
+        '<p class="drawer-state-text" style="font-size:12px;color:var(--text-dim);margin-top:2px">Válido por 30 minutos · Não feche esta tela</p>' +
+        (pix && pix.copia_e_cola
+          ? '<div class="pix-copia-wrap">' +
+              '<div class="pix-copia-code">' + escHtml(pix.copia_e_cola.slice(0, 44) + '…') + '</div>' +
+              '<button id="btn-copy-pix" class="btn-copy-pix">Copiar código Pix</button>' +
+            '</div>'
+          : ''
+        ) +
+        '<p class="drawer-state-text" style="font-size:12px;color:var(--text-dim);margin-top:16px">Após pagar, envie o comprovante:</p>' +
+        '<a href="https://wa.me/5521966278965" target="_blank" rel="noopener" class="btn-whatsapp-order" style="margin-top:8px;text-decoration:none;display:block;text-align:center">Enviar comprovante →</a>' +
       '</div>';
     if (footer) footer.style.display = 'none';
+
+    var copyBtn = qs('#btn-copy-pix');
+    if (copyBtn && pix && pix.copia_e_cola) {
+      copyBtn.addEventListener('click', function () {
+        var code = pix.copia_e_cola;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code).then(function () {
+            copyBtn.textContent = '✓ Copiado!';
+            setTimeout(function () { copyBtn.textContent = 'Copiar código Pix'; }, 2500);
+          }).catch(fallbackCopy);
+        } else {
+          fallbackCopy();
+        }
+        function fallbackCopy() {
+          var ta = document.createElement('textarea');
+          ta.value = code; ta.style.cssText = 'position:fixed;opacity:0';
+          document.body.appendChild(ta); ta.select();
+          try { document.execCommand('copy'); } catch (_) {}
+          ta.remove();
+          copyBtn.textContent = '✓ Copiado!';
+          setTimeout(function () { copyBtn.textContent = 'Copiar código Pix'; }, 2500);
+        }
+      });
+    }
   }
 
   function renderSuccessView(body, footer) {
     body.innerHTML =
       '<div class="drawer-state-view">' +
         '<div class="drawer-success-icon">✓</div>' +
-        '<h3 class="drawer-state-title">Pedido enviado!</h3>' +
-        '<p class="drawer-state-text">Você será redirecionado ao WhatsApp para confirmar o pedido.</p>' +
+        '<h3 class="drawer-state-title">Pagamento confirmado!</h3>' +
+        '<p class="drawer-state-text">Seu pedido foi recebido. Em breve você receberá uma confirmação pelo WhatsApp.</p>' +
         '<button id="success-close-btn" class="btn-success-close">Fechar</button>' +
       '</div>';
     if (footer) footer.style.display = 'none';
@@ -848,18 +911,307 @@
     body.innerHTML =
       '<div class="drawer-state-view">' +
         '<div class="drawer-error-icon">✕</div>' +
-        '<h3 class="drawer-state-title">' + (isCard ? 'Falha no pagamento' : 'Erro no pedido') + '</h3>' +
-        '<p class="drawer-state-text">' + (isCard ? 'Não foi possível processar. Tente outra forma de pagamento.' : 'Algo deu errado. Tente novamente ou fale conosco.') + '</p>' +
-        '<button id="retry-btn" class="btn-whatsapp-order" style="margin-top:24px">Tentar novamente</button>' +
+        '<h3 class="drawer-state-title">' + (isCard ? 'Pagamento não aprovado' : 'Erro no pedido') + '</h3>' +
+        '<p class="drawer-state-text">' +
+          (isCard
+            ? 'Seu cartão não foi aprovado pelo Mercado Pago. Escolha outra forma de pagamento.'
+            : 'Algo deu errado. Tente novamente ou fale conosco.'
+          ) +
+        '</p>' +
+        (isCard
+          ? '<div class="error-actions">' +
+              '<button id="retry-btn"      class="btn-error-action btn-error-retry">Tentar novamente</button>' +
+              '<button id="try-pix-btn"    class="btn-error-action btn-error-pix">Pagar com PIX</button>' +
+              '<button id="try-stripe-btn" class="btn-error-action btn-error-stripe">Outro cartão →</button>' +
+            '</div>'
+          : '<button id="retry-btn" class="btn-whatsapp-order" style="margin-top:24px">Tentar novamente</button>'
+        ) +
       '</div>';
     if (footer) footer.style.display = 'none';
-    const retryBtn = qs('#retry-btn');
+
+    var retryBtn = qs('#retry-btn');
     if (retryBtn) {
       retryBtn.addEventListener('click', function () {
         safeTrack('payment_failed', { reason: state.drawerView });
+        state.mpCardFormActive = false;
         state.drawerView = 'checkout';
         renderDrawerBody();
       });
+    }
+
+    var tryPixBtn = qs('#try-pix-btn');
+    if (tryPixBtn) {
+      tryPixBtn.addEventListener('click', function () {
+        state.mpCardFormActive = false;
+        state.checkoutPayment = 'mp_pix';
+        state.drawerView = 'checkout';
+        renderDrawerBody();
+      });
+    }
+
+    var tryStripeBtn = qs('#try-stripe-btn');
+    if (tryStripeBtn) {
+      tryStripeBtn.addEventListener('click', function () {
+        var customer = state.checkoutCustomer || state.customerInfo;
+        if (!customer || !customer.email) {
+          state.mpCardFormActive = false;
+          state.drawerView = 'checkout';
+          renderDrawerBody();
+          return;
+        }
+        handleStripeCheckout(customer);
+      });
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // STRIPE CHECKOUT VIEW
+  // ──────────────────────────────────────────────
+  function renderStripeCheckoutView(body, footer) {
+    var url = state.stripeUrl || '';
+    body.innerHTML =
+      '<div class="drawer-state-view">' +
+        '<div style="font-size:36px;margin-bottom:16px">💳</div>' +
+        '<h3 class="drawer-state-title">Checkout Stripe</h3>' +
+        '<p class="drawer-state-text">Clique abaixo para concluir o pagamento em ambiente seguro Stripe.</p>' +
+        '<a id="stripe-open-btn"' +
+          ' href="' + escHtml(url) + '"' +
+          ' target="_blank" rel="noopener noreferrer"' +
+          ' class="btn-whatsapp-order"' +
+          ' style="margin-top:20px;text-decoration:none;display:block;text-align:center">' +
+          'Abrir checkout seguro →' +
+        '</a>' +
+        '<p id="stripe-hint" class="drawer-state-text" style="font-size:12px;color:var(--text-dim);margin-top:16px;display:none">' +
+          'Após pagar no Stripe, você receberá a confirmação por e-mail.' +
+        '</p>' +
+        '<button id="stripe-done-btn" class="btn-success-close" style="margin-top:12px;display:none">Fechar</button>' +
+      '</div>';
+    if (footer) footer.style.display = 'none';
+
+    var openBtn  = qs('#stripe-open-btn');
+    var hint     = qs('#stripe-hint');
+    var doneBtn  = qs('#stripe-done-btn');
+    if (openBtn) {
+      openBtn.addEventListener('click', function () {
+        if (hint)    hint.style.display    = '';
+        if (doneBtn) doneBtn.style.display = '';
+        openBtn.textContent = '↗ Abrir novamente';
+      });
+    }
+    if (doneBtn) doneBtn.addEventListener('click', closeCart);
+  }
+
+  // ──────────────────────────────────────────────
+  // PAYMENT HELPERS
+  // ──────────────────────────────────────────────
+  function cleanupMPBricks() {
+    if (_mpBricksCtrl) {
+      try { _mpBricksCtrl.unmount(); } catch (_) {}
+      _mpBricksCtrl = null;
+    }
+  }
+
+  function stopPixPoll() {
+    if (_pixPollTimer) { clearInterval(_pixPollTimer); _pixPollTimer = null; }
+  }
+
+  function startPixPoll(paymentId) {
+    stopPixPoll();
+    _pixPollTimer = setInterval(async function () {
+      try {
+        var r = await fetch('/api/mercadopago/check-payment/' + paymentId);
+        var d = await r.json();
+        if (d.status === 'approved') {
+          stopPixPoll();
+          state.cart = [];
+          saveCart([]);
+          state.drawerView = 'success';
+          updateCartUI();
+          renderDrawerBody();
+        }
+      } catch (_) {}
+    }, 5000);
+  }
+
+  function ensureMPSdkLoaded() {
+    return new Promise(function (resolve, reject) {
+      if (window.MercadoPago) { resolve(); return; }
+      var script = document.createElement('script');
+      script.src = 'https://sdk.mercadopago.com/js/v2';
+      script.onload = resolve;
+      script.onerror = function () { reject(new Error('MP SDK não carregou')); };
+      document.head.appendChild(script);
+    });
+  }
+
+  async function getMPPublicKey() {
+    if (_mpPublicKey) return _mpPublicKey;
+    var r = await fetch('/api/mercadopago/public-key');
+    var d = await r.json();
+    if (!d.publicKey) throw new Error('Chave pública MP não disponível.');
+    _mpPublicKey = d.publicKey;
+    return _mpPublicKey;
+  }
+
+  async function initMPBricks(customer) {
+    cleanupMPBricks();
+    var container   = qs('#mp-bricks-container');
+    var loadingEl   = qs('#mp-bricks-loading');
+    if (!container) return;
+
+    try {
+      await ensureMPSdkLoaded();
+      var pubKey   = await getMPPublicKey();
+      var totalVal = state.cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0);
+
+      var mp     = new window.MercadoPago(pubKey, { locale: 'pt-BR' });
+      var bricks = mp.bricks();
+
+      _mpBricksCtrl = await bricks.create('cardPayment', 'mp-bricks-container', {
+        initialization: { amount: totalVal, payer: { email: customer.email } },
+        customization: {
+          visual: { style: { theme: 'default' } },
+          paymentMethods: { maxInstallments: 1 }
+        },
+        callbacks: {
+          onReady: function () {
+            if (loadingEl) loadingEl.style.display = 'none';
+          },
+          onSubmit: function (cardFormData) {
+            handleMPCardSubmit(cardFormData, customer);
+          },
+          onError: function (err) {
+            console.error('[MP Bricks]', err);
+            if (loadingEl) loadingEl.style.display = 'none';
+            state.mpCardFormActive = false;
+            state.drawerView = 'error_generic';
+            renderDrawerBody();
+          }
+        }
+      });
+    } catch (e) {
+      console.error('[MP Bricks Init]', e.message);
+      state.mpCardFormActive = false;
+      state.drawerView = 'error_generic';
+      renderDrawerBody();
+    }
+  }
+
+  async function handleMPCardSubmit(cardFormData, customer) {
+    state.drawerView = 'loading';
+    renderDrawerBody();
+
+    try {
+      var payload = {
+        customer: { name: customer.name, email: customer.email, whatsapp: customer.whatsapp },
+        method: 'mp_card',
+        cart: state.cart,
+        card_token:         cardFormData.token,
+        payment_method_id:  cardFormData.payment_method_id,
+        installments:       cardFormData.installments,
+        issuer_id:          cardFormData.issuer_id,
+        payer: { email: (cardFormData.payer && cardFormData.payer.email) || customer.email }
+      };
+
+      var r    = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      var data = await r.json();
+
+      state.mpCardFormActive = false;
+
+      if (data.tipo === 'success') {
+        state.cart = [];
+        saveCart([]);
+        state.drawerView = 'success';
+        updateCartUI();
+        renderDrawerBody();
+        safeTrack('purchase_success', { payment: 'mp_card', total: payload.cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0) });
+      } else if (data.tipo === 'error_card_mp') {
+        state.drawerView = 'error_card';
+        renderDrawerBody();
+      } else {
+        state.drawerView = 'error_generic';
+        renderDrawerBody();
+      }
+    } catch (e) {
+      console.error('[MP Card Submit]', e.message);
+      state.mpCardFormActive = false;
+      state.drawerView = 'error_generic';
+      renderDrawerBody();
+    }
+  }
+
+  async function submitPixCheckout(customer) {
+    state.drawerView = 'loading';
+    renderDrawerBody();
+
+    try {
+      var payload = {
+        customer: { name: customer.name, email: customer.email, whatsapp: customer.whatsapp },
+        method: 'mp_pix',
+        cart: state.cart
+      };
+
+      var r    = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      var data = await r.json();
+
+      if (data.tipo === 'pix' && data.qr_code) {
+        state.pixData = { qr_code: data.qr_code, copia_e_cola: data.copia_e_cola, payment_id: data.payment_id };
+        state.drawerView = 'pix_pending';
+        renderDrawerBody();
+        startPixPoll(data.payment_id);
+        safeTrack('pix_generated', { payment_id: data.payment_id });
+      } else {
+        state.drawerView = 'error_generic';
+        renderDrawerBody();
+      }
+    } catch (e) {
+      console.error('[PIX Checkout]', e.message);
+      state.drawerView = 'error_generic';
+      renderDrawerBody();
+    }
+  }
+
+  async function handleStripeCheckout(customer) {
+    state.drawerView = 'loading';
+    renderDrawerBody();
+
+    try {
+      var totalVal = state.cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0);
+      var payload  = {
+        customer: { name: customer.name, email: customer.email, whatsapp: customer.whatsapp },
+        method: 'stripe_card',
+        cart: state.cart,
+        totalAmount: totalVal
+      };
+
+      var r    = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      var data = await r.json();
+
+      if (data.tipo === 'stripe_redirect' && data.url) {
+        state.stripeUrl = data.url;
+        state.drawerView = 'stripe_checkout';
+        renderDrawerBody();
+        safeTrack('stripe_checkout_started', { total: totalVal });
+      } else {
+        state.drawerView = 'error_generic';
+        renderDrawerBody();
+      }
+    } catch (e) {
+      console.error('[Stripe Checkout]', e.message);
+      state.drawerView = 'error_generic';
+      renderDrawerBody();
     }
   }
 
@@ -874,6 +1226,9 @@
     if (drawerClose) drawerClose.addEventListener('click', closeCart);
     if (overlay)     overlay.addEventListener('click', closeCart);
     if (backBtn)     backBtn.addEventListener('click', function () {
+      cleanupMPBricks();
+      stopPixPoll();
+      state.mpCardFormActive = false;
       state.drawerView = 'cart';
       renderDrawerBody();
     });
