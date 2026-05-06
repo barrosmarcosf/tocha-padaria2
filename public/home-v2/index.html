@@ -34,7 +34,7 @@
   </a>
   <div class="navbar-links">
     <a href="#hero"           class="nav-link">Início</a>
-    <a href="#cardapio"       class="nav-link">Cardápio</a>
+    <a href="#menu"       class="nav-link">Cardápio</a>
     <a href="#como-funciona"  class="nav-link">Como pedir</a>
     <a href="#foodservice"    class="nav-link">Food Service</a>
     <a href="nossa-historia.html" class="nav-link">Nossa História</a>
@@ -73,7 +73,7 @@
       Não tem atalho — tem respeito.
     </p>
     <div class="hero-actions">
-      <a href="#cardapio" class="btn-primary">
+      <a href="#menu" class="btn-primary">
         Ver Cardápio <span aria-hidden="true" style="font-size:18px">→</span>
       </a>
       <a href="#como-funciona" class="btn-outline" id="hero-how-link">Como pedir</a>
@@ -148,9 +148,50 @@
 </section>
 
 <!-- ============================================================
+     HISTORIA SECTION
+     ============================================================ -->
+<section id="historia" data-screen-label="Historia">
+  <div class="historia-upper">
+    <div class="historia-container">
+
+      <div class="historia-grid reveal-wrap">
+        <div>
+          <div class="historia-header">
+            <div class="section-label">Nossa história</div>
+            <h2 class="historia-h2">
+              Da cozinha<br>
+              <em>ao seu sábado</em>
+            </h2>
+            <p class="historia-desc">
+              Tudo começou com um pote de farinha, água e tempo.
+              Hoje o levain ativo desde 2022 ainda guia cada fornada.
+            </p>
+          </div>
+          <div class="historia-timeline">
+            <div class="historia-timeline-line"></div>
+            <div class="historia-milestones" id="historia-milestones">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+        </div>
+        <div class="historia-right-visual" aria-hidden="true">
+          bastidores da fornada
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Story Scroller full-bleed -->
+  <div id="story-scroller">
+    <!-- Rendered by JS -->
+  </div>
+</section>
+
+<!-- ============================================================
      MENU SECTION
      ============================================================ -->
-<section id="cardapio" data-screen-label="Menu">
+<section id="menu" data-screen-label="Menu">
   <div class="menu-container">
 
     <div class="menu-header reveal-wrap">
@@ -259,7 +300,7 @@
       </div>
 
       <div class="reveal-wrap" style="transition-delay: 0.1s">
-        <div class="fs-label">B2B &amp; Parcerias</div>
+        <div class="fs-label">B2B &amp; Alianças</div>
         <h2 class="fs-h2">Foodservice</h2>
         <p class="fs-desc">
           Pães artesanais com padrão consistente para restaurantes,
@@ -267,13 +308,8 @@
           Produção organizada, fornecimento confiável e possibilidade de
           adaptação conforme sua demanda.
         </p>
-        <a
-          href="https://wa.me/5521966278965?text=Ol%C3%A1%21+Tenho+interesse+em+foodservice."
-          target="_blank"
-          rel="noopener noreferrer"
-          class="btn-fs"
-        >
-          Falar no WhatsApp →
+        <a href="fale-conosco.html" class="btn-fs">
+          Fale conosco
         </a>
       </div>
 
@@ -302,7 +338,7 @@
 
       <div>
         <div class="footer-col-title">Site</div>
-        <a href="#cardapio"           class="footer-link">Cardápio</a>
+        <a href="#menu"           class="footer-link">Cardápio</a>
         <a href="#como-funciona"      class="footer-link">Como pedir</a>
         <a href="#foodservice"        class="footer-link">Food Service</a>
         <a href="nossa-historia.html" class="footer-link">Nossa História</a>
@@ -354,6 +390,7 @@
   <div class="modal-sheet">
     <div class="modal-handle" aria-hidden="true"></div>
     <h3 class="modal-title" id="modal-title">Ótima escolha! 🍞</h3>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:16px;font-weight:300;">Deixa teu nome e WhatsApp pra gente avisar quando seu pedido estiver pronto.</p>
     <input
       id="modal-name"
       class="modal-input"
@@ -370,7 +407,7 @@
     >
     <div id="modal-error" class="modal-error" role="alert"></div>
     <button id="btn-modal-confirm" class="btn-modal-confirm">Adicionar ao pedido →</button>
-    <button id="btn-modal-skip"    class="btn-modal-skip">Pular →</button>
+    <button id="btn-modal-skip"    class="btn-modal-skip">Pular e continuar →</button>
     <button id="btn-modal-cancel"  class="btn-modal-cancel">Cancelar</button>
   </div>
 </div>
@@ -382,9 +419,13 @@
   <div class="drawer-overlay" id="drawer-overlay"></div>
   <div class="drawer-panel">
     <div class="drawer-header">
-      <h2 class="drawer-title">Meu Pedido</h2>
+      <div>
+        <h2 class="drawer-title">Meu Pedido</h2>
+        <div id="drawer-greeting" class="drawer-greeting" style="display:none"></div>
+      </div>
       <button class="drawer-close" id="drawer-close" aria-label="Fechar pedido">×</button>
     </div>
+    <div id="drawer-tabs" class="drawer-tabs"></div>
     <div class="drawer-body" id="drawer-body">
       <!-- Cart items rendered by JS -->
     </div>

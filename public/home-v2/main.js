@@ -54,6 +54,9 @@
     pendingItem: null,
     activeCategory: Object.keys(window.MENU_DATA)[0],
     search: '',
+    drawerView: 'cart',
+    orderNote: '',
+    checkoutPayment: 'whatsapp',
   };
 
   // ──────────────────────────────────────────────
@@ -78,10 +81,11 @@
 
     function tick() {
       const diff = Math.max(0, target - Date.now());
+      const d = Math.floor(diff / 86400000);
       const h = Math.floor((diff % 86400000) / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
       const s = Math.floor((diff % 60000) / 1000);
-      el.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+      el.textContent = d + 'D ' + pad(h) + ':' + pad(m) + ':' + pad(s);
       if (diff <= 0) clearInterval(id);
     }
 
@@ -510,14 +514,20 @@
       badge.textContent = total;
       badge.dataset.count = total;
     }
+    if (['success', 'error_card', 'error_generic'].includes(state.drawerView)) {
+      state.drawerView = 'cart';
+    }
     renderDrawerBody();
   }
 
   // ──────────────────────────────────────────────
-  // CART DRAWER
+  // CART DRAWER — state machine
   // ──────────────────────────────────────────────
   function openCart() {
     state.cartOpen = true;
+    if (['success', 'error_card', 'error_generic'].includes(state.drawerView)) {
+      state.drawerView = 'cart';
+    }
     const drawer = qs('#cart-drawer');
     if (drawer) drawer.classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -531,11 +541,58 @@
     document.body.style.overflow = '';
   }
 
+  function updateDrawerGreeting() {
+    const greetingEl = qs('#drawer-greeting');
+    if (!greetingEl) return;
+    const firstName = state.customerInfo && state.customerInfo.name
+      ? state.customerInfo.name.trim().split(/\s+/)[0] : '';
+    greetingEl.textContent = firstName ? 'Olá, ' + firstName + '!' : '';
+    greetingEl.style.display = firstName ? '' : 'none';
+  }
+
+  function updateDrawerTabs() {
+    const tabsEl = qs('#drawer-tabs');
+    if (!tabsEl) return;
+    const v = state.drawerView;
+    const cartActive = v === 'cart' || v === 'loading';
+    const coActive   = v === 'checkout' || v === 'pix_pending' || v === 'success' || v === 'error_card' || v === 'error_generic';
+    const cartCount  = state.cart.length ? ' (' + state.cart.length + ')' : '';
+    tabsEl.innerHTML =
+      '<button class="drawer-tab' + (cartActive ? ' active' : '') + '" data-tab="cart">Carrinho' + cartCount + '</button>' +
+      '<button class="drawer-tab' + (coActive   ? ' active' : '') + '" data-tab="checkout">Checkout</button>';
+    qsa('.drawer-tab', tabsEl).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (btn.dataset.tab === 'cart') {
+          state.drawerView = 'cart';
+          renderDrawerBody();
+        } else if (btn.dataset.tab === 'checkout' && state.cart.length > 0) {
+          state.drawerView = 'checkout';
+          renderDrawerBody();
+          safeTrack('checkout_started', { cart: state.cart });
+        }
+      });
+    });
+  }
+
   function renderDrawerBody() {
+    updateDrawerGreeting();
+    updateDrawerTabs();
     const body   = qs('#drawer-body');
     const footer = qs('#drawer-footer');
     if (!body) return;
 
+    switch (state.drawerView) {
+      case 'checkout':    renderCheckoutView(body, footer);   break;
+      case 'loading':     renderLoadingView(body, footer);    break;
+      case 'pix_pending': renderPixPendingView(body, footer); break;
+      case 'success':     renderSuccessView(body, footer);    break;
+      case 'error_card':
+      case 'error_generic': renderErrorView(body, footer);   break;
+      default:            renderCartView(body, footer);
+    }
+  }
+
+  function renderCartView(body, footer) {
     if (!state.cart || state.cart.length === 0) {
       body.innerHTML =
         '<div class="cart-empty">' +
@@ -546,7 +603,7 @@
       return;
     }
 
-    body.innerHTML = state.cart.map(function (item) {
+    const itemsHTML = state.cart.map(function (item) {
       return '<div class="cart-item" data-id="' + item.id + '">' +
         '<div class="cart-item-info">' +
           '<div class="cart-item-name">' + escHtml(item.name) + '</div>' +
@@ -561,9 +618,18 @@
       '</div>';
     }).join('');
 
-    // Wire cart item buttons
+    const noteHTML =
+      '<div class="order-note-box">' +
+        '<div class="order-note-label">Observações</div>' +
+        '<textarea class="order-note-input" id="order-note" placeholder="Alguma observação para o pedido?" rows="3">' +
+          escHtml(state.orderNote) +
+        '</textarea>' +
+      '</div>';
+
+    body.innerHTML = itemsHTML + noteHTML;
+
     qsa('.cart-item', body).forEach(function (el) {
-      const id = el.dataset.id;
+      const id   = el.dataset.id;
       const item = state.cart.find(function (i) { return String(i.id) === id; });
       if (!item) return;
       qs('.ci-minus',  el).addEventListener('click', function () { updateQty(id, item.qty - 1); });
@@ -571,21 +637,150 @@
       qs('.ci-remove', el).addEventListener('click', function () { removeFromCart(id); });
     });
 
-    // Footer + total
+    const noteInput = qs('#order-note');
+    if (noteInput) noteInput.addEventListener('input', function () { state.orderNote = noteInput.value; });
+
     if (footer) {
       footer.style.display = '';
       const totalVal = state.cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0);
       const totalEl  = qs('#cart-total');
       if (totalEl) totalEl.textContent = fmt(totalVal);
-
-      const waBtn = qs('#whatsapp-order-btn');
-      if (waBtn) {
-        const lines = state.cart.map(function (i) {
-          return '• ' + i.name + ' x' + i.qty + ' — ' + fmt(i.price * i.qty);
-        });
-        const msg = 'Olá! Quero fazer um pedido:\n' + lines.join('\n') + '\n\nTotal: ' + fmt(totalVal);
-        waBtn.href = 'https://wa.me/5521966278965?text=' + encodeURIComponent(msg);
+      const btn = qs('#whatsapp-order-btn');
+      if (btn) {
+        btn.textContent = 'Finalizar pedido →';
+        btn.removeAttribute('href');
+        btn.onclick = function () {
+          state.drawerView = 'checkout';
+          renderDrawerBody();
+          safeTrack('checkout_started', { cart: state.cart });
+        };
       }
+    }
+  }
+
+  function renderCheckoutView(body, footer) {
+    const name  = state.customerInfo && state.customerInfo.name     ? state.customerInfo.name     : '';
+    const phone = state.customerInfo && state.customerInfo.whatsapp ? state.customerInfo.whatsapp : '';
+    const totalVal = state.cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0);
+
+    body.innerHTML =
+      '<div class="checkout-form">' +
+        '<div class="checkout-section-label">Seus dados</div>' +
+        '<input id="co-name"  class="checkout-input" type="text" placeholder="Nome" value="' + escHtml(name) + '" autocomplete="name">' +
+        '<input id="co-phone" class="checkout-input" type="tel"  placeholder="(21) 99999-9999" value="' + escHtml(phone) + '" autocomplete="tel">' +
+        '<div class="checkout-section-label" style="margin-top:20px">Forma de pagamento</div>' +
+        '<div class="payment-options">' +
+          '<button class="payment-opt' + (state.checkoutPayment === 'whatsapp' ? ' active' : '') + '" data-payment="whatsapp">' +
+            '<span class="payment-opt-icon">💬</span>' +
+            '<div><div class="payment-opt-title">WhatsApp</div><div class="payment-opt-desc">Acertar direto no chat</div></div>' +
+          '</button>' +
+          '<button class="payment-opt' + (state.checkoutPayment === 'pix' ? ' active' : '') + '" data-payment="pix">' +
+            '<span class="payment-opt-icon">⚡</span>' +
+            '<div><div class="payment-opt-title">PIX</div><div class="payment-opt-desc">Chave: 21966278965</div></div>' +
+          '</button>' +
+        '</div>' +
+      '</div>';
+
+    qsa('.payment-opt', body).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        state.checkoutPayment = btn.dataset.payment;
+        qsa('.payment-opt', body).forEach(function (b) {
+          b.classList.toggle('active', b.dataset.payment === state.checkoutPayment);
+        });
+      });
+    });
+
+    if (footer) {
+      footer.style.display = '';
+      const totalEl = qs('#cart-total');
+      if (totalEl) totalEl.textContent = fmt(totalVal);
+      const btn = qs('#whatsapp-order-btn');
+      if (btn) {
+        btn.textContent = 'Confirmar pedido →';
+        btn.removeAttribute('href');
+        btn.onclick = function () {
+          const coName  = qs('#co-name');
+          const coPhone = qs('#co-phone');
+          const name2   = coName  ? coName.value.trim()  : name;
+          const phone2  = coPhone ? coPhone.value.trim() : phone;
+          state.customerInfo = { name: name2, whatsapp: phone2 };
+          safeTrack('payment_attempt', { payment: state.checkoutPayment, total: totalVal });
+          if (state.checkoutPayment === 'pix') {
+            state.drawerView = 'loading';
+            renderDrawerBody();
+            setTimeout(function () {
+              state.drawerView = 'pix_pending';
+              renderDrawerBody();
+            }, 1200);
+          } else {
+            const lines = state.cart.map(function (i) {
+              return '• ' + i.name + ' x' + i.qty + ' — ' + fmt(i.price * i.qty);
+            });
+            const note = state.orderNote ? '\n\nObs: ' + state.orderNote : '';
+            const msg  = 'Olá! Quero fazer um pedido:\n' + lines.join('\n') + '\n\nTotal: ' + fmt(totalVal) + note;
+            state.drawerView = 'success';
+            renderDrawerBody();
+            safeTrack('purchase_success', { payment: 'whatsapp', total: totalVal });
+            setTimeout(function () {
+              window.open('https://wa.me/5521966278965?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer');
+            }, 400);
+          }
+        };
+      }
+    }
+  }
+
+  function renderLoadingView(body, footer) {
+    body.innerHTML =
+      '<div class="drawer-state-view">' +
+        '<div class="drawer-spinner"></div>' +
+        '<p class="drawer-state-text">Processando...</p>' +
+      '</div>';
+    if (footer) footer.style.display = 'none';
+  }
+
+  function renderPixPendingView(body, footer) {
+    body.innerHTML =
+      '<div class="drawer-state-view">' +
+        '<div class="pix-icon">⚡</div>' +
+        '<h3 class="drawer-state-title">PIX gerado</h3>' +
+        '<p class="drawer-state-text">Chave PIX: <strong style="color:var(--cream)">21966278965</strong></p>' +
+        '<p class="drawer-state-text pix-hint">Após o pagamento, envie o comprovante no WhatsApp.</p>' +
+        '<a href="https://wa.me/5521966278965" target="_blank" rel="noopener" class="btn-whatsapp-order" style="margin-top:24px;text-decoration:none;display:block;text-align:center">Enviar comprovante →</a>' +
+      '</div>';
+    if (footer) footer.style.display = 'none';
+  }
+
+  function renderSuccessView(body, footer) {
+    body.innerHTML =
+      '<div class="drawer-state-view">' +
+        '<div class="drawer-success-icon">✓</div>' +
+        '<h3 class="drawer-state-title">Pedido enviado!</h3>' +
+        '<p class="drawer-state-text">Você será redirecionado ao WhatsApp para confirmar o pedido.</p>' +
+        '<button id="success-close-btn" class="btn-success-close">Fechar</button>' +
+      '</div>';
+    if (footer) footer.style.display = 'none';
+    const btn = qs('#success-close-btn');
+    if (btn) btn.addEventListener('click', closeCart);
+  }
+
+  function renderErrorView(body, footer) {
+    const isCard = state.drawerView === 'error_card';
+    body.innerHTML =
+      '<div class="drawer-state-view">' +
+        '<div class="drawer-error-icon">✕</div>' +
+        '<h3 class="drawer-state-title">' + (isCard ? 'Falha no pagamento' : 'Erro no pedido') + '</h3>' +
+        '<p class="drawer-state-text">' + (isCard ? 'Não foi possível processar. Tente outra forma de pagamento.' : 'Algo deu errado. Tente novamente ou fale conosco.') + '</p>' +
+        '<button id="retry-btn" class="btn-whatsapp-order" style="margin-top:24px">Tentar novamente</button>' +
+      '</div>';
+    if (footer) footer.style.display = 'none';
+    const retryBtn = qs('#retry-btn');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', function () {
+        safeTrack('payment_failed', { reason: state.drawerView });
+        state.drawerView = 'checkout';
+        renderDrawerBody();
+      });
     }
   }
 
@@ -698,6 +893,113 @@
   }
 
   // ──────────────────────────────────────────────
+  // HISTORIA SECTION
+  // ──────────────────────────────────────────────
+  function initHistoriaSection() {
+    const milestonesEl = qs('#historia-milestones');
+    const scrollerEl   = qs('#story-scroller');
+    if (!milestonesEl && !scrollerEl) return;
+
+    const MILESTONES = [
+      { year: '2022', title: 'O começo',       desc: 'Primeiro levain ativo na cozinha de casa. Testes diários, erros e acertos — nasce a Tocha.' },
+      { year: '2023', title: 'Primeiras fornadas', desc: 'Os vizinhos começam a reservar. Fornadas aos sábados viram tradição.' },
+      { year: '2024', title: 'A comunidade',   desc: 'Lista de espera, novos produtos e clientes que se tornaram amigos.' },
+      { year: '2025', title: 'Hoje',           desc: 'Expansão para foodservice, novos sabores e o mesmo cuidado de sempre.' },
+    ];
+
+    if (milestonesEl) {
+      milestonesEl.innerHTML = MILESTONES.map(function (m) {
+        return '<div class="milestone-item">' +
+          '<div class="milestone-dot-row">' +
+            '<div class="milestone-dot"></div>' +
+            '<span class="milestone-year">' + m.year + '</span>' +
+          '</div>' +
+          '<h3 class="milestone-title">' + m.title + '</h3>' +
+          '<p class="milestone-desc">' + m.desc + '</p>' +
+        '</div>';
+      }).join('');
+    }
+
+    if (!scrollerEl) return;
+
+    const SLIDES = [
+      { year: '2022', title: 'Um pote de farinha e água',    desc: 'Tudo começa com temperatura certa, paciência e o som das bolhas formando o levain.',      emoji: '🌱', bg: 'linear-gradient(160deg, oklch(14% 0.025 48), oklch(20% 0.04 45))' },
+      { year: '2022', title: 'Acordar às três da manhã',     desc: 'O aroma avisa antes do temporizador. Aprender a ouvir a massa é o primeiro ofício.',        emoji: '🌙', bg: 'linear-gradient(160deg, oklch(10% 0.015 50), oklch(16% 0.03 47))' },
+      { year: '2023', title: 'A vizinha bateu à porta',      desc: 'Ela queria comprar. O primeiro pedido não foi planejado — foi uma boa surpresa.',           emoji: '🚪', bg: 'linear-gradient(160deg, oklch(16% 0.03 46), oklch(22% 0.05 43))' },
+      { year: '2024', title: 'O sábado ficou pequeno',       desc: 'De cinco para cinquenta clientes. A lista cresceu; a receita não mudou.',                   emoji: '📋', bg: 'linear-gradient(160deg, oklch(12% 0.02 50), oklch(18% 0.035 48))' },
+      { year: '2025', title: 'O mesmo levain, mais história',desc: 'Três anos depois, o pote ainda borbulha toda manhã. E a história continua.',               emoji: '✨', bg: 'linear-gradient(160deg, oklch(15% 0.03 47), oklch(24% 0.05 44))' },
+    ];
+    var N = SLIDES.length;
+    var STICKY_TOP = 104;
+
+    scrollerEl.style.height = (N * 100) + 'vh';
+    scrollerEl.innerHTML =
+      '<div class="ss-sticky" id="ss-sticky">' +
+        '<div class="ss-progress-bar"><div id="ss-fill" class="ss-fill"></div></div>' +
+        '<div class="ss-counter" id="ss-counter">1 / ' + N + '</div>' +
+        '<div class="ss-track" id="ss-track" style="width:' + (N * 100) + '%">' +
+          SLIDES.map(function (s) {
+            return '<div class="ss-slide" style="background:' + s.bg + ';flex:0 0 ' + (100 / N) + '%">' +
+              '<div class="ss-slide-emoji" aria-hidden="true">' + s.emoji + '</div>' +
+              '<div class="ss-overlay"></div>' +
+              '<div class="ss-content">' +
+                '<p class="ss-year">' + s.year + '</p>' +
+                '<h3 class="ss-title">' + s.title + '</h3>' +
+                '<p class="ss-desc">'  + s.desc  + '</p>' +
+              '</div>' +
+            '</div>';
+          }).join('') +
+        '</div>' +
+        '<div class="ss-dots" id="ss-dots">' +
+          SLIDES.map(function (s, i) {
+            return '<button class="ss-dot' + (i === 0 ? ' active' : '') + '" data-idx="' + i + '" aria-label="Slide ' + (i + 1) + '"></button>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+
+    var track   = qs('#ss-track');
+    var fill    = qs('#ss-fill');
+    var counter = qs('#ss-counter');
+    var dots    = qsa('.ss-dot', scrollerEl);
+    var raf     = null;
+    var lastIdx = 0;
+
+    function onScroll() {
+      if (raf) return;
+      raf = requestAnimationFrame(function () {
+        raf = null;
+        var rect        = scrollerEl.getBoundingClientRect();
+        var totalScroll = scrollerEl.offsetHeight - (window.innerHeight - STICKY_TOP);
+        var scrolled    = STICKY_TOP - rect.top;
+        var progress    = Math.max(0, Math.min(1, scrolled / totalScroll));
+        if (track) track.style.transform = 'translateX(-' + (progress * (N - 1) / N * 100) + '%)';
+        if (fill)  fill.style.width = (progress * 100) + '%';
+        var idx = Math.min(N - 1, Math.floor(progress * N));
+        if (idx !== lastIdx) {
+          lastIdx = idx;
+          if (counter) counter.textContent = (idx + 1) + ' / ' + N;
+          dots.forEach(function (d, i) {
+            d.classList.toggle('active', i === idx);
+            d.style.width = i === idx ? '24px' : '8px';
+          });
+        }
+      });
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    scrollerEl.addEventListener('click', function (e) {
+      var dot = e.target.closest('.ss-dot');
+      if (!dot) return;
+      var i = parseInt(dot.dataset.idx, 10);
+      var totalScroll = scrollerEl.offsetHeight - (window.innerHeight - STICKY_TOP);
+      var elTop = scrollerEl.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({ top: elTop - STICKY_TOP + (i / (N - 1)) * totalScroll, behavior: 'smooth' });
+    });
+  }
+
+  // ──────────────────────────────────────────────
   // INIT
   // ──────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', function () {
@@ -707,6 +1009,7 @@
     initManifestoStrip();
     initHowItWorks();
     initScrollReveal();
+    initHistoriaSection();
     initMenu();
     initCartDrawer();
     initEarlyCaptureModal();
