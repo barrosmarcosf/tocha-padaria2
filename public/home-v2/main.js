@@ -729,7 +729,7 @@
             '<div class="drawer-spinner"></div>' +
             '<p class="drawer-state-text" style="margin:0">Carregando formulário seguro...</p>' +
           '</div>' +
-          '<div id="mp-bricks-container"></div>' +
+          '<div class="mp-wrapper"><div id="mp-bricks-container"></div></div>' +
         '</div>';
       if (footer) footer.style.display = 'none';
       initMPBricks(state.checkoutCustomer);
@@ -1090,7 +1090,7 @@
       _mpBricksCtrl = await bricks.create('cardPayment', 'mp-bricks-container', {
         initialization: { amount: totalVal, payer: { email: customer.email } },
         customization: {
-          visual: { style: { theme: 'default' } },
+          visual: { style: { theme: 'dark', customVariables: { baseColor: '#C47A2C', borderRadius: '10px' } } },
           paymentMethods: { maxInstallments: 1 }
         },
         callbacks: {

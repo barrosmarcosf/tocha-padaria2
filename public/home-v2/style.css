@@ -1536,4 +1536,14 @@ footer {
   display: flex; flex-direction: column; align-items: center;
   padding: 32px 0; gap: 12px;
 }
-#mp-bricks-container { width: 100%; min-height: 40px; }
+#mp-bricks-container { width: 100%; min-height: 40px; background: transparent !important; }
+.mp-wrapper {
+  background: oklch(0.15 0.02 48);
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04);
+}
+.mp-wrapper iframe {
+  border-radius: 8px;
+  filter: brightness(0.95) contrast(1.05);
+}
