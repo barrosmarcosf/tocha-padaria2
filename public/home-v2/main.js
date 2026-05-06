@@ -544,7 +544,7 @@
       badge.textContent = total;
       badge.dataset.count = total;
     }
-    if (['success', 'error_card', 'error_generic', 'stripe_checkout'].includes(state.drawerView)) {
+    if (['success', 'error_card', 'error_generic', 'stripe_checkout', 'stripe_redirecting'].includes(state.drawerView)) {
       state.drawerView = 'cart';
     }
     renderDrawerBody();
@@ -555,7 +555,7 @@
   // ──────────────────────────────────────────────
   function openCart() {
     state.cartOpen = true;
-    if (['success', 'error_card', 'error_generic', 'stripe_checkout'].includes(state.drawerView)) {
+    if (['success', 'error_card', 'error_generic', 'stripe_checkout', 'stripe_redirecting'].includes(state.drawerView)) {
       state.drawerView = 'cart';
     }
     const drawer = qs('#cart-drawer');
@@ -584,7 +584,7 @@
   }
 
   function updateDrawerHeader() {
-    const isCheckout = ['checkout', 'pix_pending', 'success', 'error_card', 'error_generic', 'stripe_checkout'].includes(state.drawerView);
+    const isCheckout = ['checkout', 'pix_pending', 'success', 'error_card', 'error_generic', 'stripe_checkout', 'stripe_redirecting'].includes(state.drawerView);
     const titleEl = qs('#drawer-title');
     const backBtn = qs('#drawer-back');
     if (titleEl) titleEl.textContent = isCheckout ? 'Finalizar Pedido' : 'Meu Pedido';
@@ -597,7 +597,7 @@
     if (!tabsEl) return;
     const v = state.drawerView;
     const cartActive = v === 'cart' || v === 'loading';
-    const coActive   = v === 'checkout' || v === 'pix_pending' || v === 'success' || v === 'error_card' || v === 'error_generic' || v === 'stripe_checkout';
+    const coActive   = v === 'checkout' || v === 'pix_pending' || v === 'success' || v === 'error_card' || v === 'error_generic' || v === 'stripe_checkout' || v === 'stripe_redirecting';
     tabsEl.innerHTML =
       '<button class="drawer-tab' + (cartActive ? ' active' : '') + '" data-tab="cart">1. Resumo</button>' +
       '<button class="drawer-tab' + (coActive   ? ' active' : '') + '" data-tab="checkout">2. Pagamento</button>';
@@ -627,7 +627,8 @@
       case 'loading':         renderLoadingView(body, footer);         break;
       case 'pix_pending':     renderPixPendingView(body, footer);      break;
       case 'success':         renderSuccessView(body, footer);         break;
-      case 'stripe_checkout': renderStripeCheckoutView(body, footer);  break;
+      case 'stripe_checkout':     renderStripeCheckoutView(body, footer);     break;
+      case 'stripe_redirecting':  renderStripeRedirectingView(body, footer);  break;
       case 'error_card':
       case 'error_generic':   renderErrorView(body, footer);           break;
       default:                renderCartView(body, footer);
@@ -933,15 +934,15 @@
         '<h3 class="drawer-state-title">' + (isCard ? 'Pagamento não aprovado' : 'Erro no pedido') + '</h3>' +
         '<p class="drawer-state-text">' +
           (isCard
-            ? 'Seu cartão não foi aprovado pelo Mercado Pago. Escolha outra forma de pagamento.'
+            ? 'Não foi possível aprovar este pagamento com este cartão.'
             : 'Algo deu errado. Tente novamente ou fale conosco.'
           ) +
         '</p>' +
         (isCard
           ? '<div class="error-actions">' +
               '<button id="retry-btn"      class="btn-error-action btn-error-retry">Tentar novamente</button>' +
+              '<button id="try-stripe-btn" class="btn-error-action btn-error-stripe">Pagar com outro cartão</button>' +
               '<button id="try-pix-btn"    class="btn-error-action btn-error-pix">Pagar com PIX</button>' +
-              '<button id="try-stripe-btn" class="btn-error-action btn-error-stripe">Outro cartão →</button>' +
             '</div>'
           : '<button id="retry-btn" class="btn-whatsapp-order" style="margin-top:24px">Tentar novamente</button>'
         ) +
@@ -952,17 +953,7 @@
     if (retryBtn) {
       retryBtn.addEventListener('click', function () {
         safeTrack('payment_failed', { reason: state.drawerView });
-        state.mpCardFormActive = false;
-        state.drawerView = 'checkout';
-        renderDrawerBody();
-      });
-    }
-
-    var tryPixBtn = qs('#try-pix-btn');
-    if (tryPixBtn) {
-      tryPixBtn.addEventListener('click', function () {
-        state.mpCardFormActive = false;
-        state.checkoutPayment = 'mp_pix';
+        state.mpCardFormActive = true;
         state.drawerView = 'checkout';
         renderDrawerBody();
       });
@@ -981,42 +972,49 @@
         handleStripeCheckout(customer);
       });
     }
+
+    var tryPixBtn = qs('#try-pix-btn');
+    if (tryPixBtn) {
+      tryPixBtn.addEventListener('click', function () {
+        state.mpCardFormActive = false;
+        state.checkoutPayment = 'mp_pix';
+        state.drawerView = 'checkout';
+        renderDrawerBody();
+      });
+    }
   }
 
   // ──────────────────────────────────────────────
-  // STRIPE CHECKOUT VIEW
+  // SECURE CHECKOUT VIEWS
   // ──────────────────────────────────────────────
+  function renderStripeRedirectingView(body, footer) {
+    body.innerHTML =
+      '<div class="drawer-state-view">' +
+        '<div class="drawer-spinner"></div>' +
+        '<p class="drawer-state-text">Redirecionando para ambiente seguro de pagamento...</p>' +
+      '</div>';
+    if (footer) footer.style.display = 'none';
+  }
+
   function renderStripeCheckoutView(body, footer) {
     var url = state.stripeUrl || '';
     body.innerHTML =
       '<div class="drawer-state-view">' +
-        '<div style="font-size:36px;margin-bottom:16px">💳</div>' +
-        '<h3 class="drawer-state-title">Checkout Stripe</h3>' +
-        '<p class="drawer-state-text">Clique abaixo para concluir o pagamento em ambiente seguro Stripe.</p>' +
+        '<div style="font-size:36px;margin-bottom:16px">🔒</div>' +
+        '<h3 class="drawer-state-title">Ambiente seguro aberto</h3>' +
+        '<p class="drawer-state-text">Conclua o pagamento na janela que foi aberta. Após confirmar, você receberá a confirmação por e-mail.</p>' +
         '<a id="stripe-open-btn"' +
           ' href="' + escHtml(url) + '"' +
           ' target="_blank" rel="noopener noreferrer"' +
           ' class="btn-whatsapp-order"' +
           ' style="margin-top:20px;text-decoration:none;display:block;text-align:center">' +
-          'Abrir checkout seguro →' +
+          'Abrir novamente →' +
         '</a>' +
-        '<p id="stripe-hint" class="drawer-state-text" style="font-size:12px;color:var(--text-dim);margin-top:16px;display:none">' +
-          'Após pagar no Stripe, você receberá a confirmação por e-mail.' +
-        '</p>' +
-        '<button id="stripe-done-btn" class="btn-success-close" style="margin-top:12px;display:none">Fechar</button>' +
+        '<button id="stripe-done-btn" class="btn-success-close" style="margin-top:12px">Fechar</button>' +
       '</div>';
     if (footer) footer.style.display = 'none';
 
-    var openBtn  = qs('#stripe-open-btn');
-    var hint     = qs('#stripe-hint');
-    var doneBtn  = qs('#stripe-done-btn');
-    if (openBtn) {
-      openBtn.addEventListener('click', function () {
-        if (hint)    hint.style.display    = '';
-        if (doneBtn) doneBtn.style.display = '';
-        openBtn.textContent = '↗ Abrir novamente';
-      });
-    }
+    var doneBtn = qs('#stripe-done-btn');
     if (doneBtn) doneBtn.addEventListener('click', closeCart);
   }
 
@@ -1199,7 +1197,9 @@
   }
 
   async function handleStripeCheckout(customer) {
-    state.drawerView = 'loading';
+    var startTime = Date.now();
+    state.mpCardFormActive = false;
+    state.drawerView = 'stripe_redirecting';
     renderDrawerBody();
 
     try {
@@ -1220,9 +1220,14 @@
 
       if (data.tipo === 'stripe_redirect' && data.url) {
         state.stripeUrl = data.url;
-        state.drawerView = 'stripe_checkout';
-        renderDrawerBody();
-        safeTrack('stripe_checkout_started', { total: totalVal });
+        var elapsed   = Date.now() - startTime;
+        var remaining = Math.max(0, 800 - elapsed);
+        setTimeout(function () {
+          window.open(data.url, '_blank', 'noopener,noreferrer');
+          state.drawerView = 'stripe_checkout';
+          renderDrawerBody();
+          safeTrack('stripe_checkout_started', { total: totalVal });
+        }, remaining);
       } else {
         state.drawerView = 'error_generic';
         renderDrawerBody();
