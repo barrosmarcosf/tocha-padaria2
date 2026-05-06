@@ -46,7 +46,8 @@
       "PowerShell($pass = $env:VPS_PASS; Write-Host \"VPS_PASS length: $\\($pass.Length\\)\"; Write-Host \"First 3 chars: $\\($pass.Substring\\(0,3\\)\\)\")",
       "Bash(VPS_PASS=\"Romeudodeserto12-\" node deploy.js)",
       "Read(//c/tmp/**)",
-      "Read(//c/Users/tocha/**)"
+      "Read(//c/Users/tocha/**)",
+      "Bash(grep -v \".js$\")"
     ]
   }
 }
