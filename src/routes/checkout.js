@@ -116,7 +116,7 @@ module.exports = function (supabase, stripe) {
             if (batchDate) {
                 for (const item of cart) {
                     const available = await getUnifiedAvailableStock(supabase, item.id);
-                    if (available < item.qty) {
+                    if (available !== null && available < item.qty) {
                         const { data: pInfo } = await supabase.from('produtos').select('name').eq('id', item.id).maybeSingle();
                         return res.status(400).json({
                             error: `Estoque insuficiente para "${pInfo?.name || item.id}". Disponível: ${available}`

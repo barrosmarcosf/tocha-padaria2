@@ -43,7 +43,8 @@ async function getUnifiedAvailableStock(supabase, productId) {
             }
         }
 
-        return Number(globalStock) || 0;
+        // null = produto sem estoque configurado → sem bloqueio no checkout
+        return p.stock_quantity != null ? Number(p.stock_quantity) : null;
     } catch (e) {
         console.error(`❌ [StockService] Erro fatal para ${productId}:`, e.message);
         return 0;
