@@ -8,11 +8,11 @@ const MENU_DATA = {
     items: [
       { id: 801, name: "Sourdough Tradicional", price: 38, desc: "O pão que começou tudo. Levain vivo, farinha de qualidade, longa fermentação. Casca que racha.", tag: "Clássico", img: "https://www.tochapadaria.com/assets/sourdough.jpg" },
       { id: 802, name: "Sourdough Integral", price: 40, desc: "Farinha integral, miolo denso e úmido, sabor levemente adocicado. Nutritivo e delicioso.", tag: null, img: "" },
-      { id: 803, name: "Sourdough Gorgonzola", price: 46, desc: "Pedaços de gorgonzola derretidos na massa. Para os apreciadores de queijo.", tag: "Especial", img: "" },
+      { id: 803, name: "Sourdough Gorgonzola", price: 46, desc: "Pedaços de gorgonzola derretidos na massa. Para os apreciadores de queijo.", tag: "Especial", img: "", stock: 0 },
       { id: 804, name: "Sourdough Parmesão", price: 44, desc: "Parmesão ralado incorporado à massa — sabor umami intenso com casca dourada e crocante.", tag: null, img: "" },
       { id: 805, name: "Sourdough Provolone", price: 44, desc: "Defumado e marcante. Provolone leva o sourdough para outro patamar.", tag: null, img: "" },
       { id: 806, name: "Sourdough Multi Grãos", price: 42, desc: "Mix de grãos: linhaça, gergelim, chia, aveia. Textura, nutrição e sabor.", tag: null, img: "" },
-      { id: 807, name: "Sourdough Ervas com Queijos", price: 46, desc: "Ervas frescas e mix de queijos. Aromático, sofisticado, inesquecível.", tag: "Favorito", img: "" },
+      { id: 807, name: "Sourdough Ervas com Queijos", price: 46, desc: "Ervas frescas e mix de queijos. Aromático, sofisticado, inesquecível.", tag: "Favorito", img: "", stock: 2 },
       { id: 808, name: "Sourdough Azeitonas Pretas", price: 42, desc: "Azeitonas pretas picadas na massa. Mediterrâneo e com personalidade.", tag: null, img: "" },
       { id: 809, name: "Sourdough Cheddar, Bacon & Jalapeño", price: 48, desc: "Cheddar cremoso, bacon crocante e calor do jalapeño. Ousado e viciante.", tag: "Especial", img: "" },
       { id: 810, name: "Sourdough Cacau com Frutas Caramelizadas", price: 48, desc: "Cacau intenso com frutas caramelizadas na massa. Sourdough como sobremesa.", tag: "Exclusivo", img: "" }
@@ -23,7 +23,7 @@ const MENU_DATA = {
     icon: "🫓",
     desc: "Azeite, sal grosso e toppings generosos.",
     items: [
-      { id: 701, name: "Focaccia de Damasco & Gorgonzola", price: 36, desc: "Doçura do damasco com pungência do gorgonzola sobre a massa oleosa e crocante.", tag: "Especial", img: "" },
+      { id: 701, name: "Focaccia de Damasco & Gorgonzola", price: 36, desc: "Doçura do damasco com pungência do gorgonzola sobre a massa oleosa e crocante.", tag: "Especial", img: "", stock: 1 },
       { id: 702, name: "Focaccia de Cebola, Mel & Queijo", price: 34, desc: "Cebola caramelizada, mel e queijo. Trio clássico que nunca decepciona.", tag: "Favorito", img: "" },
       { id: 703, name: "Focaccia de Alecrim & Sal Grosso", price: 28, desc: "A focaccia em sua essência italiana. Azeite, alecrim e sal grosso. Simples e perfeita.", tag: "Clássico", img: "" },
       { id: 704, name: "Focaccia de Azeitonas Pretas", price: 30, desc: "Massa generosa com azeitonas pretas e ervas. Sabor mediterrâneo autêntico.", tag: null, img: "" },
@@ -41,7 +41,7 @@ const MENU_DATA = {
       { id: 604, name: "Brioche de Bacalhoada", price: 42, desc: "Bacalhau desfiado e temperado incorporado à massa brioche. Festa em cada fatia.", tag: "Especial", img: "" },
       { id: 605, name: "Brioche Calabresa & Chimichurri", price: 36, desc: "Calabresa artesanal com chimichurri fresco. Para os amantes de sabores intensos.", tag: null, img: "" },
       { id: 606, name: "Brioche Chocolate & Avelã", price: 34, desc: "Massa brioche com pedaços de chocolate e avelã torrada. Indulgência pura.", tag: "Favorito", img: "" },
-      { id: 607, name: "Babka de Nutella & Chocolate", price: 38, desc: "Pão trançado com camadas de Nutella e chocolate. Visual incrível, sabor incrível.", tag: "Exclusivo", img: "" }
+      { id: 607, name: "Babka de Nutella & Chocolate", price: 38, desc: "Pão trançado com camadas de Nutella e chocolate. Visual incrível, sabor incrível.", tag: "Exclusivo", img: "", stock: 0 }
     ]
   },
 

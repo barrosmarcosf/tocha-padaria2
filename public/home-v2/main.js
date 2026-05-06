@@ -56,7 +56,7 @@
     search: '',
     drawerView: 'cart',
     orderNote: '',
-    checkoutPayment: 'whatsapp',
+    checkoutPayment: 'pix',
   };
 
   // ──────────────────────────────────────────────
@@ -375,21 +375,37 @@
   }
 
   function buildProductCard(product) {
-    const tagColor = TAG_COLORS[product.tag] || 'oklch(55% 0.015 65)';
+    var isEsgotado = typeof product.stock === 'number' && product.stock === 0;
+    var isPoucas   = typeof product.stock === 'number' && product.stock > 0 && product.stock <= 2;
 
-    const imgHTML = product.img
+    var badgeHTML = '';
+    if (isEsgotado) {
+      badgeHTML = '<div class="card-tag card-tag-esgotado">Esgotado</div>';
+    } else if (isPoucas) {
+      badgeHTML = '<div class="card-tag card-tag-poucas">Poucas unidades</div>';
+    } else if (product.tag) {
+      var tagColor = TAG_COLORS[product.tag] || 'oklch(55% 0.015 65)';
+      badgeHTML = '<div class="card-tag" style="border-color:' + tagColor + ';color:' + tagColor + '">' + escHtml(product.tag) + '</div>';
+    }
+
+    var imgHTML = product.img
       ? '<img class="card-img" src="' + escHtml(product.img) + '" alt="' + escHtml(product.name) + '" loading="lazy">'
       : '<div class="card-img-placeholder">' + escHtml(product.name) + '</div>';
 
-    const tagHTML = product.tag
-      ? '<div class="card-tag" style="border-color:' + tagColor + ';color:' + tagColor + '">' + escHtml(product.tag) + '</div>'
-      : '';
+    var actionsHTML = isEsgotado
+      ? '<button class="add-btn" disabled>Esgotado</button>'
+      : '<div class="qty-ctrl">' +
+          '<button class="qty-btn minus" data-delta="-1" aria-label="Diminuir quantidade">−</button>' +
+          '<span class="qty-value" data-qty="1">1</span>' +
+          '<button class="qty-btn plus can-minus" data-delta="1" aria-label="Aumentar quantidade">+</button>' +
+        '</div>' +
+        '<button class="add-btn" data-product-id="' + product.id + '">Adicionar</button>';
 
     return '<div class="product-card" data-id="' + product.id + '">' +
       '<div class="card-img-wrap">' +
         imgHTML +
         '<div class="card-img-gradient"></div>' +
-        tagHTML +
+        badgeHTML +
       '</div>' +
       '<div class="card-body">' +
         '<div class="card-top-row">' +
@@ -397,22 +413,16 @@
           '<span class="card-price" data-base-price="' + product.price + '">' + fmt(product.price) + '</span>' +
         '</div>' +
         '<p class="card-desc">' + escHtml(product.desc || '') + '</p>' +
-        '<div class="card-actions">' +
-          '<div class="qty-ctrl">' +
-            '<button class="qty-btn minus" data-delta="-1" aria-label="Diminuir quantidade">−</button>' +
-            '<span class="qty-value" data-qty="1">1</span>' +
-            '<button class="qty-btn plus can-minus" data-delta="1" aria-label="Aumentar quantidade">+</button>' +
-          '</div>' +
-          '<button class="add-btn" data-product-id="' + product.id + '">Adicionar</button>' +
-        '</div>' +
+        '<div class="card-actions">' + actionsHTML + '</div>' +
       '</div>' +
     '</div>';
   }
 
   function initProductCard(card) {
-    const productId = parseInt(card.dataset.id, 10);
-    const product   = findProduct(productId);
+    var productId = parseInt(card.dataset.id, 10);
+    var product   = findProduct(productId);
     if (!product) return;
+    if (typeof product.stock === 'number' && product.stock === 0) return;
 
     const minusBtn  = qs('.qty-btn.minus', card);
     const plusBtn   = qs('.qty-btn.plus', card);
@@ -549,19 +559,27 @@
     greetingEl.style.display = firstName ? '' : 'none';
   }
 
+  function updateDrawerHeader() {
+    const isCheckout = ['checkout', 'pix_pending', 'success', 'error_card', 'error_generic'].includes(state.drawerView);
+    const titleEl = qs('#drawer-title');
+    const backBtn = qs('#drawer-back');
+    if (titleEl) titleEl.textContent = isCheckout ? 'Finalizar Pedido' : 'Meu Pedido';
+    if (backBtn) backBtn.classList.toggle('visible', isCheckout);
+    updateDrawerGreeting();
+  }
+
   function updateDrawerTabs() {
     const tabsEl = qs('#drawer-tabs');
     if (!tabsEl) return;
     const v = state.drawerView;
     const cartActive = v === 'cart' || v === 'loading';
     const coActive   = v === 'checkout' || v === 'pix_pending' || v === 'success' || v === 'error_card' || v === 'error_generic';
-    const cartCount  = state.cart.length ? ' (' + state.cart.length + ')' : '';
     tabsEl.innerHTML =
-      '<button class="drawer-tab' + (cartActive ? ' active' : '') + '" data-tab="cart">Carrinho' + cartCount + '</button>' +
-      '<button class="drawer-tab' + (coActive   ? ' active' : '') + '" data-tab="checkout">Checkout</button>';
+      '<button class="drawer-tab' + (cartActive ? ' active' : '') + '" data-tab="cart">1. Resumo</button>' +
+      '<button class="drawer-tab' + (coActive   ? ' active' : '') + '" data-tab="checkout">2. Pagamento</button>';
     qsa('.drawer-tab', tabsEl).forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (btn.dataset.tab === 'cart') {
+        if (btn.dataset.tab === 'cart' && coActive) {
           state.drawerView = 'cart';
           renderDrawerBody();
         } else if (btn.dataset.tab === 'checkout' && state.cart.length > 0) {
@@ -574,7 +592,7 @@
   }
 
   function renderDrawerBody() {
-    updateDrawerGreeting();
+    updateDrawerHeader();
     updateDrawerTabs();
     const body   = qs('#drawer-body');
     const footer = qs('#drawer-footer');
@@ -596,58 +614,70 @@
       body.innerHTML =
         '<div class="cart-empty">' +
           '<div class="cart-empty-icon">🧺</div>' +
-          '<p>Seu pedido está vazio.</p>' +
+          '<h3 class="cart-empty-title">Carrinho vazio</h3>' +
+          '<p class="cart-empty-desc">Explore o cardápio e adicione os pães que quiser!</p>' +
+          '<button class="btn-ver-cardapio" id="btn-ver-cardapio">Ver Cardápio</button>' +
         '</div>';
+
+      var btnVer = qs('#btn-ver-cardapio');
+      if (btnVer) btnVer.addEventListener('click', function () {
+        closeCart();
+        setTimeout(function () {
+          var el = qs('#menu');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 350);
+      });
+
       if (footer) footer.style.display = 'none';
       return;
     }
 
-    const itemsHTML = state.cart.map(function (item) {
+    var itemsHTML = state.cart.map(function (item) {
+      var imgHTML = item.img
+        ? '<img class="cart-item-img" src="' + escHtml(item.img) + '" alt="' + escHtml(item.name) + '" loading="lazy">'
+        : '<div class="cart-item-img-placeholder">🍞</div>';
       return '<div class="cart-item" data-id="' + item.id + '">' +
+        imgHTML +
         '<div class="cart-item-info">' +
           '<div class="cart-item-name">' + escHtml(item.name) + '</div>' +
-          '<div class="cart-item-price">' + fmt(item.price * item.qty) + '</div>' +
+          '<div class="cart-item-price">' + fmt(item.price) + '</div>' +
         '</div>' +
         '<div class="cart-item-controls">' +
           '<button class="ci-btn ci-minus" aria-label="Diminuir">−</button>' +
           '<span class="ci-qty">' + item.qty + '</span>' +
           '<button class="ci-btn ci-plus" aria-label="Aumentar">+</button>' +
-          '<button class="ci-remove" aria-label="Remover">✕</button>' +
         '</div>' +
       '</div>';
     }).join('');
 
-    const noteHTML =
-      '<div class="order-note-box">' +
-        '<div class="order-note-label">Observações</div>' +
-        '<textarea class="order-note-input" id="order-note" placeholder="Alguma observação para o pedido?" rows="3">' +
-          escHtml(state.orderNote) +
-        '</textarea>' +
+    var fornadaHTML =
+      '<div class="cart-fornada-info">' +
+        '<span class="fi-icon">⏰</span>' +
+        '<p>Pedidos para a <strong>fornada de sábado</strong>. Retirada em São João de Meriti. Confirmação por WhatsApp.</p>' +
       '</div>';
 
-    body.innerHTML = itemsHTML + noteHTML;
+    body.innerHTML = itemsHTML + fornadaHTML;
 
     qsa('.cart-item', body).forEach(function (el) {
-      const id   = el.dataset.id;
-      const item = state.cart.find(function (i) { return String(i.id) === id; });
+      var id   = el.dataset.id;
+      var item = state.cart.find(function (i) { return String(i.id) === id; });
       if (!item) return;
-      qs('.ci-minus',  el).addEventListener('click', function () { updateQty(id, item.qty - 1); });
-      qs('.ci-plus',   el).addEventListener('click', function () { updateQty(id, item.qty + 1); });
-      qs('.ci-remove', el).addEventListener('click', function () { removeFromCart(id); });
+      qs('.ci-minus', el).addEventListener('click', function () { updateQty(id, item.qty - 1); });
+      qs('.ci-plus',  el).addEventListener('click', function () { updateQty(id, item.qty + 1); });
     });
-
-    const noteInput = qs('#order-note');
-    if (noteInput) noteInput.addEventListener('input', function () { state.orderNote = noteInput.value; });
 
     if (footer) {
       footer.style.display = '';
-      const totalVal = state.cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0);
-      const totalEl  = qs('#cart-total');
+      var totalVal = state.cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0);
+      var totalEl  = qs('#cart-total');
       if (totalEl) totalEl.textContent = fmt(totalVal);
-      const btn = qs('#whatsapp-order-btn');
+      var totalLabel = qs('.cart-total-label');
+      if (totalLabel) totalLabel.textContent = 'Total do pedido';
+      var clearBtn = qs('#btn-clear-cart');
+      if (clearBtn) clearBtn.style.display = '';
+      var btn = qs('#whatsapp-order-btn');
       if (btn) {
-        btn.textContent = 'Finalizar pedido →';
-        btn.removeAttribute('href');
+        btn.textContent = 'Ir para pagamento →';
         btn.onclick = function () {
           state.drawerView = 'checkout';
           renderDrawerBody();
@@ -657,27 +687,62 @@
     }
   }
 
+  function getPaymentBtnText() {
+    if (state.checkoutPayment === 'pix') return 'Gerar Pix';
+    if (state.checkoutPayment === 'card') return 'Pagar com Cartão';
+    return 'Pagar com Mercado Pago';
+  }
+
   function renderCheckoutView(body, footer) {
-    const name  = state.customerInfo && state.customerInfo.name     ? state.customerInfo.name     : '';
-    const phone = state.customerInfo && state.customerInfo.whatsapp ? state.customerInfo.whatsapp : '';
-    const totalVal = state.cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0);
+    var name  = state.customerInfo && state.customerInfo.name     ? state.customerInfo.name     : '';
+    var phone = state.customerInfo && state.customerInfo.whatsapp ? state.customerInfo.whatsapp : '';
+    var totalVal = state.cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0);
+
+    var summaryRows = state.cart.map(function (item) {
+      return '<div class="checkout-summary-row">' +
+        '<span>' + escHtml(item.name) + ' ×' + item.qty + '</span>' +
+        '<span>' + fmt(item.price * item.qty) + '</span>' +
+      '</div>';
+    }).join('');
+
+    var paymentOpts = [
+      { key: 'pix',  icon: '🔸', title: 'Pix',              desc: 'Instantâneo · sem taxas' },
+      { key: 'card', icon: '💳', title: 'Cartão de Crédito', desc: 'Via Stripe · redirecionamento seguro' },
+      { key: 'mp',   icon: '🟡', title: 'Mercado Pago',      desc: 'Cartão ou saldo MP' },
+    ];
+
+    var paymentHTML = paymentOpts.map(function (opt) {
+      var isActive = state.checkoutPayment === opt.key;
+      return '<button class="payment-opt' + (isActive ? ' active' : '') + '" data-payment="' + opt.key + '">' +
+        '<div class="payment-opt-icon-wrap"><span class="payment-opt-icon">' + opt.icon + '</span></div>' +
+        '<div style="flex:1">' +
+          '<div class="payment-opt-title">' + escHtml(opt.title) + '</div>' +
+          '<div class="payment-opt-desc">' + escHtml(opt.desc) + '</div>' +
+        '</div>' +
+        '<div class="payment-opt-radio"><div class="payment-opt-radio-dot"></div></div>' +
+      '</button>';
+    }).join('');
 
     body.innerHTML =
       '<div class="checkout-form">' +
-        '<div class="checkout-section-label">Seus dados</div>' +
-        '<input id="co-name"  class="checkout-input" type="text" placeholder="Nome" value="' + escHtml(name) + '" autocomplete="name">' +
-        '<input id="co-phone" class="checkout-input" type="tel"  placeholder="(21) 99999-9999" value="' + escHtml(phone) + '" autocomplete="tel">' +
-        '<div class="checkout-section-label" style="margin-top:20px">Forma de pagamento</div>' +
-        '<div class="payment-options">' +
-          '<button class="payment-opt' + (state.checkoutPayment === 'whatsapp' ? ' active' : '') + '" data-payment="whatsapp">' +
-            '<span class="payment-opt-icon">💬</span>' +
-            '<div><div class="payment-opt-title">WhatsApp</div><div class="payment-opt-desc">Acertar direto no chat</div></div>' +
-          '</button>' +
-          '<button class="payment-opt' + (state.checkoutPayment === 'pix' ? ' active' : '') + '" data-payment="pix">' +
-            '<span class="payment-opt-icon">⚡</span>' +
-            '<div><div class="payment-opt-title">PIX</div><div class="payment-opt-desc">Chave: 21966278965</div></div>' +
-          '</button>' +
+        '<div class="checkout-section-label">Seus Dados *</div>' +
+        '<input id="co-name"  class="checkout-input" type="text" placeholder="Nome completo *" value="' + escHtml(name) + '" autocomplete="name">' +
+        '<input id="co-phone" class="checkout-input" type="tel"  placeholder="WhatsApp (21) 99999-9999 *" value="' + escHtml(phone) + '" autocomplete="tel">' +
+        '<div id="co-error" class="modal-error"></div>' +
+
+        '<div class="checkout-section-label" style="margin-top:20px">Resumo</div>' +
+        '<div class="checkout-summary-box">' +
+          summaryRows +
+          '<div class="checkout-summary-total">' +
+            '<span class="checkout-summary-total-label">Total</span>' +
+            '<strong class="checkout-summary-total-value">' + fmt(totalVal) + '</strong>' +
+          '</div>' +
         '</div>' +
+
+        '<div class="checkout-section-label">Forma de Pagamento</div>' +
+        '<div class="payment-options">' + paymentHTML + '</div>' +
+
+        '<input id="co-email" class="checkout-input" type="email" placeholder="Email para recibo (opcional)" style="margin-top:16px">' +
       '</div>';
 
     qsa('.payment-opt', body).forEach(function (btn) {
@@ -686,40 +751,55 @@
         qsa('.payment-opt', body).forEach(function (b) {
           b.classList.toggle('active', b.dataset.payment === state.checkoutPayment);
         });
+        var footerBtn = qs('#whatsapp-order-btn');
+        if (footerBtn) footerBtn.textContent = getPaymentBtnText() + ' →';
       });
     });
 
     if (footer) {
       footer.style.display = '';
-      const totalEl = qs('#cart-total');
+      var totalEl = qs('#cart-total');
       if (totalEl) totalEl.textContent = fmt(totalVal);
-      const btn = qs('#whatsapp-order-btn');
+      var totalLabel = qs('.cart-total-label');
+      if (totalLabel) totalLabel.textContent = 'Total';
+      var clearBtn = qs('#btn-clear-cart');
+      if (clearBtn) clearBtn.style.display = 'none';
+      var btn = qs('#whatsapp-order-btn');
       if (btn) {
-        btn.textContent = 'Confirmar pedido →';
-        btn.removeAttribute('href');
+        btn.textContent = getPaymentBtnText() + ' →';
         btn.onclick = function () {
-          const coName  = qs('#co-name');
-          const coPhone = qs('#co-phone');
-          const name2   = coName  ? coName.value.trim()  : name;
-          const phone2  = coPhone ? coPhone.value.trim() : phone;
+          var coName  = qs('#co-name');
+          var coPhone = qs('#co-phone');
+          var name2   = coName  ? coName.value.trim()  : name;
+          var phone2  = coPhone ? coPhone.value.trim() : phone;
+          var errEl   = qs('#co-error');
+          if (errEl) { errEl.textContent = ''; errEl.classList.remove('visible'); }
+
+          var hasError = false;
+          if (!name2) {
+            if (errEl) { errEl.textContent = 'Informe seu nome completo'; errEl.classList.add('visible'); }
+            hasError = true;
+          } else if (!phone2.replace(/\D/g, '').match(/^\d{10,11}$/)) {
+            if (errEl) { errEl.textContent = 'Formato inválido (ex: 21 99999-9999)'; errEl.classList.add('visible'); }
+            hasError = true;
+          }
+          if (hasError) return;
+
           state.customerInfo = { name: name2, whatsapp: phone2 };
           safeTrack('payment_attempt', { payment: state.checkoutPayment, total: totalVal });
+
           if (state.checkoutPayment === 'pix') {
-            state.drawerView = 'loading';
+            state.drawerView = 'pix_pending';
             renderDrawerBody();
-            setTimeout(function () {
-              state.drawerView = 'pix_pending';
-              renderDrawerBody();
-            }, 1200);
           } else {
-            const lines = state.cart.map(function (i) {
+            var lines = state.cart.map(function (i) {
               return '• ' + i.name + ' x' + i.qty + ' — ' + fmt(i.price * i.qty);
             });
-            const note = state.orderNote ? '\n\nObs: ' + state.orderNote : '';
-            const msg  = 'Olá! Quero fazer um pedido:\n' + lines.join('\n') + '\n\nTotal: ' + fmt(totalVal) + note;
+            var payLabel = state.checkoutPayment === 'card' ? 'Cartão de Crédito' : 'Mercado Pago';
+            var msg = 'Olá! Quero fazer um pedido:\n' + lines.join('\n') + '\n\nTotal: ' + fmt(totalVal) + '\nPagamento: ' + payLabel;
             state.drawerView = 'success';
             renderDrawerBody();
-            safeTrack('purchase_success', { payment: 'whatsapp', total: totalVal });
+            safeTrack('purchase_success', { payment: state.checkoutPayment, total: totalVal });
             setTimeout(function () {
               window.open('https://wa.me/5521966278965?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer');
             }, 400);
@@ -784,13 +864,24 @@
   }
 
   function initCartDrawer() {
-    const cartBtn     = qs('#cart-btn');
-    const drawerClose = qs('#drawer-close');
-    const overlay     = qs('#drawer-overlay');
+    var cartBtn     = qs('#cart-btn');
+    var drawerClose = qs('#drawer-close');
+    var overlay     = qs('#drawer-overlay');
+    var backBtn     = qs('#drawer-back');
+    var clearBtn    = qs('#btn-clear-cart');
 
     if (cartBtn)     cartBtn.addEventListener('click', openCart);
     if (drawerClose) drawerClose.addEventListener('click', closeCart);
     if (overlay)     overlay.addEventListener('click', closeCart);
+    if (backBtn)     backBtn.addEventListener('click', function () {
+      state.drawerView = 'cart';
+      renderDrawerBody();
+    });
+    if (clearBtn)    clearBtn.addEventListener('click', function () {
+      state.cart = [];
+      saveCart([]);
+      updateCartUI();
+    });
 
     // Keyboard: Escape closes
     document.addEventListener('keydown', function (e) {

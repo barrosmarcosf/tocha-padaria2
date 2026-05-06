@@ -382,25 +382,28 @@
 <div id="cart-drawer" role="dialog" aria-modal="true" aria-label="Meu Pedido">
   <div class="drawer-overlay" id="drawer-overlay"></div>
   <div class="drawer-panel">
-    <div class="drawer-header">
-      <div>
-        <h2 class="drawer-title">Meu Pedido</h2>
+    <div class="drawer-header" id="drawer-header">
+      <button class="drawer-back-btn" id="drawer-back" aria-label="Voltar ao carrinho">←</button>
+      <div class="drawer-header-main">
+        <h2 class="drawer-title" id="drawer-title">Meu Pedido</h2>
         <div id="drawer-greeting" class="drawer-greeting" style="display:none"></div>
       </div>
       <button class="drawer-close" id="drawer-close" aria-label="Fechar pedido">×</button>
     </div>
     <div id="drawer-tabs" class="drawer-tabs"></div>
     <div class="drawer-body" id="drawer-body">
-      <!-- Cart items rendered by JS -->
     </div>
     <div class="drawer-footer" id="drawer-footer" style="display:none">
       <div class="cart-total-row">
-        <span class="cart-total-label">Total</span>
+        <span class="cart-total-label">Total do pedido</span>
         <strong id="cart-total" class="cart-total-value">R$ 0,00</strong>
       </div>
-      <a id="whatsapp-order-btn" href="#" target="_blank" rel="noopener noreferrer" class="btn-whatsapp-order">
-        Pedir via WhatsApp
-      </a>
+      <button id="whatsapp-order-btn" class="btn-goto-checkout">
+        Ir para pagamento →
+      </button>
+      <button id="btn-clear-cart" class="btn-clear-cart" style="display:none">
+        Esvaziar carrinho
+      </button>
     </div>
   </div>
 </div>
