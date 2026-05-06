@@ -544,7 +544,7 @@
       badge.textContent = total;
       badge.dataset.count = total;
     }
-    if (['success', 'error_card', 'error_generic', 'stripe_checkout', 'stripe_redirecting'].includes(state.drawerView)) {
+    if (['error_card', 'error_generic', 'stripe_checkout', 'stripe_redirecting'].includes(state.drawerView)) {
       state.drawerView = 'cart';
     }
     renderDrawerBody();
@@ -917,8 +917,8 @@
     body.innerHTML =
       '<div class="drawer-state-view">' +
         '<div class="drawer-success-icon">✓</div>' +
-        '<h3 class="drawer-state-title">Pagamento confirmado!</h3>' +
-        '<p class="drawer-state-text">Seu pedido foi recebido. Em breve você receberá uma confirmação pelo WhatsApp.</p>' +
+        '<h3 class="drawer-state-title">Pedido confirmado com sucesso</h3>' +
+        '<p class="drawer-state-text">Você receberá atualizações pelo WhatsApp.</p>' +
         '<button id="success-close-btn" class="btn-success-close">Fechar</button>' +
       '</div>';
     if (footer) footer.style.display = 'none';
@@ -1040,11 +1040,14 @@
         var d = await r.json();
         if (d.status === 'approved') {
           stopPixPoll();
-          state.cart = [];
-          saveCart([]);
           state.drawerView = 'success';
-          updateCartUI();
           renderDrawerBody();
+          requestAnimationFrame(function () {
+            state.cart = [];
+            saveCart([]);
+            var badge = qs('#cart-badge');
+            if (badge) { badge.textContent = '0'; badge.dataset.count = '0'; }
+          });
         }
       } catch (_) {}
     }, 5000);
@@ -1140,12 +1143,16 @@
       state.mpCardFormActive = false;
 
       if (data.tipo === 'success') {
-        state.cart = [];
-        saveCart([]);
+        var trackedTotal = payload.cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0);
         state.drawerView = 'success';
-        updateCartUI();
         renderDrawerBody();
-        safeTrack('purchase_success', { payment: 'mp_card', total: payload.cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0) });
+        requestAnimationFrame(function () {
+          state.cart = [];
+          saveCart([]);
+          var badge = qs('#cart-badge');
+          if (badge) { badge.textContent = '0'; badge.dataset.count = '0'; }
+        });
+        safeTrack('purchase_success', { payment: 'mp_card', total: trackedTotal });
       } else if (data.tipo === 'error_card_mp') {
         state.drawerView = 'error_card';
         renderDrawerBody();
