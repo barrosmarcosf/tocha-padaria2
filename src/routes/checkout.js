@@ -50,6 +50,7 @@ async function recalcularTotal(supabase, cart) {
 function mapCartToMPItems(cart) {
     return cart.map(item => ({
         id: String(item.id), title: item.name,
+        description: item.desc || item.name,
         quantity: item.qty, unit_price: item.price, category_id: 'food'
     }));
 }
