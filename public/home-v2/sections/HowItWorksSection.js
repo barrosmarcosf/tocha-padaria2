@@ -68,70 +68,107 @@
 
     return html`
       <section id="como-funciona" ref=${sectionRef} style=${{
-        padding: '88px 0 80px',
+        padding: '120px 0',
         background: 'var(--bg2)',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
       }}>
-        <div style=${{ maxWidth: 1500, margin: '0 auto', padding: '0 56px' }}>
+        <div style=${{ maxWidth: 1200, margin: '0 auto', padding: '0 56px' }}>
 
-          <div style=${{ marginBottom: 64, maxWidth: 760 }}>
+          <div style=${{ marginBottom: 64 }}>
             <div style=${{
-              fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase',
-              color: 'var(--amber)', marginBottom: 16, fontWeight: 600
+              fontFamily: 'var(--font-sans)',
+              fontSize: 11,
+              textTransform: 'uppercase',
+              color: 'oklch(0.72 0.12 60)',
+              marginBottom: 16,
             }}>
               Como funciona
             </div>
             <h2 style=${{
               fontFamily: 'var(--font-serif)',
-              fontSize: 'clamp(36px, 3.8vw, 54px)',
-              fontWeight: 400, color: 'var(--cream)', lineHeight: 1.08, marginBottom: 24
+              fontSize: 56,
+              fontWeight: 400,
+              lineHeight: 1.1,
+              marginBottom: 24,
             }}>
-              Quatro passos<br />
-              <em style=${{ color: 'var(--amber)' }}>até a sua mesa</em>
+              <span style=${{ color: 'oklch(0.94 0.01 75)', display: 'block' }}>Quatro passos</span>
+              <em style=${{ color: 'oklch(0.72 0.12 60)', fontStyle: 'italic' }}>até a sua mesa</em>
             </h2>
-            <p style=${{ fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.7, fontWeight: 300, maxWidth: 560 }}>
+            <p style=${{
+              fontFamily: 'var(--font-sans)',
+              fontSize: 16,
+              color: 'oklch(0.65 0.015 65)',
+              lineHeight: 1.7,
+              fontWeight: 300,
+              maxWidth: 512,
+              margin: 0,
+            }}>
               Trabalhamos por encomenda — nossa fornada é única, semanal e sob demanda. Peça durante a semana e retire no sábado.
             </p>
           </div>
 
-          <div style=${{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 80 }}>
+          <div style=${{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 24 }}>
             ${HOW_STEPS.map((step, i) => html`
               <div key=${step.n} style=${{
                 opacity: visibleSteps[i] ? 1 : 0,
                 transform: visibleSteps[i] ? 'translateY(0)' : 'translateY(28px)',
-                transition: 'all 0.6s ease'
+                transition: 'all 0.6s ease',
               }}>
                 <div style=${{
-                  background: 'oklch(15% 0.02 48)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  padding: '32px 28px',
-                  height: '100%',
+                  background: 'oklch(0.15 0.02 48)',
+                  borderRadius: 12,
+                  padding: '28px 24px',
+                  height: 268,
                   boxSizing: 'border-box',
                   display: 'flex',
-                  flexDirection: 'column'
+                  flexDirection: 'column',
                 }}>
-                  <div style=${{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+                  <div style=${{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style=${{
                       width: 44, height: 44, borderRadius: '50%',
-                      border: '1px solid var(--amber)',
+                      border: '1px solid oklch(0.72 0.12 60)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: 'var(--amber)', fontWeight: 700, fontSize: 14, flexShrink: 0
+                      color: 'oklch(0.72 0.12 60)', fontWeight: 700, fontSize: 14, flexShrink: 0,
                     }}>
                       ${step.n}
                     </div>
-                    <div style=${{ color: 'var(--text-muted)', fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600 }}>
+                    <div style=${{
+                      fontSize: 11,
+                      color: 'oklch(0.45 0.012 60)',
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                    }}>
                       ${step.label}
                     </div>
                   </div>
-                  <h3 style=${{ color: 'var(--cream)', fontSize: 18, fontWeight: 600, marginBottom: 12, lineHeight: 1.3 }}>
+                  <h3 style=${{
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: 20,
+                    fontWeight: 500,
+                    color: 'oklch(0.94 0.01 75)',
+                    marginTop: 6,
+                    marginBottom: 0,
+                    lineHeight: 1.3,
+                  }}>
                     ${step.title}
                   </h3>
-                  <p style=${{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.65, marginBottom: 20, flexGrow: 1 }}>
+                  <p style=${{
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: 13.5,
+                    color: 'oklch(0.65 0.015 65)',
+                    lineHeight: 1.65,
+                    flexGrow: 1,
+                    marginTop: 8,
+                    marginBottom: 0,
+                  }}>
                     ${step.desc}
                   </p>
-                  <div style=${{ color: 'var(--amber)', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 }}>
+                  <div style=${{
+                    fontSize: 11,
+                    color: 'oklch(0.72 0.12 60)',
+                    marginTop: 'auto',
+                  }}>
                     ${step.meta}
                   </div>
                 </div>
@@ -142,31 +179,44 @@
           <div ref=${infoRef} style=${{
             display: 'grid',
             gridTemplateColumns: '2fr 1fr',
-            gap: 32,
+            gap: 24,
             opacity: infoVisible ? 1 : 0,
             transform: infoVisible ? 'translateY(0)' : 'translateY(24px)',
-            transition: 'all 0.7s ease'
+            transition: 'all 0.7s ease',
           }}>
 
             <div style=${{
-              background: 'oklch(13% 0.018 48)',
-              border: '1px solid var(--border)',
-              borderRadius: 8,
-              padding: '32px 28px'
+              background: 'oklch(0.15 0.02 48)',
+              borderRadius: 12,
+              padding: '28px 32px',
             }}>
               <div style=${{
-                fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase',
-                color: 'var(--amber)', marginBottom: 24, fontWeight: 600
+                fontFamily: 'var(--font-sans)',
+                fontSize: 11,
+                textTransform: 'uppercase',
+                color: 'oklch(0.72 0.12 60)',
+                marginBottom: 24,
               }}>
                 + Sobre a Retirada
               </div>
               <div style=${{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
                 ${RETIRADA_ITEMS.map((item, i) => html`
                   <div key=${i}>
-                    <div style=${{ color: 'var(--cream)', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                    <div style=${{
+                      fontFamily: 'var(--font-sans)',
+                      color: 'oklch(0.94 0.01 75)',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      marginBottom: 6,
+                    }}>
                       ${item.title}
                     </div>
-                    <div style=${{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6 }}>
+                    <div style=${{
+                      fontFamily: 'var(--font-sans)',
+                      color: 'oklch(0.65 0.015 65)',
+                      fontSize: 13,
+                      lineHeight: 1.6,
+                    }}>
                       ${item.desc}
                     </div>
                   </div>
@@ -175,21 +225,34 @@
             </div>
 
             <div style=${{
-              background: 'oklch(13% 0.018 48)',
-              border: '1px solid var(--border)',
-              borderRadius: 8,
-              padding: '32px 28px'
+              background: 'oklch(0.15 0.02 48)',
+              borderRadius: 12,
+              padding: '28px 32px',
             }}>
               <div style=${{
-                fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase',
-                color: 'var(--amber)', marginBottom: 24, fontWeight: 600
+                fontFamily: 'var(--font-sans)',
+                fontSize: 11,
+                textTransform: 'uppercase',
+                color: 'oklch(0.72 0.12 60)',
+                marginBottom: 24,
               }}>
                 Política
               </div>
-              <div style=${{ color: 'var(--cream)', fontSize: 15, fontWeight: 600, marginBottom: 8 }}>
+              <div style=${{
+                fontFamily: 'var(--font-sans)',
+                color: 'oklch(0.94 0.01 75)',
+                fontSize: 15,
+                fontWeight: 600,
+                marginBottom: 8,
+              }}>
                 ${POLITICA_ITEM.title}
               </div>
-              <div style=${{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6 }}>
+              <div style=${{
+                fontFamily: 'var(--font-sans)',
+                color: 'oklch(0.65 0.015 65)',
+                fontSize: 13,
+                lineHeight: 1.6,
+              }}>
                 ${POLITICA_ITEM.desc}
               </div>
             </div>
