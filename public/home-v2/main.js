@@ -34,6 +34,15 @@
     return phone.length === 10 || phone.length === 11;
   }
 
+  function getNextSaturday() {
+    var today = new Date();
+    var day = today.getDay();
+    var diff = (6 - day + 7) % 7 || 7;
+    var saturday = new Date(today);
+    saturday.setDate(today.getDate() + diff);
+    return saturday.toLocaleDateString('pt-BR');
+  }
+
   // ──────────────────────────────────────────────
   // TAG COLORS
   // ──────────────────────────────────────────────
@@ -676,10 +685,11 @@
       '</div>';
     }).join('');
 
+    var fornadaDate = getNextSaturday();
     var fornadaHTML =
       '<div class="cart-fornada-info">' +
         '<span class="fi-icon">⏰</span>' +
-        '<p>Pedidos para a <strong>fornada de sábado</strong>. Retirada em São João de Meriti. Confirmação por WhatsApp.</p>' +
+        '<p>Pedidos para a <strong>fornada de sábado (' + fornadaDate + ')</strong>. Retirada em São João de Meriti. Confirmação por WhatsApp.</p>' +
       '</div>';
 
     body.innerHTML = itemsHTML + fornadaHTML;
@@ -766,8 +776,11 @@
       '</button>';
     }).join('');
 
+    var fornadaDate = getNextSaturday();
     body.innerHTML =
       '<div class="checkout-form">' +
+        '<p class="checkout-info">Você está finalizando sua compra para a <strong>fornada de sábado (' + fornadaDate + ')</strong>.</p>' +
+        '<p class="checkout-security">🔒 Ambiente seguro de pagamento. Seus dados são protegidos.</p>' +
         '<div class="checkout-section-label">Seus Dados</div>' +
         '<input id="co-name"  class="checkout-input" type="text"  placeholder="Nome completo *"          value="' + escHtml(name)  + '" autocomplete="name">' +
         '<input id="co-phone" class="checkout-input" type="tel"   placeholder="WhatsApp (21) 99999-9999 *" value="' + escHtml(phone) + '" autocomplete="tel">' +
