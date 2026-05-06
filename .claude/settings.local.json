@@ -44,7 +44,9 @@
       "Bash(node \"c:\\\\tmp\\\\vps-deploy\\\\deploy_gitpull.js\")",
       "Bash(git push *)",
       "PowerShell($pass = $env:VPS_PASS; Write-Host \"VPS_PASS length: $\\($pass.Length\\)\"; Write-Host \"First 3 chars: $\\($pass.Substring\\(0,3\\)\\)\")",
-      "Bash(VPS_PASS=\"Romeudodeserto12-\" node deploy.js)"
+      "Bash(VPS_PASS=\"Romeudodeserto12-\" node deploy.js)",
+      "Read(//c/tmp/**)",
+      "Read(//c/Users/tocha/**)"
     ]
   }
 }
