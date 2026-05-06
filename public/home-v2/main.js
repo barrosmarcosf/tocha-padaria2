@@ -728,6 +728,8 @@
         '<div class="checkout-section-label">Seus Dados *</div>' +
         '<input id="co-name"  class="checkout-input" type="text" placeholder="Nome completo *" value="' + escHtml(name) + '" autocomplete="name">' +
         '<input id="co-phone" class="checkout-input" type="tel"  placeholder="WhatsApp (21) 99999-9999 *" value="' + escHtml(phone) + '" autocomplete="tel">' +
+        '<div class="checkout-section-label" style="margin-top:14px">Cadastre email para receber recibo</div>' +
+        '<input id="co-email" class="checkout-input" type="email" placeholder="Email para recibo (opcional)">' +
         '<div id="co-error" class="modal-error"></div>' +
 
         '<div class="checkout-section-label" style="margin-top:20px">Resumo</div>' +
@@ -741,8 +743,6 @@
 
         '<div class="checkout-section-label">Forma de Pagamento</div>' +
         '<div class="payment-options">' + paymentHTML + '</div>' +
-
-        '<input id="co-email" class="checkout-input" type="email" placeholder="Email para recibo (opcional)" style="margin-top:16px">' +
       '</div>';
 
     qsa('.payment-opt', body).forEach(function (btn) {
