@@ -1,486 +1,157 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Impede que o browser restaure scroll por conta própria
-    history.scrollRestoration = 'manual';
+// @ts-nocheck
+(function () {
+  'use strict';
 
-    // --- RESET STATE ON LOAD (FIX F5 BUG) ---
-    document.body.classList.remove('products-active', 'in-product-list');
-    
-    const catView = document.getElementById('categories-view');
-    const prodView = document.getElementById('products-view');
-    if (catView) catView.style.display = 'grid';
-    if (prodView) prodView.style.display = 'none';
+  if (!document.getElementById('root')) return;
 
-    // --- SHARED STATE & REVEAL ENGINE ---
-    let state = {
-        currentIndex: 0,
-        isLocked: false,
-        snapEnabled: true,
-        menuData: [],
-        globalStoreStatus: null,
-        storeConfig: null,
-        isTransitioning: false
-    };
+  const { useState, useEffect } = window.React;
+  const html = window.htm.bind(window.React.createElement);
 
-    const navSections = ['hero', 'menu', 'foodservice', 'acompanhe', 'footer'];
-    const navDots = document.querySelectorAll('.dot-nav');
-    const isLanding = !!document.getElementById('hero');
-    let scrollTimeout = null;
-    let scrollToSection = null;
+  const GlobalStyles       = window.GlobalStyles;
+  const AnnouncementBar    = window.AnnouncementBar;
+  const Navbar             = window.Navbar;
+  const Hero               = window.Hero;
+  const ManifestoStrip     = window.ManifestoStrip;
+  const HowItWorksSection  = window.HowItWorksSection;
+  const MenuSection        = window.MenuSection;
+  const HistoriaSection    = window.HistoriaSection;
+  const InstagramStrip     = window.InstagramStrip;
+  const FoodServiceSection = window.FoodServiceSection;
+  const Footer             = window.Footer;
+  const WhatsAppFloating   = window.WhatsAppFloating;
+  const EarlyCaptureModal  = window.EarlyCaptureModal;
+  const CartDrawer         = window.CartDrawer;
 
-    // Motor de scroll com easeOutQuart (começa rápido, para suave) — 280ms
-    function smoothScrollTo(targetEl) {
-        const startY = window.pageYOffset;
-        const endY = targetEl.getBoundingClientRect().top + startY;
-        const diff = endY - startY;
-        if (diff === 0) return;
-        const duration = 280;
-        let startTime = null;
-        function step(ts) {
-            if (!startTime) startTime = ts;
-            const elapsed = Math.min(ts - startTime, duration);
-            const p = elapsed / duration;
-            const ease = 1 - Math.pow(1 - p, 4); // easeOutQuart
-            window.scrollTo(0, startY + diff * ease);
-            if (elapsed < duration) requestAnimationFrame(step);
-        }
-        requestAnimationFrame(step);
+  function getCart() {
+    try { return JSON.parse(localStorage.getItem('tocha-cart') || '[]'); } catch { return []; }
+  }
+
+  function saveCart(c) {
+    localStorage.setItem('tocha-cart', JSON.stringify(c));
+  }
+
+  function fetchSafe(url) {
+    return fetch(url, { signal: AbortSignal.timeout(8000) })
+      .then(r => r.json()).catch(() => null);
+  }
+
+  function App() {
+    const [status, setStatus]               = useState(null);
+    const [config, setConfig]               = useState(null);
+    const [cart, setCart]                   = useState(getCart);
+    const [cartOpen, setCartOpen]           = useState(false);
+    const [captureOpen, setCaptureOpen]     = useState(false);
+    const [checkoutStatus, setCheckoutStatus] = useState('idle');
+    const [customerInfo, setCustomerInfo]   = useState(null);
+    const [pendingItem, setPendingItem]     = useState(null);
+
+    useEffect(() => {
+      fetchSafe('/api/status').then(d => d && setStatus(d));
+      fetchSafe('/api/config').then(d => d && setConfig(d));
+    }, []);
+
+    useEffect(() => {
+      const h = () => setCart(getCart());
+      window.addEventListener('storage', h);
+      return () => window.removeEventListener('storage', h);
+    }, []);
+
+    function persist(next) { saveCart(next); setCart(next); }
+
+    function handleUpdateQty(id, qty) {
+      if (qty <= 0) return persist(cart.filter(i => String(i.id) !== String(id)));
+      persist(cart.map(i => String(i.id) === String(id) ? { ...i, qty } : i));
     }
 
-    // --- SYNC GLOBAL STORE STATUS (ETAPA 4) ---
-    // Aplica status cacheado imediatamente (sem esperar API)
-    const cachedStatus = localStorage.getItem('tocha_status');
-    if (cachedStatus) {
-        try {
-            state.globalStoreStatus = JSON.parse(cachedStatus);
-            updateStoreUI();
-        } catch (e) {}
+    function handleRemove(id) {
+      persist(cart.filter(i => String(i.id) !== String(id)));
     }
 
-    async function syncGlobalStoreStatus() {
-        try {
-            const resp = await fetch('/api/store-status');
-            if (resp.ok) {
-                const status = await resp.json();
-                state.globalStoreStatus = status;
-                localStorage.setItem('tocha_status', JSON.stringify(status));
-                updateStoreUI();
-            }
-        } catch (e) { console.error("Erro ao sincronizar status:", e); }
+    function scrollToMenu() {
+      const el = document.getElementById('cardapio');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
     }
 
-    // Inicia sincronização automática
-    syncGlobalStoreStatus();
-    setInterval(syncGlobalStoreStatus, 60000); // Sincroniza a cada 1 minuto
-    initStockRealtime();
-
-    function updateStoreUI() {
-        const s = state.globalStoreStatus;
-        if (!s) return;
-
-        const bar = document.getElementById('top-status-bar');
-        const barText = document.getElementById('status-text-top');
-
-        if (bar && barText) {
-            bar.style.display = 'flex'; // Use flex for centering
-            document.body.classList.add('has-status-bar');
-            bar.className = 'store-status-bar ' + s.statusMode.replace('_', '-');
-            
-            // A mensagem já vem formatada do backend conforme solicitado:
-            // "Pedidos abertos para este sábado — 18/04 — Encerra em Xd Xh Xmin"
-            // Se fechado, o backend envia a mensagem de erro configurada
-            barText.textContent = s.message;
-        }
-
-        updateAllPurchaseButtons();
+    function addToCart(item) {
+      setCart(prev => {
+        const existing = prev.find(i => i.id === item.id);
+        const next = existing
+          ? prev.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i)
+          : [...prev, { ...item, qty: 1 }];
+        saveCart(next);
+        return next;
+      });
+      setCartOpen(true);
     }
 
-    function updateAllPurchaseButtons() {
-        const s = state.globalStoreStatus;
-        if (!s) return;
-
-        const isClosed = s.statusMode === 'closed';
-        const btns = document.querySelectorAll('.btn-buy-now');
-
-        btns.forEach(btn => {
-            if (isClosed) {
-                btn.disabled = true;
-                btn.textContent = 'FECHADO';
-            }
-            // Se aberto, não fazemos nada aqui, deixamos que o renderizador de cards
-            // e o SSE decidam se o botão é COMPRAR AGORA ou ESGOTADO baseados no estoque.
-        });
+    function handleAdd(item) {
+      if (!customerInfo) { setPendingItem(item); setCaptureOpen(true); return; }
+      addToCart(item);
     }
 
-    // --- REVEAL ON SCROLL (desativado — animações removidas) ---
-    // Garante que todos os elementos .reveal fiquem visíveis imediatamente
-    document.querySelectorAll('.reveal').forEach(el => el.classList.add('active'));
+    const totalItems = cart.reduce((s, i) => s + i.qty, 0);
 
+    return html`
+      <div id="app-root">
+        <${GlobalStyles} />
 
-    // --- DYNAMIC CONFIG LOAD ---
-    // Aplica um objeto de config nos módulos. Chamada tanto pelo cache quanto pela rede.
-    function applyConfig({ categorias, produtos, siteContent }) {
-        state.menuData = (categorias || []).map(cat => ({
-            ...cat,
-            id: cat.slug,
-            items: (produtos || []).filter(p => p.category_slug === cat.slug)
-        }));
+        <${AnnouncementBar} status=${status} />
 
-        if (window.HeroModule) HeroModule.init(siteContent.hero);
-        if (window.MenuModule) MenuModule.init(categorias, produtos);
-        if (window.FoodserviceModule) FoodserviceModule.init(siteContent.foodservice);
-        if (window.InstagramModule) InstagramModule.init(siteContent.instagram);
-        if (window.FooterModule) FooterModule.init(siteContent.footer, siteContent.store_info);
+        <${Navbar}
+          cartCount=${totalItems}
+          onCartOpen=${() => setCartOpen(true)}
+        />
 
-        if (siteContent.site_logo) {
-            const l = siteContent.site_logo;
-            const url = l.startsWith('http') ? l : '/' + l;
-            document.querySelectorAll('#site-logo-nav, #site-logo-hero, #site-logo-footer, #site-logo-back-top').forEach(img => {
-                img.src = url;
-            });
-        }
+        <${Hero} status=${status} scrollToMenu=${scrollToMenu} />
 
-        const si = siteContent.store_info;
-        if (si && si.phone) {
-            let cleanPhone = si.phone.replace(/\D/g, '');
-            if (cleanPhone.length <= 11 && cleanPhone.length >= 10) cleanPhone = '55' + cleanPhone;
-            document.querySelectorAll('a[href^="https://wa.me/"]').forEach(link => {
-                link.href = `https://wa.me/${cleanPhone}`;
-            });
-        }
-    }
+        <${ManifestoStrip} />
 
-    // Stale-while-revalidate: aplica cache local instantaneamente e busca dados
-    // frescos em paralelo. A página nunca espera a API para aparecer.
-    async function loadDynamicConfig() {
-        const CACHE_KEY = 'tocha_cfg_v2';
-        const raw = localStorage.getItem(CACHE_KEY);
-        if (raw) {
-            try { applyConfig(JSON.parse(raw)); } catch(e) {}
-        }
-        try {
-            const resp = await fetch('/api/config');
-            if (resp.ok) {
-                const data = await resp.json();
-                localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-                applyConfig(data);
-            }
-        } catch (err) { console.error("Erro no loadDynamicConfig:", err); }
-    }
+        <${HowItWorksSection} />
 
-    // --- REALTIME STOCK SSE ---
-    function initStockRealtime() {
-        try {
-            const es = new EventSource('/api/stock-stream');
-            es.onmessage = function(e) {
-                const data = JSON.parse(e.data);
-                if (data.type === 'stock_update') {
-                    if (window.MenuModule) MenuModule.updateStock(data.productId, data.newStock);
-                }
-            };
-            es.onerror = function() {
-                es.close();
-                setTimeout(initStockRealtime, 5000);
-            };
-        } catch (err) { console.error("Falha ao iniciar SSE:", err); }
-    }
+        <${MenuSection}
+          cart=${cart}
+          onAdd=${handleAdd}
+          onUpdateQty=${handleUpdateQty}
+          config=${config}
+        />
 
+        ${HistoriaSection && html`<${HistoriaSection} />`}
 
-    if (isLanding) {
-        const sections = navSections.map(id => document.getElementById(id)).filter(el => el);
-        
-        // Helper para sincronizar Visuais da Navbar e Dots
-        function syncNavUI(index) {
-            navDots.forEach(d => d.classList.remove('active'));
-            if (navDots[index]) navDots[index].classList.add('active');
-            
-            const stickyNav = document.querySelector('.sticky-nav');
-            if (stickyNav) {
-                stickyNav.classList.remove('navbar-hidden');
-                stickyNav.classList.add('navbar-visible');
-                document.body.classList.add('navbar-is-visible');
-            }
-        }
+        <${FoodServiceSection} />
 
-        scrollToSection = function(index) {
-            if (index < 0 || index >= sections.length) return;
-            state.currentIndex = index;
-            state.isLocked = true;
-            sessionStorage.setItem('tocha_section', index);
-            // Mantém o hash da URL sincronizado com a seção atual.
-            // Sem isso, clicar em "#menu" enquanto isLocked=true não intercepta o
-            // e.preventDefault(), o browser grava "#menu" na URL e o reload sempre
-            // volta para cardápio.
-            history.replaceState(null, '', '#' + navSections[index]);
+        <${InstagramStrip} />
 
-            syncNavUI(index);
-            smoothScrollTo(sections[index]);
+        <${Footer} />
 
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(() => {
-                state.isLocked = false;
-                // Salva o scrollY real após a animação terminar (280ms < 350ms)
-                sessionStorage.setItem('tocha_scroll_y', Math.round(window.scrollY));
-            }, 350);
-        }
+        <${WhatsAppFloating} />
 
-        function handleNavigate(direction) {
-            if (state.isLocked || !state.snapEnabled) return;
-            const nextIndex = state.currentIndex + direction;
-            if (nextIndex >= 0 && nextIndex < sections.length) {
-                scrollToSection(nextIndex);
-            }
-        }
+        <${EarlyCaptureModal}
+          open=${captureOpen}
+          onClose=${() => { setCaptureOpen(false); setPendingItem(null); }}
+          onConfirm=${(data) => {
+            setCustomerInfo(data);
+            setCaptureOpen(false);
+            if (pendingItem) { addToCart(pendingItem); setPendingItem(null); }
+          }}
+        />
 
-        // Bloqueio do Mouse Wheel (ETAPA 1 - Alta Sensibilidade)
-        window.addEventListener('wheel', (e) => {
-            if (!state.snapEnabled) return;
-            e.preventDefault(); // Inibe rolagem livre
+        <${CartDrawer}
+          open=${cartOpen}
+          onClose=${() => { setCartOpen(false); setCheckoutStatus('idle'); }}
+          cart=${cart}
+          onUpdateQty=${handleUpdateQty}
+          onRemove=${handleRemove}
+          status=${checkoutStatus}
+          onCheckout=${() => {}}
+          pixData=${null}
+          customerInfo=${customerInfo}
+          onUpdateCustomer=${setCustomerInfo}
+        />
+      </div>
+    `;
+  }
 
-            if (state.isLocked) return;
+  window.ReactDOM.createRoot(document.getElementById('root'))
+    .render(window.React.createElement(App));
 
-            // Sensibilidade absoluta: qualquer movimento detectado dispara a transição imediata
-            if (Math.abs(e.deltaY) >= 1) {
-                handleNavigate(e.deltaY > 0 ? 1 : -1);
-            }
-        }, { passive: false });
-
-        // Bloqueio do Teclado
-        // Bloqueio do Teclado (ETAPA 2 - Resposta Imediata)
-        window.addEventListener('keydown', (e) => {
-            if (!state.snapEnabled || state.isLocked || e.repeat) return;
-            
-            if (e.code === 'ArrowUp' || e.code === 'ArrowDown') {
-                e.preventDefault();
-                handleNavigate(e.code === 'ArrowDown' ? 1 : -1);
-            }
-        }, { passive: false });
-
-        // Toque na tela (Mobile)
-        let touchStartY = 0;
-        window.addEventListener('touchstart', e => {
-            if (!state.snapEnabled) return;
-            touchStartY = e.touches[0].clientY;
-        }, { passive: false });
-
-        window.addEventListener('touchmove', e => {
-            if (!state.snapEnabled) return;
-            e.preventDefault();
-        }, { passive: false });
-
-        window.addEventListener('touchend', e => {
-            if (!state.snapEnabled) return;
-            const touchEndY = e.changedTouches[0].clientY;
-            const distance = touchStartY - touchEndY;
-            
-            if (Math.abs(distance) > 50 && !state.isLocked) {
-                handleNavigate(distance > 0 ? 1 : -1);
-            }
-        }, { passive: false });
-
-        // Clique nos Dots
-        navDots.forEach((dot, i) => {
-            dot.addEventListener('click', () => {
-                if (state.snapEnabled && !state.isLocked) scrollToSection(i);
-            });
-        });
-
-        // Sincronização Global de Cliques (Links da Navbar, CTAs no Hero, etc.)
-        document.addEventListener('click', (e) => {
-            const link = e.target.closest('a');
-            if (!link) return;
-            
-            const href = link.getAttribute('href');
-            if (!href || !href.includes('#')) return;
-            
-            // Extrai o ID (ex: #menu ou index.html#menu)
-            const targetId = href.split('#')[1];
-            const targetIndex = navSections.indexOf(targetId);
-            
-            if (targetIndex !== -1 && state.snapEnabled && !state.isLocked) {
-                // Se estivermos na home e o link for para uma seção interna, usamos o motor de scroll
-                if (window.location.pathname.endsWith('index.html') || window.location.pathname.endsWith('/') || window.location.pathname === '') {
-                    e.preventDefault();
-                    scrollToSection(targetIndex);
-                }
-            }
-        });
-        
-        // Esconder barra de rolagem injetando estilo global
-        const muteScroll = document.createElement('style');
-        muteScroll.id = 'fullpage-styles';
-        muteScroll.innerHTML = `body.snap-active::-webkit-scrollbar { display: none; } body.snap-active { -ms-overflow-style: none; scrollbar-width: none; }`;
-        document.head.appendChild(muteScroll);
-        
-        // Ativar snap
-        document.body.classList.add('snap-active');
-        
-        // --- Setup Inicial: hash > sessionStorage > seção 0 ---
-        let startingIndex = 0;
-        const currentHash = window.location.hash.substring(1);
-        if (currentHash && navSections.includes(currentHash)) {
-            startingIndex = navSections.indexOf(currentHash);
-        } else {
-            const saved = parseInt(sessionStorage.getItem('tocha_section') || '0');
-            if (!isNaN(saved) && saved >= 0 && saved < sections.length) {
-                startingIndex = saved;
-            }
-        }
-        state.currentIndex = startingIndex;
-        sessionStorage.setItem('tocha_section', startingIndex);
-
-        // Posiciona na seção correta e revela a página. Chamada no DOMContentLoaded
-        // (CSS já aplicado, layout calculado) sem esperar imagens (window.load).
-        function applyStartPosition() {
-            const idx = state.currentIndex;
-
-            // Trava o motor de snap durante o carregamento inicial.
-            // Sem isso, qualquer evento de roda do mouse enquanto a API carrega
-            // chama scrollToSection() e muda state.currentIndex antes de doReveal.
-            state.isLocked = true;
-
-            // Se veio via hash (ex: /#menu, /#hero), ignora savedY e usa offsetTop direto
-            const hasHashNav = !!(window.location.hash && navSections.includes(window.location.hash.substring(1)));
-            const savedY = hasHashNav ? -1 : parseInt(sessionStorage.getItem('tocha_scroll_y') || '-1');
-            const targetY = (savedY >= 0) ? savedY : (sections[idx] ? sections[idx].offsetTop : 0);
-
-            // Remove o cover e define o scroll no mesmo bloco síncrono.
-            // O browser processa window.scrollTo + cover.remove() antes do próximo
-            // paint — o usuário nunca vê a tela preta nem a posição errada.
-            window.scrollTo(0, targetY);
-            revealPage();
-
-            // rAF: sincroniza UI (navbar, dots, estado) sem bloquear o render
-            requestAnimationFrame(() => {
-                window.scrollTo(0, targetY);
-
-                syncNavUI(idx);
-
-                const stickyNav = document.querySelector('.sticky-nav');
-                if (stickyNav) {
-                    if (idx === 0) {
-                        stickyNav.classList.add('navbar-visible');
-                        stickyNav.classList.remove('navbar-hidden');
-                        document.body.classList.add('navbar-is-visible');
-                    } else {
-                        stickyNav.classList.add('navbar-hidden');
-                        stickyNav.classList.remove('navbar-visible');
-                        document.body.classList.remove('navbar-is-visible');
-                    }
-                }
-
-                navDots.forEach(d => d.classList.remove('active'));
-                if (navDots[idx]) navDots[idx].classList.add('active');
-
-                state.currentIndex = idx;
-                sessionStorage.setItem('tocha_section', idx);
-                const el = sections[idx];
-                if (el) {
-                    window.scrollTo(0, el.offsetTop);
-                    sessionStorage.setItem('tocha_scroll_y', Math.round(el.offsetTop));
-                }
-                state.isLocked = false;
-            });
-        }
-
-        // Salva o scrollY exato ao sair/atualizar — mais confiável que o timeout
-        window.addEventListener('beforeunload', () => {
-            sessionStorage.setItem('tocha_scroll_y', Math.round(window.scrollY));
-            sessionStorage.setItem('tocha_section', state.currentIndex);
-        });
-
-        // Chama diretamente — CSS já está aplicado no DOMContentLoaded.
-        // Não aguarda window.load (que esperaria imagens) para revelar a página.
-        applyStartPosition();
-        
-    } // Fim do bloco isLanding
-
-    // --- REVEAL: remove a cobertura escura instantaneamente ---
-    function revealPage() {
-        const cover = document.getElementById('page-cover');
-        if (cover) cover.remove();
-    }
-
-    if (!isLanding) revealPage();
-
-    // --- LOGICA DE NAVBAR PARA TODAS AS PAGINAS (Padrão Início) ---
-    const stickyNav = document.querySelector('.sticky-nav');
-    
-    // 1. Mostrar Navbar inicialmente no topo
-    if (window.scrollY < 100 && stickyNav) {
-        stickyNav.classList.add('navbar-visible');
-        stickyNav.classList.remove('navbar-hidden');
-        document.body.classList.add('navbar-is-visible');
-    }
-
-    // 2. Ouvinte de Scroll para páginas internas (Não-Landing)
-    if (!isLanding) {
-        window.addEventListener('scroll', () => {
-            if (stickyNav) {
-                if (window.scrollY <= 100) {
-                    if (stickyNav.classList.contains('navbar-hidden')) {
-                        stickyNav.classList.remove('navbar-hidden');
-                        stickyNav.classList.add('navbar-visible');
-                        document.body.classList.add('navbar-is-visible');
-                    }
-                } else {
-                    if (stickyNav.classList.contains('navbar-visible')) {
-                        stickyNav.classList.remove('navbar-visible');
-                        stickyNav.classList.add('navbar-hidden');
-                        document.body.classList.remove('navbar-is-visible');
-                    }
-                }
-            }
-        });
-    }
-
-    // 3. Hover Global da Navbar — throttled via rAF para não bloquear compositor
-    let navMouseRafPending = false;
-    window.addEventListener('mousemove', (e) => {
-        if (!stickyNav || navMouseRafPending) return;
-        navMouseRafPending = true;
-        requestAnimationFrame(() => {
-            navMouseRafPending = false;
-            const isScrolled = window.scrollY > 100 || (isLanding && state.currentIndex > 0);
-            if (!isScrolled) return;
-            if (e.clientY <= 100) {
-                if (stickyNav.classList.contains('navbar-hidden')) {
-                    stickyNav.classList.remove('navbar-hidden');
-                    stickyNav.classList.add('navbar-visible');
-                    document.body.classList.add('navbar-is-visible');
-                }
-            } else {
-                if (stickyNav.classList.contains('navbar-visible')) {
-                    stickyNav.classList.remove('navbar-visible');
-                    stickyNav.classList.add('navbar-hidden');
-                    document.body.classList.remove('navbar-is-visible');
-                }
-            }
-        });
-    });
-
-    // --- UI FEEDBACK ---
-    document.addEventListener('click', (e) => {
-        const btn = e.target.closest('button, .hero-cta, .nav-text-item, .cat-main-card');
-        if (btn) {
-            btn.style.transform = 'scale(0.95)';
-            setTimeout(() => btn.style.transform = '', 100);
-        }
-    });
-
-    // --- TRANSIÇÃO DE SAÍDA ENTRE PÁGINAS ---
-    // Navegação direta: sem cobertura preta, sem atraso.
-    // As páginas internas não têm page-cover, então aparecem instantaneamente.
-    // A landing page tem seu próprio page-cover que some em ~60ms após o DOMContentLoaded.
-    document.addEventListener('click', (e) => {
-        const link = e.target.closest('a[href]');
-        if (!link) return;
-        const href = link.getAttribute('href');
-        if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('mailto') || href.startsWith('tel') || link.target === '_blank') return;
-        e.preventDefault();
-        window.location.href = href;
-    });
-
-    // --- INIT ---
-    loadDynamicConfig();
-    syncGlobalStoreStatus();
-});
+}());

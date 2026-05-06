@@ -1,0 +1,130 @@
+/* ============================================================
+   TOCHA PADARIA — Design Tokens & Global Styles
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans:  'DM Sans', system-ui, sans-serif;
+
+  --bg-deep:  oklch(8%  0.015 46);
+  --bg-dark:  oklch(9%  0.015 48);
+  --bg:       oklch(12% 0.018 50);
+  --bg-menu:  oklch(11% 0.018 49);
+  --bg2:      oklch(16% 0.02  48);
+  --bg3:      oklch(20% 0.022 47);
+  --surface:  oklch(18% 0.02  48);
+
+  --text:       oklch(92% 0.012 70);
+  --text-muted: oklch(65% 0.015 65);
+  --text-dim:   oklch(45% 0.012 60);
+  --cream:      oklch(94% 0.01  75);
+
+  --amber:        oklch(72% 0.12 60);
+  --amber-bright: oklch(80% 0.14 58);
+  --terra:        oklch(55% 0.1  30);
+
+  --border:        oklch(28% 0.02  50);
+  --border-hover:  oklch(36% 0.028 55);
+  --border-focus:  oklch(72% 0.12  60);
+  --border-subtle: oklch(22% 0.02  50);
+
+  --success:        oklch(55% 0.12 140);
+  --success-soft:   oklch(55% 0.12 140);
+  --success-bright: oklch(70% 0.16 145);
+  --error:          oklch(60% 0.12  25);
+
+  --overlay:       oklch(0% 0 0 / 0.65);
+  --overlay-heavy: oklch(0% 0 0 / 0.70);
+
+  --section-pad:    120px 0;
+  --section-pad-sm: 100px 0;
+  --container-pad:  0 40px;
+
+  --announce-h: 40px;
+  --navbar-h:   64px;
+
+  --radius-sharp: 2px;
+  --radius-tag:   3px;
+  --radius-sm:    6px;
+  --radius-card:  8px;
+  --radius-lg:    10px;
+  --radius-pill:  999px;
+
+  --t-fast:   0.2s ease;
+  --t-base:   0.25s ease;
+  --t-slow:   0.4s ease;
+  --t-reveal: 0.7s ease;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--amber); border-radius: 2px; }
+
+::selection { background: var(--amber); color: var(--bg); }
+
+#root { min-height: 100vh; }
+
+input::placeholder { color: oklch(40% 0.01 60); }
+input:focus { outline: none; }
+a { transition: color 0.2s; }
+select { appearance: none; }
+
+/* ── Keyframes ─────────────────────────────────────────────── */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-33.333%); }
+}
+
+@keyframes scrollLine {
+  0%, 100% { opacity: 0.3; transform: scaleY(0.6); }
+  50%      { opacity: 1;   transform: scaleY(1); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes popIn {
+  0%   { transform: scale(0.5); opacity: 0; }
+  70%  { transform: scale(1.1); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
