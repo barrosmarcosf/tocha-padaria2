@@ -84,8 +84,7 @@
       const d = Math.floor(diff / 86400000);
       const h = Math.floor((diff % 86400000) / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      el.textContent = d + 'D ' + pad(h) + ':' + pad(m) + ':' + pad(s);
+      el.textContent = `${d}D ${String(h).padStart(2,'0')}H ${String(m).padStart(2,'0')}M`;
       if (diff <= 0) clearInterval(id);
     }
 
