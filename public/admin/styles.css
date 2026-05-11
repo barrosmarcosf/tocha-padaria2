@@ -410,10 +410,10 @@ button { font-family: inherit; }
   margin-bottom: 10px;
 }
 .kpi-label .ic {
-  width: 22px; height: 22px;
+  width: 24px; height: 24px;
   display: grid; place-items: center;
-  background: transparent;
-  color: var(--ink-3);
+  border-radius: var(--r-sm);
+  flex-shrink: 0;
 }
 .kpi-value {
   font-size: 30px;
@@ -440,7 +440,8 @@ button { font-family: inherit; }
 .delta.down { color: var(--down); background: var(--down-soft); }
 .delta.flat { color: var(--ink-3); background: var(--panel-3); }
 .kpi-foot small { font-size: 11px; color: var(--ink-4); }
-.spark { height: 36px; width: 100%; }
+.spark { height: 44px; width: 100%; }
+.kpi.hoverable:hover { border-color: var(--kpi-color, var(--line-2)); }
 
 /* Chart container */
 .chart-wrap { position: relative; }

@@ -71,7 +71,7 @@ function Delta({ curr, prev, invert }) {
 
 /* ---------- SPARKLINE ---------- */
 function Sparkline({ data, color = 'var(--gold)', area = true }) {
-  const w = 200, h = 36, pad = 2;
+  const w = 200, h = 44, pad = 3;
   const min = Math.min(...data), max = Math.max(...data);
   const range = max - min || 1;
   const pts = data.map((v, i) => {
@@ -87,17 +87,26 @@ function Sparkline({ data, color = 'var(--gold)', area = true }) {
     return `Q ${cpx} ${prev[1]} ${cpx} ${(prev[1] + p[1]) / 2} T ${p[0]} ${p[1]}`;
   }).join(' ');
   const areaPath = `${path} L ${w - pad} ${h} L ${pad} ${h} Z`;
-  const gradId = `sg-${Math.random().toString(36).slice(2, 8)}`;
+  const uid = useMemo(() => Math.random().toString(36).slice(2, 8), []);
+  const gradId = `sg-${uid}`;
+  const glowId = `gw-${uid}`;
   return (
-    <svg className="spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+    <svg className="spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" overflow="visible">
       <defs>
         <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.3"/>
+          <stop offset="0%" stopColor={color} stopOpacity="0.28"/>
           <stop offset="100%" stopColor={color} stopOpacity="0"/>
         </linearGradient>
+        <filter id={glowId} x="-10%" y="-80%" width="120%" height="260%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.8" result="blur"/>
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
       </defs>
       {area && <path d={areaPath} fill={`url(#${gradId})`}/>}
-      <path d={path} fill="none" stroke={color} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d={path} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" filter={`url(#${glowId})`}/>
     </svg>
   );
 }
@@ -109,9 +118,9 @@ function KPI({ label, icon: Icon, value, prev, unit, spark, color, decimals = 0,
     ? v.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
     : Math.round(v).toLocaleString('pt-BR');
   return (
-    <div className="card kpi hoverable">
+    <div className="card kpi hoverable" style={{ '--kpi-color': color }}>
       <div className="kpi-label">
-        <span className="ic"><Icon/></span>
+        <span className="ic" style={{ color: color, background: `color-mix(in oklch, ${color} 14%, transparent)` }}><Icon/></span>
         {label}
       </div>
       <div className="kpi-value">
