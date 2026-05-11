@@ -9,7 +9,7 @@
     "clean:auth": "rm -rf .wwebjs_auth",
     "clean:logs": "rm -f logs/*.log",
     "postinstall": "mkdir -p logs",
-    "admin:build": "babel public/admin --extensions .jsx --out-dir public/admin/dist --presets @babel/preset-react"
+    "admin:build": "babel public/admin --extensions .jsx --out-dir public/admin/dist --presets @babel/preset-react && node scripts/inject-version.js"
   },
   "keywords": [],
   "author": "",
