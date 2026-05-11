@@ -125,6 +125,15 @@ function Sidebar({
   return /*#__PURE__*/React.createElement("aside", {
     className: "sb"
   }, /*#__PURE__*/React.createElement("div", {
+    className: "sb-brand"
+  }, /*#__PURE__*/React.createElement("img", {
+    src: LOGO,
+    style: {
+      height: 30,
+      width: 'auto',
+      objectFit: 'contain'
+    }
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       overflowY: 'auto',
       flex: 1,
@@ -170,15 +179,7 @@ function Topbar({
   }, [open]);
   return /*#__PURE__*/React.createElement("div", {
     className: "topbar"
-  }, /*#__PURE__*/React.createElement("img", {
-    src: LOGO,
-    style: {
-      height: 28,
-      width: 'auto',
-      objectFit: 'contain',
-      flexShrink: 0
-    }
-  }), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
     className: "crumb"
   }, /*#__PURE__*/React.createElement("span", null, "Admin"), /*#__PURE__*/React.createElement(Ic.chev, null), /*#__PURE__*/React.createElement("b", null, pageLabel)), /*#__PURE__*/React.createElement("div", {
     className: "tb-spacer"

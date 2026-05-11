@@ -34,6 +34,9 @@ const NAV = [
 function Sidebar({ active, onNavigate }) {
   return (
     <aside className="sb">
+      <div className="sb-brand">
+        <img src={LOGO} style={{ height: 30, width: 'auto', objectFit: 'contain' }}/>
+      </div>
       <div style={{ overflowY: 'auto', flex: 1, marginRight: -8, paddingRight: 4 }}>
         {NAV.map((n, i) => {
           if (n.kind === 'sec') return <div className="sb-section" key={i}>{n.label}</div>;
@@ -72,7 +75,6 @@ function Topbar({ pageLabel, onNavigate, onHamburger }) {
   }, [open]);
   return (
     <div className="topbar">
-      <img src={LOGO} style={{ height: 28, width: 'auto', objectFit: 'contain', flexShrink: 0 }}/>
       <div className="crumb">
         <span>Admin</span>
         <Ic.chev/>
