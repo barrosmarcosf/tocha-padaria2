@@ -1,0 +1,299 @@
+/* global React */
+const { useState, useEffect, useRef, useMemo } = React;
+
+/* ---------- ICONS ---------- */
+const Ic = {
+  home: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/></svg>,
+  cart: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="9" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/><path d="M3 4h2l2.5 12h11L21 8H6"/></svg>,
+  list: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>,
+  clock: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>,
+  calendar: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>,
+  users: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M21 19c0-2.5-1.8-4.5-4.5-4.5"/></svg>,
+  cog: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8L4.2 7a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>,
+  store: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 9l1.5-5h15L21 9M3 9h18M3 9v11h18V9M9 13h6"/></svg>,
+  card: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="2.5" y="6" width="19" height="13" rx="2"/><path d="M2.5 10h19M6 15h3"/></svg>,
+  bread: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M5 10c0-3 3-5 7-5s7 2 7 5v9H5z"/><path d="M9 13v4M12 13v4M15 13v4"/></svg>,
+  msg: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 12a8 8 0 0 1-12 6.9L4 20l1.1-5A8 8 0 1 1 21 12z"/></svg>,
+  chat: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 5h18v12H7l-4 4z"/></svg>,
+  chart: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 20h18M6 16v-5M11 16V8M16 16v-3M21 16V5"/></svg>,
+  spark: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M5 19l4-4M15 9l4-4"/></svg>,
+  funnel: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 4h18l-7 9v7l-4-2v-5z"/></svg>,
+  bell: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M6 8a6 6 0 1 1 12 0v5l2 3H4l2-3zM10 19a2 2 0 0 0 4 0"/></svg>,
+  bulb: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.5V17h8v-2.5A7 7 0 0 0 12 2z"/></svg>,
+  arrowUp: (p) => <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 19V5M5 12l7-7 7 7"/></svg>,
+  arrowDown: (p) => <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 5v14M5 12l7 7 7-7"/></svg>,
+  chev: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M9 6l6 6-6 6"/></svg>,
+  search: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>,
+  download: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>,
+  flame: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 2c1 3 4 4 4 8a4 4 0 1 1-8 0c0-2 1-3 2-4-2 1-4 4-4 7a6 6 0 1 0 12 0c0-5-4-7-6-11z"/></svg>,
+  warn: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 4l10 17H2z"/><path d="M12 10v5M12 18h.01"/></svg>,
+  shield: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 3l8 3v6c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>,
+  info: (p) => <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>,
+};
+
+/* ---------- HOOKS ---------- */
+function useCount(target, dur = 900) {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    let start;
+    let raf;
+    const step = (t) => {
+      if (!start) start = t;
+      const p = Math.min(1, (t - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setV(target * eased);
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [target, dur]);
+  return v;
+}
+
+/* ---------- HELPERS ---------- */
+const brl = (n) => 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const brlShort = (n) => 'R$ ' + Math.round(n).toLocaleString('pt-BR');
+const pct = (curr, prev) => prev === 0 ? 0 : ((curr - prev) / prev) * 100;
+
+function Delta({ curr, prev, invert }) {
+  const diff = pct(curr, prev);
+  const dir = diff > 0.5 ? 'up' : diff < -0.5 ? 'down' : 'flat';
+  let cls = dir;
+  if (invert) cls = dir === 'up' ? 'down' : dir === 'down' ? 'up' : 'flat';
+  return (
+    <span className={`delta ${cls}`}>
+      {dir === 'up' && <Ic.arrowUp/>}
+      {dir === 'down' && <Ic.arrowDown/>}
+      {Math.abs(diff).toFixed(1)}%
+    </span>
+  );
+}
+
+/* ---------- SPARKLINE ---------- */
+function Sparkline({ data, color = 'var(--gold)', area = true }) {
+  const w = 200, h = 36, pad = 2;
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => {
+    const x = pad + (i / (data.length - 1)) * (w - 2 * pad);
+    const y = h - pad - ((v - min) / range) * (h - 2 * pad);
+    return [x, y];
+  });
+  // Smooth curve using catmull-rom
+  const path = pts.map((p, i) => {
+    if (i === 0) return `M ${p[0]} ${p[1]}`;
+    const prev = pts[i - 1];
+    const cpx = (prev[0] + p[0]) / 2;
+    return `Q ${cpx} ${prev[1]} ${cpx} ${(prev[1] + p[1]) / 2} T ${p[0]} ${p[1]}`;
+  }).join(' ');
+  const areaPath = `${path} L ${w - pad} ${h} L ${pad} ${h} Z`;
+  const gradId = `sg-${Math.random().toString(36).slice(2, 8)}`;
+  return (
+    <svg className="spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.3"/>
+          <stop offset="100%" stopColor={color} stopOpacity="0"/>
+        </linearGradient>
+      </defs>
+      {area && <path d={areaPath} fill={`url(#${gradId})`}/>}
+      <path d={path} fill="none" stroke={color} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+/* ---------- KPI ---------- */
+function KPI({ label, icon: Icon, value, prev, unit, spark, color, decimals = 0, invertDelta }) {
+  const v = useCount(value);
+  const formatted = decimals
+    ? v.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+    : Math.round(v).toLocaleString('pt-BR');
+  return (
+    <div className="card kpi hoverable">
+      <div className="kpi-label">
+        <span className="ic"><Icon/></span>
+        {label}
+      </div>
+      <div className="kpi-value">
+        {unit && <span className="unit">{unit}</span>}
+        {formatted}
+      </div>
+      <Sparkline data={spark} color={color}/>
+      <div className="kpi-foot">
+        <Delta curr={value} prev={prev} invert={invertDelta}/>
+        <small>vs. mês anterior</small>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- AREA CHART ---------- */
+function AreaChart({ current, previous, style = 'area' }) {
+  const [hover, setHover] = useState(null);
+  const wrapRef = useRef(null);
+  const w = 800, h = 240;
+  const padL = 44, padR = 16, padT = 14, padB = 28;
+  const iw = w - padL - padR, ih = h - padT - padB;
+  const all = [...current.map(d => d.value), ...previous.map(d => d.value)];
+  const max = Math.max(...all) * 1.1;
+  const n = current.length;
+
+  const x = (i) => padL + (i / (n - 1)) * iw;
+  const y = (v) => padT + ih - (v / max) * ih;
+
+  const smoothPath = (data) => {
+    const pts = data.map((d, i) => [x(i), y(d.value)]);
+    return pts.map((p, i) => {
+      if (i === 0) return `M ${p[0].toFixed(2)} ${p[1].toFixed(2)}`;
+      const prev = pts[i - 1];
+      const cpx = (prev[0] + p[0]) / 2;
+      const cpy1 = prev[1];
+      const cpy2 = p[1];
+      return `C ${cpx.toFixed(2)} ${cpy1.toFixed(2)} ${cpx.toFixed(2)} ${cpy2.toFixed(2)} ${p[0].toFixed(2)} ${p[1].toFixed(2)}`;
+    }).join(' ');
+  };
+
+  const currPath = smoothPath(current);
+  const prevPath = smoothPath(previous);
+  const areaPath = `${currPath} L ${x(n - 1)} ${padT + ih} L ${padL} ${padT + ih} Z`;
+
+  // Y-axis ticks
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map(t => Math.round(max * t));
+
+  // X-axis labels (every 5 days)
+  const xLabels = current.filter((_, i) => i % 5 === 0 || i === n - 1);
+
+  const onMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = ((e.clientX - rect.left) / rect.width) * w;
+    const idx = Math.round(((px - padL) / iw) * (n - 1));
+    if (idx >= 0 && idx < n) {
+      setHover({ i: idx, x: x(idx) / w * 100, y: y(current[idx].value) / h * 100 });
+    }
+  };
+
+  return (
+    <div className="chart-wrap" ref={wrapRef} onMouseLeave={() => setHover(null)}>
+      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 240, display: 'block' }} onMouseMove={onMove}>
+        <defs>
+          <linearGradient id="areaGrad" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="var(--gold)" stopOpacity="0.32"/>
+            <stop offset="100%" stopColor="var(--gold)" stopOpacity="0"/>
+          </linearGradient>
+        </defs>
+
+        {/* Grid */}
+        {ticks.map((t, i) => (
+          <g key={i}>
+            <line x1={padL} x2={w - padR} y1={y(t)} y2={y(t)} stroke="var(--line)" strokeDasharray="2 4"/>
+            <text x={padL - 8} y={y(t) + 3} fill="var(--ink-4)" fontSize="10" textAnchor="end" fontFamily="var(--mono)">
+              {t >= 1000 ? `${(t / 1000).toFixed(1)}k` : t}
+            </text>
+          </g>
+        ))}
+
+        {/* X labels */}
+        {xLabels.map((d, i) => {
+          const idx = current.indexOf(d);
+          return <text key={i} x={x(idx)} y={h - 8} fill="var(--ink-4)" fontSize="10" textAnchor="middle">{d.label}</text>;
+        })}
+
+        {/* Previous month — dashed */}
+        <path d={prevPath} fill="none" stroke="var(--ink-4)" strokeWidth="1.2" strokeDasharray="4 4" opacity="0.7"/>
+
+        {/* Current area + line */}
+        {style === 'area' && <path d={areaPath} fill="url(#areaGrad)"/>}
+        <path d={currPath} fill="none" stroke="var(--gold)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+
+        {/* Hover indicator */}
+        {hover && (
+          <g>
+            <line x1={x(hover.i)} x2={x(hover.i)} y1={padT} y2={padT + ih} stroke="var(--gold)" strokeWidth="1" opacity="0.4" strokeDasharray="2 2"/>
+            <circle cx={x(hover.i)} cy={y(current[hover.i].value)} r="5" fill="var(--bg)" stroke="var(--gold)" strokeWidth="2"/>
+            <circle cx={x(hover.i)} cy={y(previous[hover.i].value)} r="3" fill="var(--bg)" stroke="var(--ink-3)" strokeWidth="1.4"/>
+          </g>
+        )}
+      </svg>
+
+      {hover && (
+        <div className={`tt on`} style={{ left: `${hover.x}%`, top: `${hover.y}%` }}>
+          <div className="tt-d">{current[hover.i].label}</div>
+          <div className="tt-row">
+            <span className="l"><i style={{ background: 'var(--gold)' }}/>Este mês</span>
+            <span className="v">{brlShort(current[hover.i].value)}</span>
+          </div>
+          <div className="tt-row">
+            <span className="l"><i style={{ background: 'var(--ink-4)' }}/>Mês anterior</span>
+            <span className="v" style={{ color: 'var(--ink-2)' }}>{brlShort(previous[hover.i].value)}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- DONUT ---------- */
+function Donut({ data, size = 140 }) {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  const r = size / 2 - 12;
+  const cx = size / 2, cy = size / 2;
+  const stroke = 16;
+  let acc = 0;
+  const arcs = data.map((d) => {
+    const frac = d.value / total;
+    const arc = {
+      ...d,
+      from: acc,
+      to: acc + frac,
+      frac,
+    };
+    acc += frac;
+    return arc;
+  });
+
+  const polar = (t) => {
+    const a = -Math.PI / 2 + t * Math.PI * 2;
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  };
+
+  return (
+    <div className="donut-wrap">
+      <div className="donut" style={{ width: size, height: size }}>
+        <svg width={size} height={size}>
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--panel-2)" strokeWidth={stroke}/>
+          {arcs.map((a, i) => {
+            const [x1, y1] = polar(a.from);
+            const [x2, y2] = polar(a.to);
+            const large = a.frac > 0.5 ? 1 : 0;
+            return (
+              <path
+                key={i}
+                d={`M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`}
+                fill="none"
+                stroke={a.color}
+                strokeWidth={stroke}
+                strokeLinecap="butt"
+                style={{ animation: `barIn 700ms var(--ease) ${i * 80}ms backwards` }}
+              />
+            );
+          })}
+        </svg>
+        <div className="donut-center">
+          <small>Total</small>
+          <b>{brlShort(total)}</b>
+        </div>
+      </div>
+      <div className="donut-legend">
+        {arcs.map((a, i) => (
+          <div className="row" key={i}>
+            <span className="sw" style={{ background: a.color }}/>
+            <span className="lbl">{a.label}</span>
+            <span className="v">{brlShort(a.value)} <small>{(a.frac * 100).toFixed(0)}%</small></span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { Ic, useCount, brl, brlShort, Delta, Sparkline, KPI, AreaChart, Donut });
