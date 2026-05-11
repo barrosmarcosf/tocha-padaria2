@@ -166,8 +166,9 @@ module.exports = function (supabase) {
     const getPaymentCategory = (method) => {
         const m = (method || '').toLowerCase().trim();
         if (m === 'pix' || m.includes('pix')) return 'pix';
-        if (m.includes('credito') || m.includes('crédito') || m.includes('credit') || m.includes('card') || m.includes('cartao_credito') || m.includes('visa') || m.includes('master') || m.includes('amex') || m.includes('elo') || m.includes('hipercard') || m.includes('card_credit') || m.includes('stripe')) return 'credito';
+        // debito verificado ANTES de card/cartão — evita 'debit_card' cair no bucket credito
         if (m.includes('debito') || m.includes('débito') || m.includes('debit') || m.includes('cartao_debito') || m.includes('card_debit')) return 'debito';
+        if (m.includes('credito') || m.includes('crédito') || m.includes('credit') || m.includes('card') || m.includes('cartao') || m.includes('cartão') || m.includes('cartao_credito') || m.includes('visa') || m.includes('master') || m.includes('amex') || m.includes('elo') || m.includes('hipercard') || m.includes('card_credit') || m.includes('stripe')) return 'credito';
         return 'outros';
     };
 
@@ -425,17 +426,11 @@ module.exports = function (supabase) {
                 const finalItems = Array.isArray(orderItems) ? orderItems : (orderItems?.actual_items || []);
 
                 // Processamento de Canais de Pagamento
-                let finalCat = 'outros';
-                let rawMethod = (o.payment_method || o.metodo_pagamento || paymentMethodFromItems || '').toLowerCase();
-                
-                if (rawMethod.includes('pix')) {
-                    finalCat = 'pix';
-                } else if (rawMethod.includes('credito') || rawMethod.includes('credit') || rawMethod.includes('card') || rawMethod.includes('stripe')) {
+                const rawMethod = (o.payment_method || o.metodo_pagamento || paymentMethodFromItems || '').toLowerCase();
+                let finalCat = getPaymentCategory(rawMethod);
+                // Fallback: sessão Stripe/MP sem método identificado → credito
+                if (finalCat === 'outros' && (o.stripe_session_id || o.session_id)) {
                     finalCat = 'credito';
-                } else if (rawMethod.includes('debito') || rawMethod.includes('debit')) {
-                    finalCat = 'debito';
-                } else if (o.stripe_session_id || o.session_id) {
-                    finalCat = 'credito'; // Fallback absoluto para Stripe
                 }
 
                 if (paymentBreakdown[finalCat]) {

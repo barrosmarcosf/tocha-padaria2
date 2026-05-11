@@ -1128,7 +1128,25 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
     try { if (typeof itemsData === 'string') itemsData = JSON.parse(itemsData); } catch (_) { itemsData = {}; }
     const cart = itemsData.actual_items || [];
     const batchDate = itemsData.batch_date;
-    const paymentMethod = itemsData.payment_method || 'Mercado Pago';
+
+    // Resolve o método de pagamento real a partir do payment_type_id retornado pela API do MP
+    const MP_TYPE_MAP = {
+        credit_card:   'Crédito (Mercado Pago)',
+        debit_card:    'Débito (Mercado Pago)',
+        pix:           'Pix (Mercado Pago)',
+        account_money: 'Débito (Mercado Pago)',
+    };
+    const resolvedMethod = MP_TYPE_MAP[_mpPayment?.payment_type_id] || itemsData.payment_method || 'Mercado Pago';
+    const paymentMethod = resolvedMethod;
+
+    // Persiste o método real (crédito vs débito) no items do pedido para analytics
+    if (MP_TYPE_MAP[_mpPayment?.payment_type_id] && MP_TYPE_MAP[_mpPayment.payment_type_id] !== itemsData.payment_method) {
+        itemsData.payment_method = resolvedMethod;
+        await supabase.from('pedidos')
+            .update({ items: JSON.stringify(itemsData) })
+            .eq('id', order.id)
+            .catch(e => console.warn('[MP] Falha ao persistir payment_method:', e.message));
+    }
 
     // Reduzir estoque — com revalidação antes de cada item
     if (batchDate && cart.length > 0) {
