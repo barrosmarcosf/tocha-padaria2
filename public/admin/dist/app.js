@@ -1,4 +1,9 @@
-/* global React, ReactDOM, Sidebar, Topbar, NAV, Dashboard, FilaDePedidos, HistoricoPedidos, Clientes */
+/* global React, ReactDOM, Sidebar, Topbar, NAV, Dashboard,
+   FilaPage, HistoricoPage, PrevendaPage, ResumoPage, ClientesPage,
+   PagamentoPage, HorarioPage, HomePageCfgPage, LojaPage,
+   CardapioPage, CentralMsgPage, CfgMsgPage, InteligenciaPage,
+   PagtoPainelPage, FunilPage, AlertasPage, InsightsPage, EditarPerfilPage,
+   Placeholder */
 
 const AUTH_KEY = 'tocha_admin_token';
 function App() {
@@ -21,6 +26,52 @@ function App() {
   if (!authed) return /*#__PURE__*/React.createElement(Login, {
     onAuth: () => setAuthed(true)
   });
+  const renderPage = () => {
+    switch (page) {
+      case 'home':
+        return /*#__PURE__*/React.createElement(Dashboard, null);
+      case 'fila':
+        return /*#__PURE__*/React.createElement(FilaPage, null);
+      case 'historico':
+        return /*#__PURE__*/React.createElement(HistoricoPage, null);
+      case 'prevenda':
+        return /*#__PURE__*/React.createElement(PrevendaPage, null);
+      case 'resumo':
+        return /*#__PURE__*/React.createElement(ResumoPage, null);
+      case 'clientes':
+        return /*#__PURE__*/React.createElement(ClientesPage, null);
+      case 'loja':
+        return /*#__PURE__*/React.createElement(LojaPage, null);
+      case 'home-cfg':
+        return /*#__PURE__*/React.createElement(HomePageCfgPage, null);
+      case 'horario':
+        return /*#__PURE__*/React.createElement(HorarioPage, null);
+      case 'pagamentos':
+        return /*#__PURE__*/React.createElement(PagamentoPage, null);
+      case 'cardapio':
+        return /*#__PURE__*/React.createElement(CardapioPage, null);
+      case 'central-msg':
+        return /*#__PURE__*/React.createElement(CentralMsgPage, null);
+      case 'cfg-msg':
+        return /*#__PURE__*/React.createElement(CfgMsgPage, null);
+      case 'inteligencia':
+        return /*#__PURE__*/React.createElement(InteligenciaPage, null);
+      case 'pagto-painel':
+        return /*#__PURE__*/React.createElement(PagtoPainelPage, null);
+      case 'funil':
+        return /*#__PURE__*/React.createElement(FunilPage, null);
+      case 'alertas':
+        return /*#__PURE__*/React.createElement(AlertasPage, null);
+      case 'insights':
+        return /*#__PURE__*/React.createElement(InsightsPage, null);
+      case 'perfil':
+        return /*#__PURE__*/React.createElement(EditarPerfilPage, null);
+      default:
+        return /*#__PURE__*/React.createElement(Placeholder, {
+          pageId: page
+        });
+    }
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "app"
   }, /*#__PURE__*/React.createElement(Sidebar, {
@@ -34,13 +85,7 @@ function App() {
     pageLabel: label,
     onNavigate: handleNavigate,
     onHamburger: () => setSbOpen(o => !o)
-  }), page === 'home' && /*#__PURE__*/React.createElement(Dashboard, null), page === 'fila' && /*#__PURE__*/React.createElement(FilaDePedidos, null), page === 'historico' && /*#__PURE__*/React.createElement(HistoricoPedidos, null), page === 'clientes' && /*#__PURE__*/React.createElement(Clientes, null), !['home', 'fila', 'historico', 'clientes'].includes(page) && /*#__PURE__*/React.createElement("div", {
-    className: "page"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "page-head"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", null, /*#__PURE__*/React.createElement("em", null, label)), /*#__PURE__*/React.createElement("p", {
-    className: "sub"
-  }, "M\xF3dulo em implementa\xE7\xE3o"))))));
+  }), renderPage()));
 }
 function Login({
   onAuth

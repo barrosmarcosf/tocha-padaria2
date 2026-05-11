@@ -1,291 +1,275 @@
-/* global React, Ic, brl, brlShort */
-const { useState: usePgSt, useEffect: usePgEff } = React;
+/* global React, Ic, brl, brlShort, Delta */
+const { useState: useStP } = React;
 
-/* ─── HELPERS ────────────────────────────────────────────────────────────── */
+const MOCK_CLIENTS = [
+  { name: 'Gabriel Machado',           email: 'gabriel.machado.carvalho@gmail.com', phone: '(21) 98072-5247', since: '3 dias',  last: '-',       orders: 0 },
+  { name: 'Janete José',               email: 'janetejossilva@gmail.com',           phone: '(21) 98016-2578', since: '7 dias',  last: '7 dias',  orders: 1 },
+  { name: 'Julia Correa',              email: 'juliafruiz@hotmail.com',             phone: '(21) 96946-0158', since: '12 dias', last: '7 dias',  orders: 2 },
+  { name: 'Marcos',                    email: '21987058131@manual.tocha',           phone: '(21) 98705-8131', since: '10 dias', last: '-',       orders: 0 },
+  { name: 'Marcos Felipe da Silva Barros', email: 'barros.marcosf@gmail.com',       phone: '(21) 96627-8965', since: '11 dias', last: '0 dia',   orders: 2, priority: true },
+  { name: 'StabTest',                  email: 'stab@test.com',                      phone: '(21) 90000-0001', since: '8 dias',  last: '-',       orders: 0 },
+  { name: 'Tamiris Barros',            email: 'tamirisbarros@gmail.com',            phone: '(21) 98600-1350', since: '12 dias', last: '12 dias', orders: 1 },
+  { name: 'Teste Automatizado',        email: 'teste@exemplo.com',                  phone: '(21) 99999-9999', since: '11 dias', last: '-',       orders: 0 },
+  { name: 'Teste CID',                 email: 'testecid@teste.com',                 phone: '(21) 99999-0001', since: '9 dias',  last: '-',       orders: 0 },
+  { name: 'Teste Deploy',              email: 'teste@teste.com',                    phone: '(21) 99999-9999', since: '12 dias', last: '-',       orders: 0 },
+  { name: 'Teste DevOps',              email: 'teste@example.com',                  phone: '(21) 99999-9999', since: '11 dias', last: '-',       orders: 0 },
+];
 
-const STATUS_MAP = {
-  paid:        { label: 'Pago',       cls: 'gold' },
-  pago:        { label: 'Pago',       cls: 'gold' },
-  aceito:      { label: 'Aceito',     cls: 'gold' },
-  preparo:     { label: 'Preparo',    cls: 'gold' },
-  retirada:    { label: 'Retirada',   cls: 'gold' },
-  concluido:   { label: 'Concluído',  cls: 'up'   },
-  'concluído': { label: 'Concluído',  cls: 'up'   },
-  finalizado:  { label: 'Finalizado', cls: 'up'   },
-  entregue:    { label: 'Entregue',   cls: 'up'   },
-  delivered:   { label: 'Entregue',   cls: 'up'   },
-  pending:     { label: 'Pendente',   cls: ''     },
-  cancelled:   { label: 'Cancelado',  cls: 'down' },
-  cancelado:   { label: 'Cancelado',  cls: 'down' },
-  rejected:    { label: 'Rejeitado',  cls: 'down' },
-};
+const MOCK_ORDERS = [
+  { id: '#29B47', client: 'Marcos Felipe da Silva Barros', phone: '21966278965', type: 'Entrega', ident: '68797474', payment: 'ONLINE', status: 'paid',  items: 1, date: '11/05/2026' },
+  { id: '#560D7', client: 'Marcos Felipe da Silva Barros', phone: '21966278965', type: 'Entrega', ident: '24995896', payment: 'ONLINE', status: 'paid',  items: 1, date: '06/05/2026' },
+  { id: '#961ED', client: 'Julia Correa',                  phone: '(21) 96946-0158', type: 'Entrega', ident: '82920092', payment: 'ONLINE', status: 'paid', items: 1, date: '03/05/2026' },
+  { id: '#C4C69', client: 'Janete José',                   phone: '(21) 98016-2578', type: 'Entrega', ident: '42895904', payment: 'ONLINE', status: 'paid', items: 1, date: '03/05/2026' },
+  { id: '#1E31D', client: 'Tamiris Barros',                phone: '(21) 98600-1350', type: 'Entrega', ident: '2dngxFZ3', payment: 'ONLINE', status: 'paid', items: 1, date: '28/04/2026' },
+  { id: '#16145', client: 'Julia Correa',                  phone: '(21) 96946-0158', type: 'Entrega', ident: 'AVKQma7O', payment: 'ONLINE', status: 'paid', items: 1, date: '28/04/2026' },
+];
 
-const statusInfo = (s) => STATUS_MAP[(s || '').toLowerCase().trim()] || { label: s || '—', cls: '' };
-
-const pmLabel = (m) => {
-  const ml = (m || '').toLowerCase();
-  if (ml.includes('pix')) return 'Pix';
-  if (ml.includes('cred') || ml.includes('card_credit')) return 'Crédito';
-  if (ml.includes('deb') || ml.includes('card_debit')) return 'Débito';
-  if (!m || m === 'outros') return 'Outros';
-  return m;
-};
-
-const fmtTime = (iso) => {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-};
-
-const fmtDate = (iso) => {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-};
-
-const fmtDateFull = (iso) => {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-};
-
-const fmtDateLong = (iso) => {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-};
-
-const parseItems = (raw) => {
-  try {
-    let p = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    if (p && p.actual_items) return p.actual_items;
-    return Array.isArray(p) ? p : [];
-  } catch { return []; }
-};
-
-const itemsSummary = (raw) => {
-  const items = parseItems(raw);
-  if (!items.length) return '—';
-  const first = items[0];
-  const rest = items.length - 1;
-  return `${first.qty || 1}× ${first.name}${rest > 0 ? ` +${rest}` : ''}`;
-};
-
-const shortId = (id) => String(id || '').slice(-5).toUpperCase();
-
-const isDone = (s) => ['concluido','concluído','finalizado','entregue','delivered'].includes((s||'').toLowerCase());
-const isCanc = (s) => ['cancelled','cancelado','rejected'].includes((s||'').toLowerCase());
-
-const inAceitos  = (s) => ['paid','pago','aceito'].includes((s||'').toLowerCase().trim());
-const inPreparo  = (s) => (s||'').toLowerCase().trim() === 'preparo';
-const inRetirada = (s) => (s||'').toLowerCase().trim() === 'retirada';
-
-/* currency value (number only, no R$ prefix) */
-const fmtR = (v) => Number(v||0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-const pmSource = (method) => {
-  const ml = (method || '').toLowerCase();
-  if (ml.includes('pix')) return 'Finalizado via Pix';
-  if (ml.includes('cred') || ml.includes('card_credit')) return 'Finalizado via cartão de crédito';
-  if (ml.includes('deb')  || ml.includes('card_debit'))  return 'Finalizado via cartão de débito';
-  return 'Finalizado via ' + (method || 'outro meio');
-};
-
-const deliveryLabel = (order) => {
-  if (order.scheduled_date) return 'Retirada na fornada ' + fmtDate(order.scheduled_date);
-  const t = (order.delivery_type || order.order_type || '').toLowerCase();
-  if (t.includes('retirada') || t.includes('pickup'))   return 'Retirada em loja';
-  if (t.includes('entrega')  || t.includes('delivery')) return 'Entrega no endereço';
-  return 'A definir';
-};
-
-/* next upcoming Friday — the bakery's production day */
-function nextFornada() {
-  const now = new Date();
-  const day = now.getDay();
-  const daysUntilFri = ((5 - day + 7) % 7) || 7;
-  const fri = new Date(now.getTime() + daysUntilFri * 86400000);
-  return fri.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+function PageHead({ title, badge, subtitle, right }) {
+  return (
+    <div className="page-head">
+      <div>
+        <div className="sub" style={{ marginBottom: 6 }}>Admin</div>
+        <h1>
+          {title}
+          {badge && <span className="page-badge">{badge}</span>}
+        </h1>
+        <div className="sub">{subtitle}</div>
+      </div>
+      {right}
+    </div>
+  );
 }
 
-/* ─── SHARED: ORDER DETAIL MODAL ─────────────────────────────────────────── */
-
-function OrderModal({ order, onClose, variant = 'historico' }) {
-  const items = parseItems(order.items);
-  const st = statusInfo(order.status);
-  const wpp = (order.customer_whatsapp || '').replace(/\D/g, '');
-
+/* ========== CLIENTES ========== */
+function ClientesPage() {
+  const [open, setOpen] = useStP(null);
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
-        <button className="modal-x" onClick={onClose}>×</button>
-
-        {/* Header: order ID + status badge */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <h2 style={{ fontFamily: 'var(--display)', fontWeight: 400, fontSize: 26, margin: 0, color: 'var(--ink)' }}>
-            #{shortId(order.id)}
-          </h2>
-          <span className={`tag${st.cls ? ' ' + st.cls : ''}`}>{st.label}</span>
+    <div className="page">
+      <PageHead title="Clientes" subtitle={`${MOCK_CLIENTS.length} clientes cadastrados`}/>
+      <div className="card">
+        <div style={{ display: 'flex', gap: 12, padding: '0 0 14px', alignItems: 'center', borderBottom: '1px solid var(--line)', marginBottom: 4 }}>
+          <div className="search-input">
+            <Ic.search/>
+            <input placeholder="Busque por nome ou telefone…"/>
+          </div>
+          <div className="tb-spacer"/>
+          <span className="meta">Filtrar:</span>
+          <select className="select-mini"><option>Todos os clientes</option><option>Recorrentes</option><option>Ocasionais</option></select>
+          <select className="select-mini"><option>Todas as prioridades</option><option>Alta</option><option>Média</option></select>
         </div>
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Telefone</th>
+              <th>Cliente há</th>
+              <th>Último pedido</th>
+              <th style={{ textAlign: 'right' }}>Pedidos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {MOCK_CLIENTS.map((c, i) => (
+              <tr key={i} onClick={() => setOpen(c)} style={{ cursor: 'pointer' }}>
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div className="sb-avatar" style={{ width: 28, height: 28, fontSize: 10 }}>
+                      {c.name.split(' ').map(s => s[0]).slice(0, 2).join('')}
+                    </div>
+                    <div>
+                      <div style={{ color: 'var(--ink)', fontWeight: 500 }}>{c.name} {c.priority && <span className="tag gold" style={{ marginLeft: 6 }}>Prioridade</span>}</div>
+                      <small style={{ color: 'var(--ink-4)', fontSize: 11 }}>{c.email}</small>
+                    </div>
+                  </div>
+                </td>
+                <td style={{ fontVariantNumeric: 'tabular-nums' }}>{c.phone}</td>
+                <td style={{ color: 'var(--ink-3)' }}>{c.since}</td>
+                <td style={{ color: c.last === '-' ? 'var(--ink-4)' : 'var(--ink-2)' }}>{c.last}</td>
+                <td className="num">{c.orders}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-        {/* Info 2×2 grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 14px', marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid var(--line)' }}>
-          <div>
-            <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--ink-4)', marginBottom: 5 }}>Cliente</div>
-            <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 13 }}>{order.customer_name || 'Sem nome'}</div>
-            {wpp && (
-              <a href={`https://wa.me/55${wpp}`} target="_blank" rel="noreferrer"
-                style={{ fontSize: 12, color: 'var(--gold)', fontFamily: 'var(--mono)', textDecoration: 'none', display: 'block', marginTop: 2 }}>
-                {order.customer_whatsapp}
-              </a>
-            )}
+      {open && <ClienteModal client={open} onClose={() => setOpen(null)}/>}
+    </div>
+  );
+}
+
+function ClienteModal({ client, onClose }) {
+  const orders = MOCK_ORDERS.filter(o => o.client === client.name);
+  const total = orders.length;
+  const invested = orders.length * 38;
+  return (
+    <div className="modal-veil" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>×</button>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 22 }}>
+          <div className="sb-avatar" style={{ width: 52, height: 52, fontSize: 17 }}>
+            {client.name.split(' ').map(s => s[0]).slice(0, 2).join('')}
           </div>
           <div>
-            <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--ink-4)', marginBottom: 5 }}>Pagamento</div>
-            <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 13, textTransform: 'uppercase' }}>{pmLabel(order.payment_method)}</div>
-            <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 2 }}>{pmSource(order.payment_method)}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--ink-4)', marginBottom: 5 }}>Tipo de Entrega</div>
-            <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 13 }}>{deliveryLabel(order)}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--ink-4)', marginBottom: 5 }}>Data e Hora</div>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink)' }}>{fmtDateLong(order.created_at)}</div>
+            <h2 style={{ margin: 0, fontFamily: 'var(--display)', fontWeight: 400, fontSize: 24, color: 'var(--ink)' }}>{client.name}</h2>
+            <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>{client.phone} · {client.email}</div>
           </div>
         </div>
-
-        {/* Item rows */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
-          {items.length > 0 ? items.map((item, i) => (
-            <div className="order-line-item" key={i}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flex: 1, minWidth: 0 }}>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--gold)', flexShrink: 0, minWidth: 22 }}>{item.qty || 1}×</span>
-                <span style={{ fontWeight: 500, color: 'var(--ink)' }}>{item.name}</span>
+        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 22 }}>
+          <div className="mini-card">
+            <small>Total de pedidos</small>
+            <b>{total || client.orders}</b>
+          </div>
+          <div className="mini-card hl">
+            <small>Total investido</small>
+            <b>{brl(invested || 154)}</b>
+          </div>
+        </div>
+        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ink-4)', marginBottom: 10 }}>Histórico cronológico</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 260, overflowY: 'auto', paddingRight: 4 }}>
+          {(orders.length ? orders : [{ id: '#A2C47', status: 'failed', items: 6, date: '06/05/2026' }, { id: '#CBDC5', status: 'failed', items: 6, date: '06/05/2026' }]).map((o, i) => (
+            <div key={i} className="order-row-mini">
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <b>Pedido {o.id}</b>
+                  <span className={`tag ${o.status === 'paid' ? 'up' : 'down'}`}>{o.status === 'paid' ? 'PAID' : 'PAYMENT_FAILED'}</span>
+                </div>
+                <small style={{ color: 'var(--ink-4)', fontSize: 11 }}>{o.items}x Item · {o.date}</small>
               </div>
-              <div style={{ fontWeight: 500, color: 'var(--ink)', flexShrink: 0 }}>{brl((item.price || 0) * (item.qty || 1))}</div>
+              <div className="num" style={{ color: 'var(--ink)', fontWeight: 500 }}>R$ {(o.status === 'paid' ? 1 : 38).toFixed(2).replace('.', ',')}</div>
             </div>
-          )) : (
-            <div style={{ color: 'var(--ink-4)', fontSize: 12, textAlign: 'center', padding: '16px 0' }}>
-              Sem itens detalhados
-            </div>
-          )}
+          ))}
         </div>
-
-        {/* Total */}
-        <div className="order-total">
-          <span style={{ fontFamily: 'var(--display)', fontWeight: 400, fontSize: 16, color: 'var(--ink-2)' }}>Total</span>
-          <span style={{ fontFamily: 'var(--display)', fontSize: 22, color: 'var(--gold)' }}>{brl(order.total_amount || 0)}</span>
-        </div>
-
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-          {wpp ? (
-            <a href={`https://wa.me/55${wpp}`} target="_blank" rel="noreferrer"
-              className="btn-wpp" style={{ flex: 1, textDecoration: 'none', justifyContent: 'center' }}>
-              <Ic.msg style={{ width: 14, height: 14 }}/> WhatsApp
-            </a>
-          ) : <div style={{ flex: 1 }}/>}
-          {variant === 'fila' ? (
-            <button className="btn-primary" style={{ flex: 1 }} onClick={onClose}>Entrar em preparo</button>
-          ) : (
-            <button className="btn-ghost" style={{ flex: 1 }} onClick={onClose}>Fechar histórico</button>
-          )}
-        </div>
-        {variant === 'fila' && (
-          <div style={{ textAlign: 'center', marginTop: 10 }}>
-            <a className="link-muted" style={{ cursor: 'pointer', fontSize: 12 }} onClick={onClose}>Voltar para a Fila</a>
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-/* ─── FILA DE PEDIDOS ────────────────────────────────────────────────────── */
+/* ========== HISTÓRICO ========== */
+function HistoricoPage() {
+  const [open, setOpen] = useStP(null);
+  return (
+    <div className="page">
+      <PageHead title="Histórico de Pedidos" subtitle="Relatório consolidado de todas as transações da unidade."/>
+      <div className="grid kpi-row">
+        <div className="card kpi"><div className="kpi-label">Faturamento</div><div className="kpi-value"><span className="unit">R$</span>134,00</div></div>
+        <div className="card kpi"><div className="kpi-label">Lucro</div><div className="kpi-value"><span className="unit">R$</span>80,40</div></div>
+        <div className="card kpi"><div className="kpi-label">Nº pedidos</div><div className="kpi-value">6</div></div>
+        <div className="card kpi"><div className="kpi-label">Ticket médio</div><div className="kpi-value"><span className="unit">R$</span>22,33</div></div>
+      </div>
 
-function FilaDePedidos() {
-  const [orders, setOrders]   = usePgSt([]);
-  const [loading, setLoading] = usePgSt(true);
-  const [tab, setTab]         = usePgSt('aceitos');
-  const [selected, setSelected] = usePgSt(null);
+      <div className="card mt">
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14 }}>
+          <label className="lbl-inline">De <input type="date" className="date-input"/></label>
+          <label className="lbl-inline">Até <input type="date" className="date-input"/></label>
+          <a className="link-muted">Exibir pedidos recusados</a>
+        </div>
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Cliente</th>
+              <th>Tipo</th>
+              <th>Identificador</th>
+              <th>Pagamento</th>
+              <th>Status</th>
+              <th style={{ textAlign: 'right' }}>Itens</th>
+              <th>Data</th>
+              <th>Agendamento</th>
+            </tr>
+          </thead>
+          <tbody>
+            {MOCK_ORDERS.map((o, i) => (
+              <tr key={i} onClick={() => setOpen(o)} style={{ cursor: 'pointer' }}>
+                <td><a className="link-id">{o.id}</a></td>
+                <td>
+                  <div style={{ color: 'var(--ink)' }}>{o.client}</div>
+                  <small style={{ color: 'var(--ink-4)', fontSize: 11 }}>{o.phone}</small>
+                </td>
+                <td>{o.type}</td>
+                <td style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-3)' }}>{o.ident}</td>
+                <td><span className="tag">{o.payment}</span></td>
+                <td><span className="tag up">PAID</span></td>
+                <td className="num">{o.items}</td>
+                <td style={{ color: 'var(--ink-3)' }}>{o.date}</td>
+                <td style={{ color: 'var(--ink-4)' }}>—</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div style={{ padding: '10px 4px 0', color: 'var(--ink-4)', fontSize: 11 }}>Exibindo 6 de 6 pedidos</div>
+      </div>
 
-  const load = () => {
-    setLoading(true);
-    window.apiGet('/api/admin/pedidos')
-      .then(data => { setOrders(Array.isArray(data) ? data : []); setLoading(false); })
-      .catch(() => { setOrders([]); setLoading(false); });
-  };
+      {open && <OrderModal order={open} variant="history" onClose={() => setOpen(null)}/>}
+    </div>
+  );
+}
 
-  usePgEff(() => { load(); }, []);
+function OrderModal({ order, variant = 'history', onClose }) {
+  return (
+    <div className="modal-veil" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+        <button className="modal-close" onClick={onClose}>×</button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
+          <h2 style={{ margin: 0, fontFamily: 'var(--display)', fontWeight: 400, fontSize: 26, color: 'var(--ink)' }}>{order.id}</h2>
+          <span className="tag up" style={{ padding: '5px 12px', fontSize: 11 }}>{variant === 'fila' ? 'PAGO' : 'PAID'}</span>
+        </div>
+        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 18 }}>
+          <div>
+            <small className="kv-l">Cliente</small>
+            <b className="kv-v">{order.client}</b>
+            <a className="link-id" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>{order.phone}</a>
+          </div>
+          <div>
+            <small className="kv-l">Pagamento</small>
+            <b className="kv-v">CARTÃO</b>
+            <small style={{ color: 'var(--ink-4)', fontSize: 11, display: 'block', marginTop: 2 }}>Finalizado via Stripe</small>
+          </div>
+          <div>
+            <small className="kv-l">Tipo de entrega</small>
+            <b className="kv-v">Retirada na fornada 16/05</b>
+          </div>
+          <div>
+            <small className="kv-l">Data e hora</small>
+            <b className="kv-v" style={{ fontFamily: 'var(--mono)', fontSize: 13 }}>11/05/2026, 10:57:27</b>
+          </div>
+        </div>
+        <div className="order-line-item">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ color: 'var(--gold)', fontWeight: 500 }}>1x</span>
+            <span>Sourdough Tradicional</span>
+          </div>
+          <span className="num" style={{ color: 'var(--ink)' }}>R$ 1,00</span>
+        </div>
+        <div className="order-total">
+          <span style={{ fontFamily: 'var(--display)', fontSize: 22 }}>Total</span>
+          <b style={{ color: 'var(--gold)', fontSize: 22, fontWeight: 500 }}>R$ 1,00</b>
+        </div>
+        <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+          <button className="btn-wpp"><Ic.chat/> WhatsApp</button>
+          {variant === 'fila'
+            ? <button className="btn-primary">Entrar em preparo</button>
+            : <button className="btn-ghost" onClick={onClose}>Fechar histórico</button>}
+        </div>
+        {variant === 'fila' && <a className="link-muted" style={{ display: 'block', textAlign: 'center', marginTop: 12, fontSize: 12 }}>Voltar para a Fila</a>}
+      </div>
+    </div>
+  );
+}
 
-  const counts = {
-    aceitos:    orders.filter(o => inAceitos(o.status)).length,
-    preparo:    orders.filter(o => inPreparo(o.status)).length,
-    retirada:   orders.filter(o => inRetirada(o.status)).length,
-    concluidos: orders.filter(o => isDone(o.status)).length,
-    cancelados: orders.filter(o => isCanc(o.status)).length,
-  };
-
-  const TABS = [
-    ['aceitos',    'Aceitos',             counts.aceitos],
-    ['preparo',    'Em Preparo',          counts.preparo],
-    ['retirada',   'Pronto p/ Retirada',  counts.retirada],
-    ['concluidos', 'Concluídos',          counts.concluidos],
-    ['cancelados', 'Cancelados',          counts.cancelados],
-  ];
-
-  const visible = orders.filter(o => {
-    if (tab === 'aceitos')    return inAceitos(o.status);
-    if (tab === 'preparo')    return inPreparo(o.status);
-    if (tab === 'retirada')   return inRetirada(o.status);
-    if (tab === 'concluidos') return isDone(o.status);
-    if (tab === 'cancelados') return isCanc(o.status);
-    return true;
-  });
-
-  /* tab-level badge shown on each card */
-  const TAB_BADGE = {
-    aceitos:    { label: 'Aceitos',      cls: 'up'   },
-    preparo:    { label: 'Em Preparo',   cls: 'gold' },
-    retirada:   { label: 'Retirada',     cls: 'gold' },
-    concluidos: { label: 'Concluído',    cls: 'up'   },
-    cancelados: { label: 'Cancelado',    cls: 'down' },
-  };
-
-  /* primary action label per tab */
-  const TAB_ACTION = {
-    aceitos:    'Preparar',
-    preparo:    'Pronto',
-    retirada:   'Entregar',
-    concluidos: '',
-    cancelados: '',
-  };
-
-  const badge  = TAB_BADGE[tab]  || TAB_BADGE.aceitos;
-  const action = TAB_ACTION[tab] || '';
-
-  const fornada = nextFornada();
+/* ========== FILA DE PEDIDOS ========== */
+function FilaPage() {
+  const [tab, setTab] = useStP('aceitos');
+  const [open, setOpen] = useStP(null);
+  const tabs = [['aceitos','Aceitos',1],['preparo','Em Preparo',0],['pronto','Pronto p/ Retirada',0],['concluidos','Concluídos',5],['cancelados','Cancelados',0]];
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <div className="sub" style={{ marginBottom: 6 }}>Admin</div>
-          <h1>
-            Fila de <em>Produção</em>
-            <span className="page-badge" style={{ marginLeft: 14 }}>FORNADA {fornada}</span>
-          </h1>
-          <div className="sub">Gerencie os pedidos confirmados para a produção deste ciclo.</div>
-        </div>
-        <button className="icon-btn" title="Atualizar" onClick={load} style={{ width: 36, height: 36 }}>
-          <Ic.spark/>
-        </button>
-      </div>
+      <PageHead title="Fila de Produção" badge="FORNADA 16/05/2026" subtitle="Gerencie os pedidos confirmados para a produção deste ciclo."/>
 
-      {/* Tabs + batch actions */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, gap: 14, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
         <div className="tabs">
-          {TABS.map(([k, l, ct]) => (
+          {tabs.map(([k, l, count]) => (
             <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
-              {l}
-              {ct > 0 && <span className="tab-count">{ct}</span>}
+              {l} {count > 0 && <span className="tab-count">{count}</span>}
             </button>
           ))}
         </div>
@@ -295,474 +279,120 @@ function FilaDePedidos() {
         </div>
       </div>
 
-      {/* Card grid or states */}
-      {loading ? (
-        <div className="empty-state"><Ic.spark/><span>Carregando pedidos...</span></div>
-      ) : !visible.length ? (
-        <div className="empty-state"><Ic.cart/><span>Nenhum pedido nesta fase.</span></div>
-      ) : (
+      {tab === 'aceitos' && (
         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
-          {visible.map(o => {
-            const name = o.customer_name || '—';
-            const displayName = name.length > 22 ? name.slice(0, 21) + '…' : name;
-            return (
-              <div key={o.id} className="order-card" onClick={() => setSelected(o)}>
-                <div className="order-card-strip"/>
-                <div className="order-card-head">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input type="checkbox" onClick={e => e.stopPropagation()}/>
-                    <span className="tag">#{shortId(o.id)}</span>
-                  </div>
-                  <span className={`tag${badge.cls ? ' ' + badge.cls : ''}`}>{badge.label}</span>
-                </div>
-                <div className="order-card-body">
-                  <b>{displayName}</b>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink-3)', marginTop: 8 }}>
-                    <span>{fmtTime(o.created_at)}</span>
-                    <span>{fmtDateFull(o.created_at)}</span>
-                  </div>
-                </div>
-                <div className="order-card-foot">
-                  <div>
-                    <small style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ink-4)' }}>Total gasto</small>
-                    <b style={{ display: 'block', color: 'var(--gold)', fontWeight: 500, fontSize: 16 }}>{brlShort(o.total_amount || 0)}</b>
-                  </div>
-                  {action && (
-                    <button
-                      className="btn-primary"
-                      style={{ padding: '6px 12px', fontSize: 12 }}
-                      onClick={e => e.stopPropagation()}
-                    >
-                      {action}
-                    </button>
-                  )}
-                </div>
+          <div className="order-card" onClick={() => setOpen(MOCK_ORDERS[0])}>
+            <div className="order-card-strip"/>
+            <div className="order-card-head">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input type="checkbox" onClick={e => e.stopPropagation()}/>
+                <span className="tag">#29B47</span>
               </div>
-            );
-          })}
+              <span className="tag up">Aceitos</span>
+            </div>
+            <div className="order-card-body">
+              <b>Marcos Felipe da Silv…</b>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink-3)', marginTop: 8 }}>
+                <span>10:57</span>
+                <span>11/05/2026</span>
+              </div>
+            </div>
+            <div className="order-card-foot">
+              <div>
+                <small style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ink-4)' }}>Total gasto</small>
+                <b style={{ display: 'block', color: 'var(--gold)', fontWeight: 500, fontSize: 16 }}>R$ 1,00</b>
+              </div>
+              <button className="btn-primary" style={{ padding: '6px 12px', fontSize: 12 }} onClick={e => { e.stopPropagation(); }}>Preparar</button>
+            </div>
+          </div>
         </div>
       )}
 
-      {selected && <OrderModal order={selected} variant="fila" onClose={() => setSelected(null)}/>}
+      {tab !== 'aceitos' && (
+        <div className="empty-state">
+          <Ic.list/>
+          <div>Nenhum pedido nesta fase.</div>
+        </div>
+      )}
+
+      {open && <OrderModal order={open} variant="fila" onClose={() => setOpen(null)}/>}
     </div>
   );
 }
 
-/* ─── HISTÓRICO DE PEDIDOS ───────────────────────────────────────────────── */
-
-function HistoricoPedidos() {
-  const today        = new Date().toISOString().slice(0, 10);
-  const firstOfMonth = today.slice(0, 8) + '01';
-
-  const [from, setFrom]             = usePgSt(firstOfMonth);
-  const [to, setTo]                 = usePgSt(today);
-  const [pageNum, setPageNum]       = usePgSt(1);
-  const [data, setData]             = usePgSt(null);
-  const [loading, setLoading]       = usePgSt(false);
-  const [selected, setSelected]     = usePgSt(null);
-  const [showCanc, setShowCanc]     = usePgSt(false);
-
-  const LIMIT = 50;
-
-  const load = (p = 1) => {
-    setLoading(true);
-    const q = new URLSearchParams({
-      start: from + 'T00:00:00',
-      end:   to   + 'T23:59:59',
-      page:  p,
-      limit: LIMIT,
-    });
-    window.apiGet('/api/admin/pedidos/historico?' + q)
-      .then(d => { setData(d); setPageNum(p); setLoading(false); })
-      .catch(() => setLoading(false));
-  };
-
-  usePgEff(() => { load(1); }, [from, to]);
-
-  const orders = data?.orders || [];
-  const total  = data?.count  || 0;
-  const stats  = data?.stats  || {};
-  const pages  = Math.max(1, Math.ceil(total / LIMIT));
-
-  const visibleOrders = showCanc ? orders : orders.filter(o => !isCanc(o.status));
-
+/* ========== PRÉ-VENDA ========== */
+function PrevendaPage() {
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <div className="sub" style={{ marginBottom: 6 }}>Admin</div>
-          <h1>Histórico de <em>Pedidos</em></h1>
-          <div className="sub">Relatório consolidado de todas as transações da unidade.</div>
-        </div>
+      <PageHead title="Pré-venda" badge="PRÓXIMA FORNADA" subtitle="Fila de pedidos agendados para a fornada de 23/05/2026."/>
+      <div className="grid kpi-row">
+        <div className="card kpi"><div className="kpi-label">Total pedidos</div><div className="kpi-value">0</div></div>
+        <div className="card kpi"><div className="kpi-label">Total de itens</div><div className="kpi-value">0</div></div>
+        <div className="card kpi"><div className="kpi-label">Faturamento projetado</div><div className="kpi-value"><span className="unit">R$</span>0,00</div></div>
+        <div className="card kpi"><div className="kpi-label">Data produção</div><div className="kpi-value" style={{ fontSize: 22, fontFamily: 'var(--mono)' }}>23/05/2026</div></div>
       </div>
 
-      {/* KPI row */}
-      <div className="grid kpi-row" style={{ marginBottom: 'var(--gap)' }}>
-        <div className="card kpi">
-          <div className="kpi-label">Faturamento</div>
-          <div className="kpi-value"><span className="unit">R$</span>{fmtR(stats.totalRevenue)}</div>
-        </div>
-        <div className="card kpi">
-          <div className="kpi-label">Lucro</div>
-          <div className="kpi-value"><span className="unit">R$</span>{fmtR(stats.profit)}</div>
-        </div>
-        <div className="card kpi">
-          <div className="kpi-label">Nº Pedidos</div>
-          <div className="kpi-value">{(stats.totalOrders || 0).toLocaleString('pt-BR')}</div>
-        </div>
-        <div className="card kpi">
-          <div className="kpi-label">Ticket Médio</div>
-          <div className="kpi-value"><span className="unit">R$</span>{fmtR(stats.avgTicket)}</div>
-        </div>
-      </div>
-
-      {/* Table card */}
-      <div className="card">
-        {/* Filter row */}
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--line)' }}>
-          <label className="lbl-inline">
-            De
-            <input className="date-input" type="date" value={from} onChange={e => setFrom(e.target.value)}/>
-          </label>
-          <label className="lbl-inline">
-            Até
-            <input className="date-input" type="date" value={to} onChange={e => setTo(e.target.value)}/>
-          </label>
-          <a
-            className="link-muted"
-            onClick={() => setShowCanc(s => !s)}
-            style={{ cursor: 'pointer' }}
-          >
-            {showCanc ? 'Ocultar pedidos recusados' : 'Exibir pedidos recusados'}
-          </a>
-        </div>
-
-        {loading ? (
-          <div className="empty-state"><Ic.spark/><span>Carregando histórico...</span></div>
-        ) : !visibleOrders.length ? (
-          <div className="empty-state"><Ic.clock/><span>Nenhum pedido no período selecionado</span></div>
-        ) : (
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>Código</th>
-                <th>Cliente</th>
-                <th>Tipo</th>
-                <th>Identificador</th>
-                <th>Pagamento</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Itens</th>
-                <th>Data</th>
-                <th>Agendamento</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleOrders.map(o => {
-                const st = statusInfo(o.status);
-                const itemCount = parseItems(o.items).length || 1;
-                const ident = o.external_id || o.payment_id ||
-                  String(o.id || '').replace(/-/g, '').slice(-8).toUpperCase();
-                const tipo = o.delivery_type || o.order_type || 'Entrega';
-                return (
-                  <tr key={o.id} className="row-clickable" onClick={() => setSelected(o)}>
-                    <td>
-                      <span className="link-id">#{shortId(o.id)}</span>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 500, color: 'var(--ink)' }}>{o.customer_name || '—'}</div>
-                      {o.customer_whatsapp && (
-                        <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--mono)' }}>
-                          {o.customer_whatsapp}
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ color: 'var(--ink-2)' }}>{tipo}</td>
-                    <td style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-3)' }}>{ident}</td>
-                    <td><span className="tag">{pmLabel(o.payment_method)}</span></td>
-                    <td><span className={`tag${st.cls ? ' ' + st.cls : ''}`}>{st.label}</span></td>
-                    <td className="num">{itemCount}</td>
-                    <td style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--ink-3)' }}>
-                      {fmtDate(o.created_at)}
-                    </td>
-                    <td style={{ color: 'var(--ink-4)' }}>
-                      {o.scheduled_date ? fmtDate(o.scheduled_date) : '—'}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-
-        {/* Footer */}
-        {!loading && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, gap: 14 }}>
-            <span style={{ fontSize: 11, color: 'var(--ink-4)' }}>
-              Exibindo {visibleOrders.length} de {total} pedido{total !== 1 ? 's' : ''}
-            </span>
-            {pages > 1 && (
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <button className="icon-btn" disabled={pageNum <= 1} onClick={() => load(pageNum - 1)}>‹</button>
-                <span style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--mono)', padding: '0 4px' }}>
-                  {pageNum} / {pages}
-                </span>
-                <button className="icon-btn" disabled={pageNum >= pages} onClick={() => load(pageNum + 1)}>›</button>
-              </div>
-            )}
+      <div className="grid row-2 mt">
+        <div className="card">
+          <div className="card-head"><h3><Ic.list/>Lista de encomendas</h3></div>
+          <div className="empty-state" style={{ height: 240 }}>
+            <Ic.cart/>
+            <div>Nenhum pedido de pré-venda encontrado.</div>
           </div>
-        )}
+        </div>
+        <div className="card">
+          <div className="card-head"><h3><Ic.bread/>Resumo de produção</h3></div>
+          <div className="empty-state" style={{ height: 240 }}>
+            <Ic.flame/>
+            <div>Nenhum item para produzir.</div>
+          </div>
+        </div>
       </div>
-
-      {selected && <OrderModal order={selected} onClose={() => setSelected(null)}/>}
     </div>
   );
 }
 
-/* ─── CLIENTES ───────────────────────────────────────────────────────────── */
-
-function Clientes() {
-  const [customers, setCustomers] = usePgSt([]);
-  const [search, setSearch]       = usePgSt('');
-  const [filter, setFilter]       = usePgSt('todos');
-  const [loading, setLoading]     = usePgSt(true);
-  const [selected, setSelected]   = usePgSt(null);
-
-  usePgEff(() => {
-    window.apiGet('/api/admin/customers')
-      .then(data => { setCustomers(Array.isArray(data) ? data : []); setLoading(false); })
-      .catch(() => { setCustomers([]); setLoading(false); });
-  }, []);
-
-  const isRecurrent = (c) => (c.crm_count || 0) >= 2;
-
-  const visible = customers.filter(c => {
-    const q = (search || '').toLowerCase();
-    const matchSearch = !q
-      || (c.name || '').toLowerCase().includes(q)
-      || (c.whatsapp || '').includes(q);
-    const matchFilter =
-      filter === 'todos'
-      || (filter === 'recorrentes' && isRecurrent(c))
-      || (filter === 'ocasionais'  && !isRecurrent(c));
-    return matchSearch && matchFilter;
-  });
-
-  const totalRec    = customers.filter(isRecurrent).length;
-  const totalOrders = customers.reduce((s, c) => s + (c.crm_count || 0), 0);
-  const avgTicket   = totalOrders > 0
-    ? customers.reduce((s, c) => s + (c.crm_total || 0), 0) / totalOrders
-    : 0;
-
+/* ========== RESUMO DE PEDIDOS ========== */
+function ResumoPage() {
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <div className="sub" style={{ marginBottom: 6 }}>Base de clientes · CRM</div>
-          <h1>Base de <em>Clientes</em></h1>
-        </div>
-        <div className="search-input" style={{ minWidth: 280 }}>
-          <Ic.search/>
-          <input
-            placeholder="Buscar por nome ou WhatsApp..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', gap: 'var(--gap)', marginBottom: 'var(--gap)' }}>
-        {[
-          { label: 'Total de clientes',    value: customers.length, big: true },
-          { label: 'Clientes recorrentes', value: totalRec,         big: true },
-          { label: 'Ticket médio global',  value: brl(avgTicket),   big: false },
-        ].map((c, i) => (
-          <div className="mini-card" key={i} style={{ padding: '16px 18px' }}>
-            <small>{c.label}</small>
-            <b style={{ fontSize: c.big ? 28 : 16, display: 'block', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
-              {c.value}
-            </b>
-          </div>
-        ))}
-      </div>
-
-      <div className="card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 14 }}>
-          <div className="tabs">
-            {[['todos','Todos'],['recorrentes','Recorrentes'],['ocasionais','Ocasionais']].map(([k, l]) => (
-              <button key={k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>{l}</button>
-            ))}
-          </div>
-          <span style={{ fontSize: 11.5, color: 'var(--ink-4)', flexShrink: 0 }}>
-            {loading ? '' : `${visible.length} cliente${visible.length !== 1 ? 's' : ''}`}
-          </span>
-        </div>
-
-        {loading ? (
-          <div className="empty-state"><Ic.spark/><span>Carregando clientes...</span></div>
-        ) : !visible.length ? (
-          <div className="empty-state"><Ic.users/><span>Nenhum cliente encontrado</span></div>
-        ) : (
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>Cliente</th>
-                <th>WhatsApp</th>
-                <th style={{ textAlign: 'right' }}>Pedidos</th>
-                <th style={{ textAlign: 'right' }}>Total gasto</th>
-                <th>Última compra</th>
-                <th>Perfil</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map(c => {
-                const rec = isRecurrent(c);
-                const initials = (c.name || '?').split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase();
-                return (
-                  <tr key={c.id} className="row-clickable" onClick={() => setSelected(c)}>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div className="sb-avatar" style={{
-                          width: 28, height: 28, fontSize: 10,
-                          background: rec ? 'linear-gradient(135deg, var(--gold), var(--gold-2))' : undefined,
-                          color:      rec ? '#1a1408' : undefined,
-                        }}>{initials}</div>
-                        <span className="client-link" style={{ fontWeight: 500, color: 'var(--ink)' }}>
-                          {c.name || '—'}
-                        </span>
-                      </div>
-                    </td>
-                    <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink-3)' }}>
-                      {c.whatsapp || '—'}
-                    </td>
-                    <td className="num">{(c.crm_count || 0).toLocaleString('pt-BR')}</td>
-                    <td className="num">{brlShort(c.crm_total || 0)}</td>
-                    <td style={{ fontSize: 12, color: 'var(--ink-3)' }}>{fmtDate(c.crm_last)}</td>
-                    <td>
-                      <span className={`tag${rec ? ' gold' : ''}`}>{rec ? 'Recorrente' : 'Ocasional'}</span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {selected && <ClienteDrawer customer={selected} onClose={() => setSelected(null)}/>}
-    </div>
-  );
-}
-
-/* ─── CLIENTE DRAWER ─────────────────────────────────────────────────────── */
-
-function ClienteDrawer({ customer, onClose }) {
-  const [detail, setDetail]   = usePgSt(null);
-  const [loading, setLoading] = usePgSt(true);
-
-  usePgEff(() => {
-    window.apiGet('/api/admin/customer-details/' + customer.id)
-      .then(d => { setDetail(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [customer.id]);
-
-  const rec      = (customer.crm_count || 0) >= 2;
-  const initials = (customer.name || '?').split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase();
-  const orders   = detail?.orders  || [];
-  const summary  = detail?.summary || {};
-
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 560 }} onClick={e => e.stopPropagation()}>
-        <button className="modal-x" onClick={onClose}>×</button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-          <div className="sb-avatar" style={{
-            width: 52, height: 52, fontSize: 20, borderRadius: 12, flexShrink: 0,
-            background: rec ? 'linear-gradient(135deg, var(--gold), var(--gold-2))' : undefined,
-            color:      rec ? '#1a1408' : undefined,
-          }}>{initials}</div>
-          <div style={{ minWidth: 0 }}>
-            <h2 style={{ fontFamily: 'var(--display)', fontWeight: 400, fontSize: 22, margin: '0 0 6px', color: 'var(--ink)' }}>
-              {customer.name || '—'}
-            </h2>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <span className={`tag${rec ? ' gold' : ''}`}>{rec ? 'Recorrente' : 'Ocasional'}</span>
-              {customer.whatsapp && (
-                <span style={{ fontSize: 12, color: 'var(--ink-3)', fontFamily: 'var(--mono)' }}>
-                  {customer.whatsapp}
-                </span>
-              )}
+      <PageHead title="Resumo de Produção" subtitle={<span><span className="dot-up"/> Consolidado operacional em tempo real por ciclo de fornada</span>}/>
+      <div className="grid row-half">
+        <div className="card">
+          <div className="card-head">
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="hot-dot"/>
+              Produzir hoje
+              <span className="meta" style={{ marginLeft: 4 }}>Fornada 16/05</span>
+            </h3>
+            <div style={{ textAlign: 'right' }}>
+              <b style={{ fontSize: 26, fontWeight: 500, color: 'var(--ink)' }}>6</b>
+              <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ink-4)' }}>itens totais</div>
             </div>
           </div>
+          <div className="prod-row"><span>Sourdough Tradicional (São João)</span><b>5</b></div>
+          <div className="prod-row"><span>Focaccia de Damasco & Gorgonzola</span><b>1</b></div>
         </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 20 }}>
-          {[
-            { label: 'Total gasto',    value: brl(summary.totalSpent || customer.crm_total || 0),    size: 14 },
-            { label: 'Pedidos',        value: summary.totalOrders    || customer.crm_count || 0,      size: 26 },
-            { label: 'Última compra',  value: fmtDate(summary.lastOrderDate || customer.crm_last),   size: 13 },
-          ].map((s, i) => (
-            <div className="mini-card" key={i}>
-              <small>{s.label}</small>
-              <b style={{ fontSize: s.size, display: 'block', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
-                {s.value}
-              </b>
-            </div>
-          ))}
+        <div className="card">
+          <div className="card-head">
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="cold-dot"/>
+              Próxima fornada
+              <span className="meta" style={{ marginLeft: 4 }}>Fila acumulada · 23/05</span>
+            </h3>
+          </div>
+          <div className="empty-state" style={{ height: 160 }}>
+            <Ic.clock/>
+            <div>Aguardando os primeiros pedidos do próximo ciclo.</div>
+          </div>
         </div>
-
-        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ink-4)', marginBottom: 10 }}>
-          Histórico de pedidos
-        </div>
-
-        {loading ? (
-          <div className="empty-state" style={{ padding: '20px 0' }}>
-            <Ic.spark/><span>Carregando...</span>
-          </div>
-        ) : !orders.length ? (
-          <div className="empty-state" style={{ padding: '20px 0' }}>
-            <Ic.cart/><span>Nenhum pedido encontrado</span>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 260, overflowY: 'auto' }}>
-            {orders.slice(0, 25).map(o => {
-              const st = statusInfo(o.status);
-              return (
-                <div className="order-row-mini" key={o.id}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0, flex: 1 }}>
-                    <b>#{shortId(o.id)} · {itemsSummary(o.items)}</b>
-                    <span style={{ fontSize: 11, color: 'var(--ink-4)' }}>
-                      {fmtDateLong(o.created_at)} · {pmLabel(o.payment_method)}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                    <span className={`tag${st.cls ? ' ' + st.cls : ''}`}>{st.label}</span>
-                    <span style={{ fontWeight: 500, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums', fontSize: 13 }}>
-                      {brlShort(o.total_amount || 0)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {customer.whatsapp && (
-          <a
-            href={`https://wa.me/55${(customer.whatsapp || '').replace(/\D/g, '')}`}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-wpp"
-            style={{ marginTop: 18, width: '100%', textDecoration: 'none', justifyContent: 'center' }}
-          >
-            <Ic.msg style={{ width: 14, height: 14 }}/> Enviar mensagem no WhatsApp
-          </a>
-        )}
       </div>
     </div>
   );
 }
 
-window.FilaDePedidos    = FilaDePedidos;
-window.HistoricoPedidos = HistoricoPedidos;
-window.Clientes         = Clientes;
+window.ClientesPage  = ClientesPage;
+window.HistoricoPage = HistoricoPage;
+window.FilaPage      = FilaPage;
+window.PrevendaPage  = PrevendaPage;
+window.ResumoPage    = ResumoPage;

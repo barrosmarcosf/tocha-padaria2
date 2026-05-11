@@ -1,4 +1,9 @@
-/* global React, ReactDOM, Sidebar, Topbar, NAV, Dashboard, FilaDePedidos, HistoricoPedidos, Clientes */
+/* global React, ReactDOM, Sidebar, Topbar, NAV, Dashboard,
+   FilaPage, HistoricoPage, PrevendaPage, ResumoPage, ClientesPage,
+   PagamentoPage, HorarioPage, HomePageCfgPage, LojaPage,
+   CardapioPage, CentralMsgPage, CfgMsgPage, InteligenciaPage,
+   PagtoPainelPage, FunilPage, AlertasPage, InsightsPage, EditarPerfilPage,
+   Placeholder */
 
 const AUTH_KEY = 'tocha_admin_token';
 
@@ -26,25 +31,37 @@ function App() {
 
   if (!authed) return <Login onAuth={() => setAuthed(true)} />;
 
+  const renderPage = () => {
+    switch (page) {
+      case 'home':          return <Dashboard/>;
+      case 'fila':          return <FilaPage/>;
+      case 'historico':     return <HistoricoPage/>;
+      case 'prevenda':      return <PrevendaPage/>;
+      case 'resumo':        return <ResumoPage/>;
+      case 'clientes':      return <ClientesPage/>;
+      case 'loja':          return <LojaPage/>;
+      case 'home-cfg':      return <HomePageCfgPage/>;
+      case 'horario':       return <HorarioPage/>;
+      case 'pagamentos':    return <PagamentoPage/>;
+      case 'cardapio':      return <CardapioPage/>;
+      case 'central-msg':   return <CentralMsgPage/>;
+      case 'cfg-msg':       return <CfgMsgPage/>;
+      case 'inteligencia':  return <InteligenciaPage/>;
+      case 'pagto-painel':  return <PagtoPainelPage/>;
+      case 'funil':         return <FunilPage/>;
+      case 'alertas':       return <AlertasPage/>;
+      case 'insights':      return <InsightsPage/>;
+      case 'perfil':        return <EditarPerfilPage/>;
+      default:              return <Placeholder pageId={page}/>;
+    }
+  };
+
   return (
     <div className="app">
       <Sidebar active={page} onNavigate={handleNavigate} mobileOpen={sbOpen} onClose={() => setSbOpen(false)}/>
       <div className="main">
         <Topbar pageLabel={label} onNavigate={handleNavigate} onHamburger={() => setSbOpen(o => !o)}/>
-        {page === 'home'      && <Dashboard/>}
-        {page === 'fila'      && <FilaDePedidos/>}
-        {page === 'historico' && <HistoricoPedidos/>}
-        {page === 'clientes'  && <Clientes/>}
-        {!['home','fila','historico','clientes'].includes(page) && (
-          <div className="page">
-            <div className="page-head">
-              <div>
-                <h1><em>{label}</em></h1>
-                <p className="sub">Módulo em implementação</p>
-              </div>
-            </div>
-          </div>
-        )}
+        {renderPage()}
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 /* global React, Ic, KPI, AreaChart, Donut, brl, brlShort */
 const {
-  useState: useStD,
-  useEffect: useEffD
+  useState: useStD
 } = React;
 function ClientCardModal({
   client,
@@ -41,13 +40,6 @@ function ClientCardModal({
     onClick: onClose
   }, "Voltar ao Dashboard")));
 }
-const PERIOD_API = {
-  hoje: 'today',
-  ontem: 'yesterday',
-  '7d': '7d',
-  mes: 'month',
-  custom: 'custom'
-};
 const PERIOD_LABEL = {
   hoje: 'Hoje',
   ontem: 'Ontem',
@@ -59,55 +51,7 @@ function Dashboard() {
   const D = window.DASH_DATA;
   const [period, setPeriod] = useStD('mes');
   const [openClient, setOpenClient] = useStD(null);
-  const [kpiData, setKpiData] = useStD(null);
-  const [chartData, setChartData] = useStD(null);
-  useEffD(() => {
-    const prevFrom = (val, varPct) => varPct === 0 ? val : val * 100 / (100 + varPct);
-    const safeSpk = arr => arr.length >= 2 ? arr : arr.length === 1 ? [arr[0], arr[0]] : [0, 0];
-    const toSerie = arr => (arr || []).map(p => ({
-      label: p.data,
-      value: p.faturamento
-    }));
-    window.apiGet('/api/admin/stats?period=' + (PERIOD_API[period] || 'month')).then(data => {
-      const s = data.serieTemporal || [];
-      setKpiData({
-        faturamento: {
-          value: data.faturamento,
-          prev: prevFrom(data.faturamento, data.variacao.faturamento),
-          spark: safeSpk(s.map(p => p.faturamento))
-        },
-        pedidos: {
-          value: data.pedidos,
-          prev: prevFrom(data.pedidos, data.variacao.pedidos),
-          spark: safeSpk(s.map(p => p.pedidos))
-        },
-        ticket: {
-          value: data.ticketMedio,
-          prev: prevFrom(data.ticketMedio, data.variacao.ticketMedio),
-          spark: safeSpk(s.map(p => p.ticketMedio))
-        },
-        lucro: {
-          value: data.lucro,
-          prev: prevFrom(data.lucro, data.variacao.lucro),
-          spark: safeSpk(s.map(p => p.lucro))
-        }
-      });
-      const curr = toSerie(data.serieTemporal);
-      const prev = toSerie(data.serieAnterior);
-      if (curr.length >= 2 && prev.length >= 2) {
-        const n = curr.length;
-        const prevAligned = prev.length >= n ? prev.slice(0, n) : [...prev, ...Array(n - prev.length).fill({
-          label: '',
-          value: 0
-        })];
-        setChartData({
-          current: curr,
-          previous: prevAligned
-        });
-      }
-    }).catch(() => setKpiData(null));
-  }, [period]);
-  const K = kpiData || D.kpis;
+  const K = D.kpis;
   const today = D.today || new Date();
   const dateLabel = today.toLocaleDateString('pt-BR', {
     day: 'numeric',
@@ -194,8 +138,8 @@ function Dashboard() {
       verticalAlign: 'middle'
     }
   }), "M\xEAs anterior"))), /*#__PURE__*/React.createElement(AreaChart, {
-    current: (chartData || D.revenueSeries).current,
-    previous: (chartData || D.revenueSeries).previous
+    current: D.revenueSeries.current,
+    previous: D.revenueSeries.previous
   })), /*#__PURE__*/React.createElement("div", {
     className: "card hoverable"
   }, /*#__PURE__*/React.createElement("div", {

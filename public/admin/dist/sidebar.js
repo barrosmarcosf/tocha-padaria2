@@ -119,58 +119,17 @@ const NAV = [{
 }];
 function Sidebar({
   active,
-  onNavigate,
-  mobileOpen,
-  onClose
+  onNavigate
 }) {
-  const handleNav = id => {
-    onNavigate(id);
-    onClose && onClose();
-  };
-  return /*#__PURE__*/React.createElement(React.Fragment, null, mobileOpen && /*#__PURE__*/React.createElement("div", {
-    className: "sb-overlay",
-    onClick: onClose
-  }), /*#__PURE__*/React.createElement("aside", {
-    className: `sb${mobileOpen ? ' open' : ''}`
+  return /*#__PURE__*/React.createElement("aside", {
+    className: "sb"
   }, /*#__PURE__*/React.createElement("div", {
     className: "sb-brand"
   }, /*#__PURE__*/React.createElement("div", {
     className: "sb-logo"
   }, "T"), /*#__PURE__*/React.createElement("div", {
     className: "sb-brand-text"
-  }, /*#__PURE__*/React.createElement("b", null, "Tocha"), /*#__PURE__*/React.createElement("span", null, "Padaria \xB7 Admin")), /*#__PURE__*/React.createElement("button", {
-    className: "sb-close",
-    onClick: onClose,
-    "aria-label": "Fechar menu",
-    style: {
-      marginLeft: 'auto',
-      display: 'none',
-      background: 'none',
-      border: 'none',
-      color: 'var(--ink-3)',
-      cursor: 'pointer',
-      padding: '4px',
-      borderRadius: 'var(--r-sm)'
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "18",
-    height: "18",
-    viewBox: "0 0 18 18",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: "2",
-    strokeLinecap: "round"
-  }, /*#__PURE__*/React.createElement("line", {
-    x1: "3",
-    y1: "3",
-    x2: "15",
-    y2: "15"
-  }), /*#__PURE__*/React.createElement("line", {
-    x1: "15",
-    y1: "3",
-    x2: "3",
-    y2: "15"
-  })))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("b", null, "Tocha"), /*#__PURE__*/React.createElement("span", null, "Padaria \xB7 Admin"))), /*#__PURE__*/React.createElement("div", {
     style: {
       overflowY: 'auto',
       flex: 1,
@@ -186,7 +145,7 @@ function Sidebar({
     return /*#__PURE__*/React.createElement("div", {
       key: n.id,
       className: `sb-item ${active === n.id ? 'active' : ''}`,
-      onClick: () => handleNav(n.id)
+      onClick: () => onNavigate(n.id)
     }, /*#__PURE__*/React.createElement("span", {
       className: "sb-ic"
     }, /*#__PURE__*/React.createElement(Ico, null)), /*#__PURE__*/React.createElement("span", null, n.label), n.badge && /*#__PURE__*/React.createElement("span", {
@@ -200,12 +159,11 @@ function Sidebar({
     style: {
       minWidth: 0
     }
-  }, /*#__PURE__*/React.createElement("b", null, "Tocha Padaria"), /*#__PURE__*/React.createElement("small", null, "admin@tochapadaria")))));
+  }, /*#__PURE__*/React.createElement("b", null, "Tocha Padaria"), /*#__PURE__*/React.createElement("small", null, "admin@tochapadaria"))));
 }
 function Topbar({
   pageLabel,
-  onNavigate,
-  onHamburger
+  onNavigate
 }) {
   const [open, setOpen] = React.useState(false);
   React.useEffect(() => {
@@ -216,34 +174,7 @@ function Topbar({
   }, [open]);
   return /*#__PURE__*/React.createElement("div", {
     className: "topbar"
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "ham-btn",
-    onClick: onHamburger,
-    "aria-label": "Abrir menu"
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "18",
-    height: "18",
-    viewBox: "0 0 18 18",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: "2",
-    strokeLinecap: "round"
-  }, /*#__PURE__*/React.createElement("line", {
-    x1: "2",
-    y1: "4.5",
-    x2: "16",
-    y2: "4.5"
-  }), /*#__PURE__*/React.createElement("line", {
-    x1: "2",
-    y1: "9",
-    x2: "16",
-    y2: "9"
-  }), /*#__PURE__*/React.createElement("line", {
-    x1: "2",
-    y1: "13.5",
-    x2: "16",
-    y2: "13.5"
-  }))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
     className: "crumb"
   }, /*#__PURE__*/React.createElement("span", null, "Admin"), /*#__PURE__*/React.createElement(Ic.chev, null), /*#__PURE__*/React.createElement("b", null, pageLabel)), /*#__PURE__*/React.createElement("div", {
     className: "tb-spacer"
@@ -282,7 +213,10 @@ function Topbar({
     className: "up-ic"
   }, "\u270E"), " Editar perfil"), /*#__PURE__*/React.createElement("button", {
     className: "user-pop-item danger",
-    onClick: () => setOpen(false)
+    onClick: () => {
+      setOpen(false);
+      onNavigate && onNavigate('logout');
+    }
   }, /*#__PURE__*/React.createElement("span", {
     className: "up-ic"
   }, "\u21AA"), " Sair"))));
