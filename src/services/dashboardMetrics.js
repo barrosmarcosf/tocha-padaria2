@@ -192,7 +192,8 @@ async function getDashboardMetrics(supabase, { period = 'today', from, to, tzOff
             ticketMedio: pct(current.ticketMedio, previous.ticketMedio),
             lucro: pct(current.lucro, previous.lucro)
         },
-        serieTemporal: buildTimeSeries(currentOrders, costMap, start, end, period)
+        serieTemporal: buildTimeSeries(currentOrders, costMap, start, end, period),
+        serieAnterior: buildTimeSeries(previousOrders, costMap, prevStart, prevEnd, period)
     };
 }
 

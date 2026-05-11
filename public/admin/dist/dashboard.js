@@ -60,9 +60,14 @@ function Dashboard() {
   const [period, setPeriod] = useStD('mes');
   const [openClient, setOpenClient] = useStD(null);
   const [kpiData, setKpiData] = useStD(null);
+  const [chartData, setChartData] = useStD(null);
   useEffD(() => {
     const prevFrom = (val, varPct) => varPct === 0 ? val : val * 100 / (100 + varPct);
     const safeSpk = arr => arr.length >= 2 ? arr : arr.length === 1 ? [arr[0], arr[0]] : [0, 0];
+    const toSerie = arr => (arr || []).map(p => ({
+      label: p.data,
+      value: p.faturamento
+    }));
     window.apiGet('/api/admin/stats?period=' + (PERIOD_API[period] || 'month')).then(data => {
       const s = data.serieTemporal || [];
       setKpiData({
@@ -87,6 +92,19 @@ function Dashboard() {
           spark: safeSpk(s.map(p => p.lucro))
         }
       });
+      const curr = toSerie(data.serieTemporal);
+      const prev = toSerie(data.serieAnterior);
+      if (curr.length >= 2 && prev.length >= 2) {
+        const n = curr.length;
+        const prevAligned = prev.length >= n ? prev.slice(0, n) : [...prev, ...Array(n - prev.length).fill({
+          label: '',
+          value: 0
+        })];
+        setChartData({
+          current: curr,
+          previous: prevAligned
+        });
+      }
     }).catch(() => setKpiData(null));
   }, [period]);
   const K = kpiData || D.kpis;
@@ -176,8 +194,8 @@ function Dashboard() {
       verticalAlign: 'middle'
     }
   }), "M\xEAs anterior"))), /*#__PURE__*/React.createElement(AreaChart, {
-    current: D.revenueSeries.current,
-    previous: D.revenueSeries.previous
+    current: (chartData || D.revenueSeries).current,
+    previous: (chartData || D.revenueSeries).previous
   })), /*#__PURE__*/React.createElement("div", {
     className: "card hoverable"
   }, /*#__PURE__*/React.createElement("div", {
