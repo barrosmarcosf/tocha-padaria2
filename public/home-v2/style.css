@@ -1449,11 +1449,17 @@ footer {
   font-size: 48px; margin-bottom: 16px; line-height: 1;
 }
 img.pix-icon {
-  width: 18px;
-  height: 18px;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
-  opacity: 0.95;
+  opacity: 1;
   filter: none;
+}
+img.pix-icon-pending {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 4px 12px rgba(50,188,173,0.35));
 }
 .checkout-info {
   font-size: 14px;

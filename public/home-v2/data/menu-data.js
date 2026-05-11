@@ -6,7 +6,7 @@ const MENU_DATA = {
     icon: "🍞",
     desc: "O coração da Tocha. Fermentação natural, dias de processo.",
     items: [
-      { id: 801, name: "Sourdough Tradicional", price: 38, desc: "O pão que começou tudo. Levain vivo, farinha de qualidade, longa fermentação. Casca que racha.", tag: "Clássico", img: "https://www.tochapadaria.com/assets/sourdough.jpg" },
+      { id: 801, name: "Sourdough Tradicional", price: 1, desc: "O pão que começou tudo. Levain vivo, farinha de qualidade, longa fermentação. Casca que racha.", tag: "Clássico", img: "https://www.tochapadaria.com/assets/sourdough.jpg" },
       { id: 802, name: "Sourdough Integral", price: 40, desc: "Farinha integral, miolo denso e úmido, sabor levemente adocicado. Nutritivo e delicioso.", tag: null, img: "" },
       { id: 803, name: "Sourdough Gorgonzola", price: 46, desc: "Pedaços de gorgonzola derretidos na massa. Para os apreciadores de queijo.", tag: "Especial", img: "", stock: 0 },
       { id: 804, name: "Sourdough Parmesão", price: 44, desc: "Parmesão ralado incorporado à massa — sabor umami intenso com casca dourada e crocante.", tag: null, img: "" },

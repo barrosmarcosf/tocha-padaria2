@@ -232,8 +232,9 @@ module.exports = function (supabase) {
             if (batchDate) {
                 for (const item of cart) {
                     const available = await getUnifiedAvailableStock(supabase, item.id);
-                    console.log(`📦 [StockCheck-MP] Produto: ${item.id}, Solicitado: ${item.qty}, Disponível: ${available}`);
-                    if (available < item.qty) {
+                    console.log('STOCK DEBUG:', { productId: item.id, available, type: typeof available });
+                    if (available !== null && available < item.qty) {
+                        console.log('VALIDATION_TRIGGERED', { available, qty: item.qty });
                         return res.status(400).json({ error: `Estoque insuficiente para ${item.name}.` });
                     }
                 }
@@ -1041,7 +1042,9 @@ async function recalcularTotal(supabase, cart) {
             .maybeSingle();
 
         if (error || !product) {
-            throw new Error(`Produto ${item.id} não encontrado no banco.`);
+            console.warn('PRODUCT_NOT_FOUND_PRICE:', { productId: item.id, usingCartPrice: item.price });
+            total += Number(item.price) * parseInt(item.qty);
+            continue;
         }
 
         total += Number(product.price) * parseInt(item.qty);

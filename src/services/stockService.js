@@ -17,8 +17,8 @@ async function getUnifiedAvailableStock(supabase, productId) {
         
         if (pError) console.error("❌ [StockService] Erro DB Produtos:", pError);
         if (!p) {
-            console.warn(`⚠️ [StockService] Produto não encontrado no DB: ${productId}`);
-            return 0;
+            console.warn('PRODUCT_NOT_FOUND', { productId });
+            return null;
         }
 
         const globalStock = p.stock_quantity || 0;
@@ -37,7 +37,8 @@ async function getUnifiedAvailableStock(supabase, productId) {
                 
                 if (bStock) {
                     console.log(`📦 [StockService] Estoque em Lote: ${bStock.estoque_disponivel}`);
-                    return Number(bStock.estoque_disponivel) || 0;
+                    // null = não configurado → sem bloqueio; 0 = esgotado → bloqueia
+                    return bStock.estoque_disponivel != null ? Number(bStock.estoque_disponivel) : null;
                 }
                 console.log(`ℹ️ [StockService] Sem estoque específico em lote para este produto.`);
             }

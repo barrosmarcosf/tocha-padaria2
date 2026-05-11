@@ -41,7 +41,11 @@ async function recalcularTotal(supabase, cart) {
     let total = 0;
     for (const item of cart) {
         const price = priceMap[String(item.id)];
-        if (price == null) throw new Error(`Produto ${item.id} não encontrado.`);
+        if (price == null) {
+            console.warn('PRODUCT_NOT_FOUND_PRICE:', { productId: item.id, usingCartPrice: item.price });
+            total += Number(item.price) * parseInt(item.qty);
+            continue;
+        }
         total += price * parseInt(item.qty);
     }
     return Math.round(total * 100) / 100;
@@ -116,7 +120,12 @@ module.exports = function (supabase, stripe) {
             if (batchDate) {
                 for (const item of cart) {
                     const available = await getUnifiedAvailableStock(supabase, item.id);
+                    console.log('STOCK DEBUG:', { productId: item.id, available, type: typeof available });
+                    if (available === null) {
+                        console.warn('CHECKOUT_WITH_UNKNOWN_PRODUCT', { productId: item.id });
+                    }
                     if (available !== null && available < item.qty) {
+                        console.log('VALIDATION_TRIGGERED', { available, qty: item.qty });
                         const { data: pInfo } = await supabase.from('produtos').select('name').eq('id', item.id).maybeSingle();
                         return res.status(400).json({
                             error: `Estoque insuficiente para "${pInfo?.name || item.id}". Disponível: ${available}`

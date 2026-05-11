@@ -553,7 +553,7 @@
       badge.textContent = total;
       badge.dataset.count = total;
     }
-    if (['error_card', 'error_generic', 'stripe_checkout', 'stripe_redirecting'].includes(state.drawerView)) {
+    if (['stripe_checkout', 'stripe_redirecting'].includes(state.drawerView)) {
       state.drawerView = 'cart';
     }
     renderDrawerBody();
@@ -704,6 +704,8 @@
 
     if (footer) {
       footer.style.display = '';
+      var secEl0 = qs('#footer-security');
+      if (secEl0) secEl0.style.display = 'none';
       var totalVal = state.cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0);
       var totalEl  = qs('#cart-total');
       if (totalEl) totalEl.textContent = fmt(totalVal);
@@ -760,7 +762,7 @@
     }).join('');
 
     var paymentOpts = [
-      { key: 'mp_pix',  icon: '<img src="/assets/icons/pix.svg" class="pix-icon" alt="PIX">', title: 'PIX', desc: 'Via Mercado Pago · instantâneo · sem taxas' },
+      { key: 'mp_pix',  icon: '<img src="/assets/icons/pix.svg?v=2" class="pix-icon" alt="PIX">', title: 'PIX', desc: 'Via Mercado Pago · instantâneo · sem taxas' },
       { key: 'mp_card', icon: '💳', title: 'Cartão de Crédito', desc: 'Via Mercado Pago · parcelamento disponível' },
     ];
 
@@ -779,8 +781,7 @@
     var fornadaDate = getNextSaturday();
     body.innerHTML =
       '<div class="checkout-form">' +
-        '<p class="checkout-info">Você está finalizando sua compra para a <strong>fornada de sábado (' + fornadaDate + ')</strong>.</p>' +
-        '<p class="checkout-security">🔒 Ambiente seguro de pagamento. Seus dados são protegidos.</p>' +
+        '<p class="checkout-info">Pagamento para fornada de sábado ' + fornadaDate.slice(0,6) + fornadaDate.slice(8) + '</p>' +
         '<div class="checkout-section-label">Seus Dados</div>' +
         '<input id="co-name"  class="checkout-input" type="text"  placeholder="Nome completo *"          value="' + escHtml(name)  + '" autocomplete="name">' +
         '<input id="co-phone" class="checkout-input" type="tel"   placeholder="WhatsApp (21) 99999-9999 *" value="' + escHtml(phone) + '" autocomplete="tel">' +
@@ -820,6 +821,8 @@
 
     if (footer) {
       footer.style.display = '';
+      var secEl = qs('#footer-security');
+      if (secEl) secEl.style.display = '';
       var totalEl = qs('#cart-total');
       if (totalEl) totalEl.textContent = fmt(totalVal);
       var totalLabel = qs('.cart-total-label');
@@ -884,7 +887,7 @@
       '<div class="drawer-state-view pix-pending-view">' +
         (pix && pix.qr_code
           ? '<img class="pix-qr-img" src="' + pix.qr_code + '" alt="QR Code PIX">'
-          : '<div class="pix-icon">⚡</div>'
+          : '<img src="/assets/icons/pix.svg" class="pix-icon pix-icon-pending" alt="PIX">'
         ) +
         '<h3 class="drawer-state-title">PIX gerado!</h3>' +
         '<p class="drawer-state-text">Escaneie o QR Code ou copie o código Pix abaixo.</p>' +
@@ -896,8 +899,7 @@
             '</div>'
           : ''
         ) +
-        '<p class="drawer-state-text" style="font-size:12px;color:var(--text-dim);margin-top:16px">Após pagar, envie o comprovante:</p>' +
-        '<a href="https://wa.me/5521966278965" target="_blank" rel="noopener" class="btn-whatsapp-order" style="margin-top:8px;text-decoration:none;display:block;text-align:center">Enviar comprovante →</a>' +
+        '<p class="drawer-state-text" style="font-size:12px;color:var(--text-dim);margin-top:16px">Aguardando confirmação automática do pagamento…</p>' +
       '</div>';
     if (footer) footer.style.display = 'none';
 
@@ -930,8 +932,8 @@
     body.innerHTML =
       '<div class="drawer-state-view">' +
         '<div class="drawer-success-icon">✓</div>' +
-        '<h3 class="drawer-state-title">Pedido confirmado com sucesso</h3>' +
-        '<p class="drawer-state-text">Você receberá atualizações pelo WhatsApp.</p>' +
+        '<h3 class="drawer-state-title">Pagamento aprovado!</h3>' +
+        '<p class="drawer-state-text">Enviamos as informações da sua compra pelo WhatsApp.</p>' +
         '<button id="success-close-btn" class="btn-success-close">Fechar</button>' +
       '</div>';
     if (footer) footer.style.display = 'none';
@@ -944,18 +946,18 @@
     body.innerHTML =
       '<div class="drawer-state-view">' +
         '<div class="drawer-error-icon">✕</div>' +
-        '<h3 class="drawer-state-title">' + (isCard ? 'Pagamento não aprovado' : 'Erro no pedido') + '</h3>' +
+        '<h3 class="drawer-state-title">' + (isCard ? 'Pagamento negado!' : 'Erro no pedido') + '</h3>' +
         '<p class="drawer-state-text">' +
           (isCard
-            ? 'Não foi possível aprovar este pagamento com este cartão.'
-            : 'Algo deu errado. Tente novamente ou fale conosco.'
+            ? 'Não foi possível processar o pagamento com este cartão.'
+            : 'Algo deu errado. Tente novamente.'
           ) +
         '</p>' +
         (isCard
           ? '<div class="error-actions">' +
               '<button id="retry-btn"      class="btn-error-action btn-error-retry">Tentar novamente</button>' +
+              '<button id="try-pix-btn"    class="btn-error-action btn-error-pix">Pagar com Pix</button>' +
               '<button id="try-stripe-btn" class="btn-error-action btn-error-stripe">Pagar com outro cartão</button>' +
-              '<button id="try-pix-btn"    class="btn-error-action btn-error-pix">Pagar com PIX</button>' +
             '</div>'
           : '<button id="retry-btn" class="btn-whatsapp-order" style="margin-top:24px">Tentar novamente</button>'
         ) +

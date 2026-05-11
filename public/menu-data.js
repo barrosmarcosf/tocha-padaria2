@@ -5,7 +5,7 @@ const menuData = [
         description: "O clássico da Tocha: casca crocante, miolo leve e macio.",
         image: "assets/sourdough.jpg",
         items: [
-            { id: "sd-01", name: "Sourdough Tradicional (São João)", price: 62, desc: "O clássico da Tocha. Crosta caramelizada, miolo alveolado." },
+            { id: "sd-01", name: "Sourdough Tradicional (São João)", price: 1, desc: "O clássico da Tocha. Crosta caramelizada, miolo alveolado." },
             { id: "sd-02", name: "Sourdough Integral", price: 55, desc: "Farinha integral, sabor profundo e nutritivo." },
             { id: "sd-03", name: "Sourdough Gorgonzola", price: 68, desc: "Intenso, ousado, inesquecível." },
             { id: "sd-04", name: "Sourdough Parmesão", price: 68, desc: "Crosta dourada com parmesão caramelizado." },
