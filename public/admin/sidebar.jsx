@@ -33,9 +33,9 @@ function Sidebar({ active, onNavigate }) {
   return (
     <aside className="sb">
       <div className="sb-brand">
-        <div className="sb-logo">T</div>
+        <div className="sb-logo"><img src="/assets/logo-gold.png" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 3 }}/></div>
         <div className="sb-brand-text">
-          <b>Tocha</b>
+          <b>TOCHA</b>
           <span>Padaria · Admin</span>
         </div>
       </div>
@@ -59,7 +59,7 @@ function Sidebar({ active, onNavigate }) {
       <div className="sb-foot">
         <div className="sb-avatar">TP</div>
         <div style={{ minWidth: 0 }}>
-          <b>Tocha Padaria</b>
+          <b>TOCHA PADARIA</b>
           <small>admin@tochapadaria</small>
         </div>
       </div>
@@ -88,7 +88,7 @@ function Topbar({ pageLabel, onNavigate }) {
       <button className="icon-btn" title="Alertas"><Ic.bell/></button>
       <div className="tb-store user-pop-wrap"
            onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}>
-        <div className="lg">T</div>
+        <div className="lg"><img src="/assets/logo-gold.png" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}/></div>
         <div>
           <b>TOCHA PADARIA</b>
           <small>São João de Meriti</small>
@@ -96,7 +96,7 @@ function Topbar({ pageLabel, onNavigate }) {
         {open && (
           <div className="user-pop" onClick={e => e.stopPropagation()}>
             <div className="user-pop-head">
-              <div className="lg sm">T</div>
+              <div className="lg sm"><img src="/assets/logo-gold.png" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}/></div>
               <div>
                 <b>TOCHA PADARIA</b>
                 <small>admin@tochapadaria</small>

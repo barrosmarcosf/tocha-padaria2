@@ -19,7 +19,7 @@
   --ink-3:      #8B8576;
   --ink-4:      #5E5849;
 
-  /* Accent — gold/wheat (Tochá brand warmth) */
+  /* Accent — gold/wheat (TOCHA brand warmth) */
   --gold:       oklch(0.80 0.13 78);
   --gold-2:     oklch(0.68 0.13 65);
   --gold-soft:  oklch(0.80 0.13 78 / 0.16);
@@ -139,7 +139,7 @@ button { font-family: inherit; }
   font-size: 18px;
   letter-spacing: 0;
   color: var(--ink);
-  font-style: italic;
+  font-style: normal;
 }
 .sb-brand-text span {
   font-size: 9.5px;
@@ -318,7 +318,7 @@ button { font-family: inherit; }
   line-height: 1.15;
 }
 .page-head h1 em {
-  font-style: italic;
+  font-style: normal;
   color: var(--ink);
 }
 .page-head .sub {

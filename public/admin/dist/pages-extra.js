@@ -913,7 +913,7 @@ function FunilPage() {
     }
   })), /*#__PURE__*/React.createElement("span", {
     className: "origin-v"
-  }, /*#__PURE__*/React.createElement("b", null, r.v), " pedidos ", /*#__PURE__*/React.createElement("em", null, r.pct, "%"))))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("b", null, r.v), " pedidos ", /*#__PURE__*/React.createElement("span", null, r.pct, "%"))))), /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       display: 'flex',
@@ -1054,7 +1054,7 @@ function PagtoPainelPage() {
 const CATEGORIAS = [{
   id: 'sourdough',
   name: 'Sourdough',
-  desc: 'O clássico da Tocha: casca crocante, miolo leve e macio.'
+  desc: 'O clássico da TOCHA: casca crocante, miolo leve e macio.'
 }, {
   id: 'focaccia',
   name: 'Focaccias',
@@ -1086,7 +1086,7 @@ const CATEGORIAS = [{
 }];
 const PRODUTOS = [{
   name: 'Sourdough Tradicional (São João)',
-  desc: 'O clássico da Tocha. Crosta caramelizada, miolo alveolado.',
+  desc: 'O clássico da TOCHA. Crosta caramelizada, miolo alveolado.',
   price: 1.00,
   status: 'ATIVO',
   stock: '2 un.'

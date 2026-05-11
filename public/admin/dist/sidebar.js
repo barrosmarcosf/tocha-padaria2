@@ -127,9 +127,17 @@ function Sidebar({
     className: "sb-brand"
   }, /*#__PURE__*/React.createElement("div", {
     className: "sb-logo"
-  }, "T"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("img", {
+    src: "/assets/logo-gold.png",
+    style: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'contain',
+      padding: 3
+    }
+  })), /*#__PURE__*/React.createElement("div", {
     className: "sb-brand-text"
-  }, /*#__PURE__*/React.createElement("b", null, "Tocha"), /*#__PURE__*/React.createElement("span", null, "Padaria \xB7 Admin"))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("b", null, "TOCHA"), /*#__PURE__*/React.createElement("span", null, "Padaria \xB7 Admin"))), /*#__PURE__*/React.createElement("div", {
     style: {
       overflowY: 'auto',
       flex: 1,
@@ -159,7 +167,7 @@ function Sidebar({
     style: {
       minWidth: 0
     }
-  }, /*#__PURE__*/React.createElement("b", null, "Tocha Padaria"), /*#__PURE__*/React.createElement("small", null, "admin@tochapadaria"))));
+  }, /*#__PURE__*/React.createElement("b", null, "TOCHA PADARIA"), /*#__PURE__*/React.createElement("small", null, "admin@tochapadaria"))));
 }
 function Topbar({
   pageLabel,
@@ -196,14 +204,30 @@ function Topbar({
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "lg"
-  }, "T"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "TOCHA PADARIA"), /*#__PURE__*/React.createElement("small", null, "S\xE3o Jo\xE3o de Meriti")), open && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("img", {
+    src: "/assets/logo-gold.png",
+    style: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'contain',
+      padding: 2
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "TOCHA PADARIA"), /*#__PURE__*/React.createElement("small", null, "S\xE3o Jo\xE3o de Meriti")), open && /*#__PURE__*/React.createElement("div", {
     className: "user-pop",
     onClick: e => e.stopPropagation()
   }, /*#__PURE__*/React.createElement("div", {
     className: "user-pop-head"
   }, /*#__PURE__*/React.createElement("div", {
     className: "lg sm"
-  }, "T"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "TOCHA PADARIA"), /*#__PURE__*/React.createElement("small", null, "admin@tochapadaria"))), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("img", {
+    src: "/assets/logo-gold.png",
+    style: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'contain',
+      padding: 2
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "TOCHA PADARIA"), /*#__PURE__*/React.createElement("small", null, "admin@tochapadaria"))), /*#__PURE__*/React.createElement("button", {
     className: "user-pop-item",
     onClick: () => {
       setOpen(false);

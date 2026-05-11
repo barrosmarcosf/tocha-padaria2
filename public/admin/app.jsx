@@ -108,10 +108,11 @@ function Login({ onAuth }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 6 }}>
           <div style={{
             width: 32, height: 32, border: '1px solid var(--gold-line)',
-            borderRadius: 4, display: 'grid', placeItems: 'center',
-            fontFamily: 'var(--display)', fontSize: 18, color: 'var(--gold)',
-          }}>T</div>
-          <div style={{ fontFamily: 'var(--display)', fontSize: 20, color: 'var(--ink)', fontStyle: 'italic' }}>Tocha</div>
+            borderRadius: 4, display: 'grid', placeItems: 'center', padding: 4,
+          }}>
+            <img src="/assets/logo-gold.png" style={{ width: '100%', height: '100%', objectFit: 'contain' }}/>
+          </div>
+          <div style={{ fontFamily: 'var(--display)', fontSize: 20, color: 'var(--ink)', fontStyle: 'normal', letterSpacing: '0.04em' }}>TOCHA</div>
         </div>
         <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.22em', color: 'var(--ink-4)', marginBottom: 40 }}>Painel Administrativo</div>
         <input

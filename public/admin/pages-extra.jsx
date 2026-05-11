@@ -548,7 +548,7 @@ function FunilPage() {
             <div className="origin-row" key={i}>
               <span className="origin-lbl">{r.l}</span>
               <div className="origin-bar"><div className="origin-fill" style={{ width: `${r.pct}%` }}/></div>
-              <span className="origin-v"><b>{r.v}</b> pedidos <em>{r.pct}%</em></span>
+              <span className="origin-v"><b>{r.v}</b> pedidos <span>{r.pct}%</span></span>
             </div>
           ))}
         </div>
@@ -604,7 +604,7 @@ function PagtoPainelPage() {
 
 /* ========== CARDÁPIO ========== */
 const CATEGORIAS = [
-  { id: 'sourdough',  name: 'Sourdough',           desc: 'O clássico da Tocha: casca crocante, miolo leve e macio.' },
+  { id: 'sourdough',  name: 'Sourdough',           desc: 'O clássico da TOCHA: casca crocante, miolo leve e macio.' },
   { id: 'focaccia',   name: 'Focaccias',           desc: 'Clássicas italianas com azeite de ponta.' },
   { id: 'brioches',   name: 'Brioches',            desc: 'Manteiga, maciez e recheios indescritíveis.' },
   { id: 'mini',       name: 'Mini Brioches',       desc: 'Perfeitos para entradas refinadas.' },
@@ -615,7 +615,7 @@ const CATEGORIAS = [
 ];
 
 const PRODUTOS = [
-  { name: 'Sourdough Tradicional (São João)', desc: 'O clássico da Tocha. Crosta caramelizada, miolo alveolado.', price: 1.00,  status: 'ATIVO',    stock: '2 un.' },
+  { name: 'Sourdough Tradicional (São João)', desc: 'O clássico da TOCHA. Crosta caramelizada, miolo alveolado.', price: 1.00,  status: 'ATIVO',    stock: '2 un.' },
   { name: 'Sourdough Integral',                desc: 'Farinha integral, sabor profundo e nutritivo.',             price: 55.00, status: 'ATIVO',    stock: '5 un.' },
   { name: 'Sourdough Gorgonzola',              desc: 'Intenso, ousado, inesquecível.',                            price: 68.00, status: 'ATIVO',    stock: 'Esgotado' },
   { name: 'Sourdough Parmesão',                desc: 'Crosta dourada com parmesão caramelizado.',                 price: 68.00, status: 'ATIVO',    stock: 'Esgotado' },

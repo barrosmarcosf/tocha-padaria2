@@ -157,18 +157,24 @@ function Login({
       borderRadius: 4,
       display: 'grid',
       placeItems: 'center',
-      fontFamily: 'var(--display)',
-      fontSize: 18,
-      color: 'var(--gold)'
+      padding: 4
     }
-  }, "T"), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("img", {
+    src: "/assets/logo-gold.png",
+    style: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'contain'
+    }
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: 'var(--display)',
       fontSize: 20,
       color: 'var(--ink)',
-      fontStyle: 'italic'
+      fontStyle: 'normal',
+      letterSpacing: '0.04em'
     }
-  }, "Tocha")), /*#__PURE__*/React.createElement("div", {
+  }, "TOCHA")), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 10,
       textTransform: 'uppercase',

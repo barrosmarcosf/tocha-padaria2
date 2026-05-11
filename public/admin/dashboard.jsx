@@ -43,7 +43,7 @@ function Dashboard() {
       <div className="page-head">
         <div>
           <div className="sub" style={{ marginBottom: 6 }}>{dateLabel} · {PERIOD_LABEL[period]}</div>
-          <h1>Boas vindas, <em>Tocha Padaria</em></h1>
+          <h1>Boas vindas, TOCHA PADARIA</h1>
           <div className="sub">
             Próxima fornada em <b>5 dias</b> · <b>{D.fornada.pedidos} pedidos</b> confirmados
           </div>
@@ -221,7 +221,7 @@ function Dashboard() {
                 <small>Intervalo de recompra</small>
                 <b>
                   Média de {D.pausa.repurchaseInterval.toLocaleString('pt-BR')} dias
-                  {' '}<em>({D.pausa.repurchaseStatus})</em>
+                  {' '}({D.pausa.repurchaseStatus})
                 </b>
               </div>
             </>

@@ -67,7 +67,7 @@ function Dashboard() {
     style: {
       marginBottom: 6
     }
-  }, dateLabel, " \xB7 ", PERIOD_LABEL[period]), /*#__PURE__*/React.createElement("h1", null, "Boas vindas, ", /*#__PURE__*/React.createElement("em", null, "Tocha Padaria")), /*#__PURE__*/React.createElement("div", {
+  }, dateLabel, " \xB7 ", PERIOD_LABEL[period]), /*#__PURE__*/React.createElement("h1", null, "Boas vindas, TOCHA PADARIA"), /*#__PURE__*/React.createElement("div", {
     className: "sub"
   }, "Pr\xF3xima fornada em ", /*#__PURE__*/React.createElement("b", null, "5 dias"), " \xB7 ", /*#__PURE__*/React.createElement("b", null, D.fornada.pedidos, " pedidos"), " confirmados")), /*#__PURE__*/React.createElement("div", {
     className: "range"
@@ -267,7 +267,7 @@ function Dashboard() {
     className: "mini"
   }, /*#__PURE__*/React.createElement("small", null, "Ticket m\xE9dio (fiel)"), /*#__PURE__*/React.createElement("b", null, brl(D.pausa.avgTicket)))), /*#__PURE__*/React.createElement("div", {
     className: "highlight"
-  }, /*#__PURE__*/React.createElement("small", null, "Intervalo de recompra"), /*#__PURE__*/React.createElement("b", null, "M\xE9dia de ", D.pausa.repurchaseInterval.toLocaleString('pt-BR'), " dias", ' ', /*#__PURE__*/React.createElement("em", null, "(", D.pausa.repurchaseStatus, ")")))) : /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "Intervalo de recompra"), /*#__PURE__*/React.createElement("b", null, "M\xE9dia de ", D.pausa.repurchaseInterval.toLocaleString('pt-BR'), " dias", ' ', "(", D.pausa.repurchaseStatus, ")"))) : /*#__PURE__*/React.createElement("div", {
     className: "empty-state"
   }, /*#__PURE__*/React.createElement(Ic.users, null), /*#__PURE__*/React.createElement("span", null, "Nenhum cliente em pausa"))), /*#__PURE__*/React.createElement("div", {
     className: "card hoverable"
