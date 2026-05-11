@@ -113,11 +113,11 @@ function OrderModal({ order, onClose, variant = 'historico' }) {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+      <div className="modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
         <button className="modal-x" onClick={onClose}>×</button>
 
         {/* Header: order ID + status badge */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <h2 style={{ fontFamily: 'var(--display)', fontWeight: 400, fontSize: 26, margin: 0, color: 'var(--ink)' }}>
             #{shortId(order.id)}
           </h2>
@@ -125,7 +125,7 @@ function OrderModal({ order, onClose, variant = 'historico' }) {
         </div>
 
         {/* Info 2×2 grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px', marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid var(--line)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 14px', marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid var(--line)' }}>
           <div>
             <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--ink-4)', marginBottom: 5 }}>Cliente</div>
             <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 13 }}>{order.customer_name || 'Sem nome'}</div>
@@ -159,7 +159,7 @@ function OrderModal({ order, onClose, variant = 'historico' }) {
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--gold)', flexShrink: 0, minWidth: 22 }}>{item.qty || 1}×</span>
                 <span style={{ fontWeight: 500, color: 'var(--ink)' }}>{item.name}</span>
               </div>
-              <div style={{ fontWeight: 500, color: 'var(--ink)', flexShrink: 0 }}>{brlShort((item.price || 0) * (item.qty || 1))}</div>
+              <div style={{ fontWeight: 500, color: 'var(--ink)', flexShrink: 0 }}>{brl((item.price || 0) * (item.qty || 1))}</div>
             </div>
           )) : (
             <div style={{ color: 'var(--ink-4)', fontSize: 12, textAlign: 'center', padding: '16px 0' }}>

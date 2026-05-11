@@ -733,7 +733,7 @@ button { font-family: inherit; }
 
 .order-line-item {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 14px 16px;
+  padding: 10px 14px;
   background: var(--panel-2);
   border: 1px solid var(--line);
   border-radius: var(--r);
@@ -742,11 +742,9 @@ button { font-family: inherit; }
 }
 .order-total {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 16px 4px 4px;
-  margin-top: 6px;
+  padding: 14px 0 6px;
+  margin-top: 12px;
   border-top: 1px solid var(--line);
-  margin-top: 14px;
-  padding-top: 14px;
   color: var(--ink);
 }
 

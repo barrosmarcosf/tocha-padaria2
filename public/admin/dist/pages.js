@@ -181,7 +181,7 @@ function OrderModal({
   }, /*#__PURE__*/React.createElement("div", {
     className: "modal",
     style: {
-      maxWidth: 480
+      maxWidth: 460
     },
     onClick: e => e.stopPropagation()
   }, /*#__PURE__*/React.createElement("button", {
@@ -192,7 +192,7 @@ function OrderModal({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 20
+      marginBottom: 16
     }
   }, /*#__PURE__*/React.createElement("h2", {
     style: {
@@ -208,9 +208,9 @@ function OrderModal({
     style: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
-      gap: '14px 20px',
-      marginBottom: 20,
-      paddingBottom: 20,
+      gap: '12px 14px',
+      marginBottom: 16,
+      paddingBottom: 16,
       borderBottom: '1px solid var(--line)'
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
@@ -325,7 +325,7 @@ function OrderModal({
       color: 'var(--ink)',
       flexShrink: 0
     }
-  }, brlShort((item.price || 0) * (item.qty || 1))))) : /*#__PURE__*/React.createElement("div", {
+  }, brl((item.price || 0) * (item.qty || 1))))) : /*#__PURE__*/React.createElement("div", {
     style: {
       color: 'var(--ink-4)',
       fontSize: 12,
