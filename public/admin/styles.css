@@ -1452,3 +1452,156 @@ button { font-family: inherit; }
 
 /* Tweaks panel adapter */
 [data-tweaks-host] { z-index: 60; }
+
+/* ============================================================
+   RESPONSIVE
+   Desktop (≥961px): untouched. All rules below are additive.
+   ============================================================ */
+
+/* Ham button hidden on desktop; shown via media query */
+.ham-btn { display: none; }
+/* sb-overlay hidden on desktop */
+.sb-overlay { display: none; }
+
+/* ---------- TABLET (≤960px) ---------- */
+@media (max-width: 960px) {
+  /* Sidebar: off-canvas drawer */
+  .sb {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.28s var(--ease), box-shadow 0.28s var(--ease);
+    box-shadow: none;
+    width: 240px;
+  }
+  .sb.open {
+    transform: translateX(0);
+    box-shadow: 6px 0 40px #00000060;
+  }
+
+  /* Overlay behind open drawer */
+  .sb-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 190;
+    background: #00000070;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    animation: ovl-in 0.22s ease forwards;
+  }
+  @keyframes ovl-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* Main content takes full width */
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  /* Sidebar close button */
+  .sb-close { display: flex !important; align-items: center; justify-content: center; }
+  .sb-close:hover { background: var(--hover) !important; color: var(--ink) !important; }
+
+  /* Topbar: show hamburger */
+  .topbar { padding-left: 8px; }
+  .ham-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 36px; height: 36px;
+    border-radius: var(--r-sm);
+    border: none;
+    background: transparent;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    margin-right: 4px;
+  }
+  .ham-btn:hover { background: var(--hover); color: var(--ink); }
+
+  /* Hide status pill on narrow topbar */
+  .status-pill { display: none; }
+
+  /* KPI grid: 2 columns */
+  .kpi-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+  /* 2-col row: stack */
+  .row-2 { grid-template-columns: 1fr; }
+
+  /* 3-col row: 2 cols */
+  .row-3 { grid-template-columns: repeat(2, 1fr); }
+
+  /* Mixed row: stack */
+  .row-mix { grid-template-columns: 1fr; }
+
+  /* Row-half: 2 cols (was 3) */
+  .row-half { grid-template-columns: repeat(2, 1fr); }
+
+  /* Donut card: keep horizontal but shrink */
+  .donut-card { padding: var(--pad-card); }
+
+  /* Range picker: allow wrap */
+  .range-wrap { flex-wrap: wrap; gap: 4px; }
+
+  /* Content area padding */
+  .page { padding: 16px 16px 60px; }
+}
+
+/* ---------- MOBILE (≤640px) ---------- */
+@media (max-width: 640px) {
+  /* KPI grid: 1 column */
+  .kpi-row { grid-template-columns: 1fr; gap: 8px; }
+
+  /* All rows: single column */
+  .row-2,
+  .row-3,
+  .row-mix,
+  .row-half { grid-template-columns: 1fr; }
+
+  /* Card padding */
+  .card { --pad-card: 14px; padding: var(--pad-card); }
+
+  /* Donut: vertical stack */
+  .donut-body { flex-direction: column; align-items: center; }
+  .donut-legend { width: 100%; }
+
+  /* Chart height */
+  .chart-wrap { height: 180px; }
+
+  /* Table: allow horizontal scroll */
+  .tbl-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tbl-wrap table { min-width: 520px; }
+
+  /* Condensed table cells */
+  .tbl-wrap th,
+  .tbl-wrap td { padding: 8px 10px; }
+
+  /* KPI typography */
+  .kpi-v { font-size: clamp(20px, 7vw, 26px); }
+
+  /* Topbar compact */
+  .topbar { padding: 0 10px; height: 52px; gap: 4px; }
+  .crumb span:first-child { display: none; }
+  .crumb svg { display: none; }
+
+  /* Hide search button on very small screens */
+  .icon-btn[title="Buscar"] { display: none; }
+
+  /* Content area + page */
+  .main { padding: 0; }
+  .page { padding: 14px 14px 60px; }
+
+  /* Status pill hidden */
+  .status-pill { display: none; }
+
+  /* Card head: allow wrap */
+  .card-head { flex-wrap: wrap; gap: 8px; }
+  .card-head h3 { font-size: 13px; }
+}

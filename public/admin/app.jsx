@@ -7,6 +7,7 @@ function App() {
     localStorage.getItem('tocha_admin_section') || 'home'
   );
   const [authed, setAuthed] = React.useState(!!localStorage.getItem(AUTH_KEY));
+  const [sbOpen, setSbOpen] = React.useState(false);
 
   const navItem = NAV.find(n => n.id === page);
   const label = navItem ? navItem.label : 'Início';
@@ -19,6 +20,7 @@ function App() {
       return;
     }
     setPage(id);
+    setSbOpen(false);
     localStorage.setItem('tocha_admin_section', id);
   };
 
@@ -26,9 +28,9 @@ function App() {
 
   return (
     <div className="app">
-      <Sidebar active={page} onNavigate={handleNavigate}/>
+      <Sidebar active={page} onNavigate={handleNavigate} mobileOpen={sbOpen} onClose={() => setSbOpen(false)}/>
       <div className="main">
-        <Topbar pageLabel={label} onNavigate={handleNavigate}/>
+        <Topbar pageLabel={label} onNavigate={handleNavigate} onHamburger={() => setSbOpen(o => !o)}/>
         {page === 'home'
           ? <Dashboard/>
           : (
