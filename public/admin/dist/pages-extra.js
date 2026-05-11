@@ -878,7 +878,7 @@ function AlertasPage() {
     style: {
       height: 120
     }
-  }, /*#__PURE__*/React.createElement(Ic.check, null), /*#__PURE__*/React.createElement("div", null, "Nenhum alerta ativo.")), alerts.map((a, i) => /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(Ic.shield, null), /*#__PURE__*/React.createElement("div", null, "Nenhum alerta ativo.")), alerts.map((a, i) => /*#__PURE__*/React.createElement("div", {
     className: `alert-row k-${a.k}`,
     key: i
   }, /*#__PURE__*/React.createElement("span", {

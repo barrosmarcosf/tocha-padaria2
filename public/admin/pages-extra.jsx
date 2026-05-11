@@ -614,7 +614,7 @@ function AlertasPage() {
       <div className="card mt" style={{ padding: 8 }}>
         {loading && <div className="empty-state" style={{ height: 120 }}><Ic.clock/><div>Carregando alertas…</div></div>}
         {!loading && alerts.length === 0 && (
-          <div className="empty-state" style={{ height: 120 }}><Ic.check/><div>Nenhum alerta ativo.</div></div>
+          <div className="empty-state" style={{ height: 120 }}><Ic.shield/><div>Nenhum alerta ativo.</div></div>
         )}
         {alerts.map((a, i) => (
           <div className={`alert-row k-${a.k}`} key={i}>
