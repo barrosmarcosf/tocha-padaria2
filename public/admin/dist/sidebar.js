@@ -2,6 +2,7 @@
 const {
   useState: useSt
 } = React;
+const LOGO = '/assets/logo-footer%20(1).png';
 const NAV = [{
   kind: 'item',
   id: 'home',
@@ -124,20 +125,6 @@ function Sidebar({
   return /*#__PURE__*/React.createElement("aside", {
     className: "sb"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "sb-brand"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "sb-logo"
-  }, /*#__PURE__*/React.createElement("img", {
-    src: "/assets/logo-gold.png",
-    style: {
-      width: '100%',
-      height: '100%',
-      objectFit: 'contain',
-      padding: 3
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "sb-brand-text"
-  }, /*#__PURE__*/React.createElement("b", null, "TOCHA"), /*#__PURE__*/React.createElement("span", null, "Padaria \xB7 Admin"))), /*#__PURE__*/React.createElement("div", {
     style: {
       overflowY: 'auto',
       flex: 1,
@@ -171,7 +158,8 @@ function Sidebar({
 }
 function Topbar({
   pageLabel,
-  onNavigate
+  onNavigate,
+  onHamburger
 }) {
   const [open, setOpen] = React.useState(false);
   React.useEffect(() => {
@@ -183,6 +171,19 @@ function Topbar({
   return /*#__PURE__*/React.createElement("div", {
     className: "topbar"
   }, /*#__PURE__*/React.createElement("div", {
+    className: "tb-logo-wrap"
+  }, /*#__PURE__*/React.createElement("img", {
+    src: LOGO,
+    style: {
+      width: 26,
+      height: 26,
+      objectFit: 'contain'
+    }
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "icon-btn",
+    onClick: onHamburger,
+    title: "Menu"
+  }, /*#__PURE__*/React.createElement(Ic.menu, null)), /*#__PURE__*/React.createElement("div", {
     className: "crumb"
   }, /*#__PURE__*/React.createElement("span", null, "Admin"), /*#__PURE__*/React.createElement(Ic.chev, null), /*#__PURE__*/React.createElement("b", null, pageLabel)), /*#__PURE__*/React.createElement("div", {
     className: "tb-spacer"
@@ -205,14 +206,14 @@ function Topbar({
   }, /*#__PURE__*/React.createElement("div", {
     className: "lg"
   }, /*#__PURE__*/React.createElement("img", {
-    src: "/assets/logo-gold.png",
+    src: LOGO,
     style: {
       width: '100%',
       height: '100%',
       objectFit: 'contain',
       padding: 2
     }
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "TOCHA PADARIA"), /*#__PURE__*/React.createElement("small", null, "S\xE3o Jo\xE3o de Meriti")), open && /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "TOCHA PADARIA")), open && /*#__PURE__*/React.createElement("div", {
     className: "user-pop",
     onClick: e => e.stopPropagation()
   }, /*#__PURE__*/React.createElement("div", {
@@ -220,7 +221,7 @@ function Topbar({
   }, /*#__PURE__*/React.createElement("div", {
     className: "lg sm"
   }, /*#__PURE__*/React.createElement("img", {
-    src: "/assets/logo-gold.png",
+    src: LOGO,
     style: {
       width: '100%',
       height: '100%',

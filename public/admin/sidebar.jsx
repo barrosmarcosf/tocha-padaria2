@@ -1,6 +1,8 @@
 /* global React, Ic */
 const { useState: useSt } = React;
 
+const LOGO = '/assets/logo-footer%20(1).png';
+
 const NAV = [
   { kind: 'item', id: 'home', label: 'Início', icon: Ic.home },
   { kind: 'sec', label: 'Pedidos' },
@@ -32,13 +34,6 @@ const NAV = [
 function Sidebar({ active, onNavigate }) {
   return (
     <aside className="sb">
-      <div className="sb-brand">
-        <div className="sb-logo"><img src="/assets/logo-gold.png" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 3 }}/></div>
-        <div className="sb-brand-text">
-          <b>TOCHA</b>
-          <span>Padaria · Admin</span>
-        </div>
-      </div>
       <div style={{ overflowY: 'auto', flex: 1, marginRight: -8, paddingRight: 4 }}>
         {NAV.map((n, i) => {
           if (n.kind === 'sec') return <div className="sb-section" key={i}>{n.label}</div>;
@@ -67,7 +62,7 @@ function Sidebar({ active, onNavigate }) {
   );
 }
 
-function Topbar({ pageLabel, onNavigate }) {
+function Topbar({ pageLabel, onNavigate, onHamburger }) {
   const [open, setOpen] = React.useState(false);
   React.useEffect(() => {
     if (!open) return;
@@ -77,6 +72,10 @@ function Topbar({ pageLabel, onNavigate }) {
   }, [open]);
   return (
     <div className="topbar">
+      <div className="tb-logo-wrap">
+        <img src={LOGO} style={{ width: 26, height: 26, objectFit: 'contain' }}/>
+      </div>
+      <button className="icon-btn" onClick={onHamburger} title="Menu"><Ic.menu/></button>
       <div className="crumb">
         <span>Admin</span>
         <Ic.chev/>
@@ -88,15 +87,14 @@ function Topbar({ pageLabel, onNavigate }) {
       <button className="icon-btn" title="Alertas"><Ic.bell/></button>
       <div className="tb-store user-pop-wrap"
            onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}>
-        <div className="lg"><img src="/assets/logo-gold.png" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}/></div>
+        <div className="lg"><img src={LOGO} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}/></div>
         <div>
           <b>TOCHA PADARIA</b>
-          <small>São João de Meriti</small>
         </div>
         {open && (
           <div className="user-pop" onClick={e => e.stopPropagation()}>
             <div className="user-pop-head">
-              <div className="lg sm"><img src="/assets/logo-gold.png" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}/></div>
+              <div className="lg sm"><img src={LOGO} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}/></div>
               <div>
                 <b>TOCHA PADARIA</b>
                 <small>admin@tochapadaria</small>

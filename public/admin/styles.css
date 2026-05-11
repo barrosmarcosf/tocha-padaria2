@@ -243,6 +243,11 @@ button { font-family: inherit; }
 .crumb b { color: var(--ink); font-weight: 500; }
 .crumb svg { opacity: 0.5; }
 
+.tb-logo-wrap {
+  width: 28px; height: 28px;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
 .tb-spacer { flex: 1; }
 
 .status-pill {

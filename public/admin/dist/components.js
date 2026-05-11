@@ -384,6 +384,17 @@ const Ic = {
     r: "9"
   }), /*#__PURE__*/React.createElement("path", {
     d: "M12 11v5M12 8h.01"
+  })),
+  menu: p => /*#__PURE__*/React.createElement("svg", _extends({
+    viewBox: "0 0 24 24",
+    width: "14",
+    height: "14",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.8",
+    strokeLinecap: "round"
+  }, p), /*#__PURE__*/React.createElement("path", {
+    d: "M4 6h16M4 12h16M4 18h16"
   }))
 };
 
