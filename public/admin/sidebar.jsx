@@ -35,7 +35,7 @@ function Sidebar({ active, onNavigate }) {
   return (
     <aside className="sb">
       <div className="sb-brand">
-        <img src={LOGO} style={{ height: 30, width: 'auto', objectFit: 'contain' }}/>
+        <img src={LOGO} style={{ width: 26, height: 'auto', objectFit: 'contain' }}/>
       </div>
       <div style={{ overflowY: 'auto', flex: 1, marginRight: -8, paddingRight: 4 }}>
         {NAV.map((n, i) => {

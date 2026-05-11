@@ -129,8 +129,8 @@ function Sidebar({
   }, /*#__PURE__*/React.createElement("img", {
     src: LOGO,
     style: {
-      height: 30,
-      width: 'auto',
+      width: 26,
+      height: 'auto',
       objectFit: 'contain'
     }
   })), /*#__PURE__*/React.createElement("div", {
