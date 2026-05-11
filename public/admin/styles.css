@@ -1397,10 +1397,11 @@ button { font-family: inherit; }
 }
 .donut-center b {
   display: block;
-  font-size: 20px;
+  font-size: 22px;
   color: var(--ink);
   font-weight: 500;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 .donut-center small {
   font-size: 10px;
@@ -1408,19 +1409,22 @@ button { font-family: inherit; }
   text-transform: uppercase;
   letter-spacing: 0.14em;
 }
-.donut-legend { display: flex; flex-direction: column; gap: 10px; }
+.donut-legend { display: flex; flex-direction: column; gap: 0; }
 .donut-legend .row {
   display: grid;
-  grid-template-columns: 14px 1fr auto;
+  grid-template-columns: 12px 1fr auto;
   align-items: center;
   gap: 10px;
   font-size: 12px;
-  padding: 4px 0;
+  padding: 7px 0;
+  border-bottom: 1px dashed var(--line);
+  cursor: default;
 }
-.donut-legend .row .sw { width: 8px; height: 8px; border-radius: 2px; }
-.donut-legend .row .lbl { color: var(--ink-2); }
-.donut-legend .row .v { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 500; }
-.donut-legend .row .v small { color: var(--ink-4); margin-left: 4px; font-size: 10px; font-weight: 400; }
+.donut-legend .row:last-child { border-bottom: 0; }
+.donut-legend .row .sw { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.donut-legend .row .lbl { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.donut-legend .row .v { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 500; white-space: nowrap; text-align: right; }
+.donut-legend .row .v small { color: var(--ink-4); margin-left: 5px; font-size: 10px; font-weight: 400; }
 
 /* Tooltip */
 .tt {

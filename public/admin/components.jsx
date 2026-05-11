@@ -307,62 +307,92 @@ function AreaChart({ current, previous, style = 'area' }) {
 }
 
 /* ---------- DONUT ---------- */
-function Donut({ data, size = 140 }) {
+function Donut({ data, size = 148 }) {
+  const [hovered, setHovered] = useState(null);
   const total = data.reduce((s, d) => s + d.value, 0);
-  const r = size / 2 - 12;
+  const stroke = 20;
+  const r = size / 2 - stroke / 2 - 3;
   const cx = size / 2, cy = size / 2;
-  const stroke = 16;
+  const GAP = 0.010;
+
   let acc = 0;
   const arcs = data.map((d) => {
     const frac = d.value / total;
-    const arc = {
-      ...d,
-      from: acc,
-      to: acc + frac,
-      frac,
-    };
+    const from = acc + GAP / 2;
+    const to   = acc + frac - GAP / 2;
     acc += frac;
-    return arc;
+    return { ...d, frac, from, to };
   });
 
   const polar = (t) => {
-    const a = -Math.PI / 2 + t * Math.PI * 2;
+    const a = -Math.PI / 2 + t * 2 * Math.PI;
     return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
   };
+
+  const onEnter = (i) => setHovered(i);
+  const onLeave = () => setHovered(null);
 
   return (
     <div className="donut-wrap">
       <div className="donut" style={{ width: size, height: size }}>
         <svg width={size} height={size}>
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--panel-2)" strokeWidth={stroke}/>
+          <defs>
+            <filter id="donut-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur"/>
+              <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+          {/* track */}
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--panel-3)" strokeWidth={stroke}/>
           {arcs.map((a, i) => {
             const [x1, y1] = polar(a.from);
             const [x2, y2] = polar(a.to);
-            const large = a.frac > 0.5 ? 1 : 0;
+            const large = (a.to - a.from) > 0.5 ? 1 : 0;
+            const active = hovered === i;
+            const dim    = hovered !== null && !active;
             return (
               <path
                 key={i}
-                d={`M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`}
+                d={`M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`}
                 fill="none"
                 stroke={a.color}
-                strokeWidth={stroke}
+                strokeWidth={active ? stroke + 4 : stroke}
                 strokeLinecap="butt"
-                style={{ animation: `barIn 700ms var(--ease) ${i * 80}ms backwards` }}
+                opacity={dim ? 0.25 : 1}
+                filter={i === 0 && hovered === null ? 'url(#donut-glow)' : undefined}
+                style={{
+                  animation: `barIn 720ms var(--ease) ${i * 90}ms backwards`,
+                  transition: 'opacity 200ms var(--ease)',
+                }}
+                onMouseEnter={() => onEnter(i)}
+                onMouseLeave={onLeave}
               />
             );
           })}
         </svg>
         <div className="donut-center">
-          <small>Total</small>
+          <small>total</small>
           <b>{brlShort(total)}</b>
         </div>
       </div>
       <div className="donut-legend">
         {arcs.map((a, i) => (
-          <div className="row" key={i}>
+          <div
+            className="row"
+            key={i}
+            style={{
+              opacity: hovered !== null && hovered !== i ? 0.32 : 1,
+              transition: 'opacity 180ms var(--ease)',
+            }}
+            onMouseEnter={() => onEnter(i)}
+            onMouseLeave={onLeave}
+          >
             <span className="sw" style={{ background: a.color }}/>
             <span className="lbl">{a.label}</span>
-            <span className="v">{brlShort(a.value)} <small>{(a.frac * 100).toFixed(0)}%</small></span>
+            <span className="v">{brlShort(a.value)}<small>{(a.frac * 100).toFixed(0)}%</small></span>
           </div>
         ))}
       </div>

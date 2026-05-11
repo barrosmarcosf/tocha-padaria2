@@ -41,8 +41,8 @@ function Dashboard() {
           unit="R$" decimals={2} spark={D.kpis.lucro.spark} color="var(--c2)"/>
       </div>
 
-      {/* Revenue chart — full width while donut is pending */}
-      <div className="mt">
+      {/* Faturamento + Pagamentos */}
+      <div className="grid row-2 mt">
         <div className="card hoverable">
           <div className="card-head">
             <h3><Ic.chart/>Faturamento ao longo do tempo</h3>
@@ -71,6 +71,13 @@ function Dashboard() {
             current={D.revenueSeries.current}
             previous={D.revenueSeries.previous}
           />
+        </div>
+        <div className="card hoverable">
+          <div className="card-head">
+            <h3><Ic.card/>Formas de pagamento</h3>
+            <span className="meta">30 dias</span>
+          </div>
+          <Donut data={D.payments}/>
         </div>
       </div>
     </div>
