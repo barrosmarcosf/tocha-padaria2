@@ -1,5 +1,5 @@
 /* global React, Ic, brl, brlShort */
-const { useState: useSt, useEffect: useEff } = React;
+const { useState: usePgSt, useEffect: usePgEff } = React;
 
 /* ─── HELPERS ────────────────────────────────────────────────────────────── */
 
@@ -150,10 +150,10 @@ function OrderModal({ order, onClose }) {
 /* ─── FILA DE PEDIDOS ────────────────────────────────────────────────────── */
 
 function FilaDePedidos() {
-  const [orders, setOrders] = useSt([]);
-  const [loading, setLoading] = useSt(true);
-  const [tab, setTab]         = useSt('todos');
-  const [selected, setSelected] = useSt(null);
+  const [orders, setOrders] = usePgSt([]);
+  const [loading, setLoading] = usePgSt(true);
+  const [tab, setTab]         = usePgSt('todos');
+  const [selected, setSelected] = usePgSt(null);
 
   const load = () => {
     setLoading(true);
@@ -162,7 +162,7 @@ function FilaDePedidos() {
       .catch(() => { setOrders([]); setLoading(false); });
   };
 
-  useEff(() => { load(); }, []);
+  usePgEff(() => { load(); }, []);
 
   const counts = {
     total:     orders.length,
@@ -288,12 +288,12 @@ function HistoricoPedidos() {
   const today        = new Date().toISOString().slice(0, 10);
   const firstOfMonth = today.slice(0, 8) + '01';
 
-  const [from, setFrom]       = useSt(firstOfMonth);
-  const [to, setTo]           = useSt(today);
-  const [pageNum, setPageNum] = useSt(1);
-  const [data, setData]       = useSt(null);
-  const [loading, setLoading] = useSt(false);
-  const [selected, setSelected] = useSt(null);
+  const [from, setFrom]       = usePgSt(firstOfMonth);
+  const [to, setTo]           = usePgSt(today);
+  const [pageNum, setPageNum] = usePgSt(1);
+  const [data, setData]       = usePgSt(null);
+  const [loading, setLoading] = usePgSt(false);
+  const [selected, setSelected] = usePgSt(null);
 
   const LIMIT = 50;
 
@@ -310,7 +310,7 @@ function HistoricoPedidos() {
       .catch(() => setLoading(false));
   };
 
-  useEff(() => { load(1); }, [from, to]);
+  usePgEff(() => { load(1); }, [from, to]);
 
   const orders = data?.orders || [];
   const total  = data?.count  || 0;
@@ -444,13 +444,13 @@ function HistoricoPedidos() {
 /* ─── CLIENTES ───────────────────────────────────────────────────────────── */
 
 function Clientes() {
-  const [customers, setCustomers] = useSt([]);
-  const [search, setSearch]       = useSt('');
-  const [filter, setFilter]       = useSt('todos');
-  const [loading, setLoading]     = useSt(true);
-  const [selected, setSelected]   = useSt(null);
+  const [customers, setCustomers] = usePgSt([]);
+  const [search, setSearch]       = usePgSt('');
+  const [filter, setFilter]       = usePgSt('todos');
+  const [loading, setLoading]     = usePgSt(true);
+  const [selected, setSelected]   = usePgSt(null);
 
-  useEff(() => {
+  usePgEff(() => {
     window.apiGet('/api/admin/customers')
       .then(data => { setCustomers(Array.isArray(data) ? data : []); setLoading(false); })
       .catch(() => { setCustomers([]); setLoading(false); });
@@ -580,10 +580,10 @@ function Clientes() {
 /* ─── CLIENTE DRAWER ─────────────────────────────────────────────────────── */
 
 function ClienteDrawer({ customer, onClose }) {
-  const [detail, setDetail]   = useSt(null);
-  const [loading, setLoading] = useSt(true);
+  const [detail, setDetail]   = usePgSt(null);
+  const [loading, setLoading] = usePgSt(true);
 
-  useEff(() => {
+  usePgEff(() => {
     window.apiGet('/api/admin/customer-details/' + customer.id)
       .then(d => { setDetail(d); setLoading(false); })
       .catch(() => setLoading(false));
