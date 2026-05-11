@@ -1,4 +1,4 @@
-/* global React, Ic, brl, brlShort, Delta */
+/* global React, Ic, brl, brlShort, Delta, SafeIcon */
 const { useState: useStP, useEffect: useEffP, useCallback: useCbP } = React;
 
 /* ---------- helpers ---------- */

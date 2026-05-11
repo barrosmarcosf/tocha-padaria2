@@ -1,4 +1,4 @@
-/* global React, Ic */
+/* global React, Ic, SafeIcon */
 const { useState: useSt } = React;
 
 const LOGO = '/assets/logo.png';
@@ -40,14 +40,13 @@ function Sidebar({ active, onNavigate }) {
       <div style={{ overflowY: 'auto', flex: 1, marginRight: -8, paddingRight: 4 }}>
         {NAV.map((n, i) => {
           if (n.kind === 'sec') return <div className="sb-section" key={i}>{n.label}</div>;
-          const Ico = n.icon;
           return (
             <div
               key={n.id}
               className={`sb-item ${active === n.id ? 'active' : ''}`}
               onClick={() => onNavigate(n.id)}
             >
-              <span className="sb-ic"><Ico/></span>
+              <span className="sb-ic"><SafeIcon icon={n.icon}/></span>
               <span>{n.label}</span>
               {n.badge && <span className="sb-badge">{n.badge}</span>}
             </div>

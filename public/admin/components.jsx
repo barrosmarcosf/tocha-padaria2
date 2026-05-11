@@ -62,6 +62,25 @@ const brlShort = (n) => {
 };
 const pct = (curr, prev) => prev === 0 ? 0 : ((curr - prev) / prev) * 100;
 
+/* ---------- SAFE RENDERERS ---------- */
+// Previne React #130: componente undefined não derruba a árvore inteira
+function SafeIcon({ icon: Icon, ...props }) {
+  if (!Icon || typeof Icon !== 'function') {
+    if (typeof console !== 'undefined') console.warn('[SafeIcon] ícone inválido ou inexistente:', Icon);
+    return null;
+  }
+  return <Icon {...props}/>;
+}
+
+// Previne React #130 em renderização dinâmica de componentes de página
+function SafeComponent({ component: Comp, fallback, ...props }) {
+  if (!Comp || typeof Comp !== 'function') {
+    if (typeof console !== 'undefined') console.warn('[SafeComponent] componente inválido:', Comp);
+    return fallback || null;
+  }
+  return <Comp {...props}/>;
+}
+
 function Delta({ curr, prev, invert }) {
   const diff = pct(curr, prev);
   const dir = diff > 0.5 ? 'up' : diff < -0.5 ? 'down' : 'flat';
@@ -129,7 +148,7 @@ function KPI({ label, icon: Icon, value, prev, unit, spark, color, decimals = 0,
   return (
     <div className="card kpi hoverable" style={{ '--kpi-color': color }}>
       <div className="kpi-label">
-        <span className="ic" style={{ color: color, background: `color-mix(in oklch, ${color} 14%, transparent)` }}><Icon/></span>
+        <span className="ic" style={{ color: color, background: `color-mix(in oklch, ${color} 14%, transparent)` }}><SafeIcon icon={Icon}/></span>
         {label}
       </div>
       <div className="kpi-value">
@@ -410,4 +429,4 @@ function Donut({ data, size = 148 }) {
   );
 }
 
-Object.assign(window, { Ic, useCount, brl, brlShort, Delta, Sparkline, KPI, AreaChart, Donut });
+Object.assign(window, { Ic, useCount, brl, brlShort, pct, Delta, SafeIcon, SafeComponent, Sparkline, KPI, AreaChart, Donut });

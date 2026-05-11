@@ -1,4 +1,4 @@
-/* global React, Ic, brl */
+/* global React, Ic, brl, SafeIcon */
 const { useState: useStX, useEffect: useEffX, useCallback: useCbX } = React;
 
 function PH({ title, subtitle, badge }) {

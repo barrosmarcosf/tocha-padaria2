@@ -1,11 +1,83 @@
-/* global React, ReactDOM, Sidebar, Topbar, NAV, Dashboard,
-   FilaPage, HistoricoPage, PrevendaPage, ResumoPage, ClientesPage,
+/* global React, ReactDOM, Sidebar, Topbar, NAV, SafeComponent,
+   Dashboard, FilaPage, HistoricoPage, PrevendaPage, ResumoPage, ClientesPage,
    PagamentoPage, HorarioPage, HomePageCfgPage, LojaPage,
    CardapioPage, CentralMsgPage, CfgMsgPage, InteligenciaPage,
    PagtoPainelPage, FunilPage, AlertasPage, InsightsPage, EditarPerfilPage,
    Placeholder */
 
 const AUTH_KEY = 'tocha_admin_token';
+
+/* ---------- ERROR BOUNDARY ---------- */
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      error: null
+    };
+  }
+  static getDerivedStateFromError(err) {
+    return {
+      error: err
+    };
+  }
+  componentDidCatch(err, info) {
+    console.error('[ErrorBoundary] página crashou:', err, info.componentStack);
+  }
+  render() {
+    if (this.state.error) {
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          padding: 40,
+          textAlign: 'center',
+          color: 'var(--ink-3)'
+        }
+      }, /*#__PURE__*/React.createElement("p", {
+        style: {
+          fontSize: 14,
+          marginBottom: 8
+        }
+      }, "Erro ao carregar esta p\xE1gina."), /*#__PURE__*/React.createElement("button", {
+        className: "btn-secondary",
+        onClick: () => this.setState({
+          error: null
+        })
+      }, "Tentar novamente"));
+    }
+    return this.props.children;
+  }
+}
+
+/* ---------- PAGE MAP ---------- */
+const PAGE_MAP = {
+  home: 'Dashboard',
+  fila: 'FilaPage',
+  historico: 'HistoricoPage',
+  prevenda: 'PrevendaPage',
+  resumo: 'ResumoPage',
+  clientes: 'ClientesPage',
+  loja: 'LojaPage',
+  'home-cfg': 'HomePageCfgPage',
+  horario: 'HorarioPage',
+  pagamentos: 'PagamentoPage',
+  cardapio: 'CardapioPage',
+  'central-msg': 'CentralMsgPage',
+  'cfg-msg': 'CfgMsgPage',
+  inteligencia: 'InteligenciaPage',
+  'pagto-painel': 'PagtoPainelPage',
+  funil: 'FunilPage',
+  alertas: 'AlertasPage',
+  insights: 'InsightsPage',
+  perfil: 'EditarPerfilPage'
+};
+function SafePage({
+  pageId
+}) {
+  const Comp = window[PAGE_MAP[pageId]] || window.Placeholder;
+  return /*#__PURE__*/React.createElement(SafeComponent, {
+    component: Comp,
+    pageId: pageId
+  });
+}
 function App() {
   const [page, setPage] = React.useState(localStorage.getItem('tocha_admin_section') || 'home');
   const [authed, setAuthed] = React.useState(!!localStorage.getItem(AUTH_KEY));
@@ -26,52 +98,6 @@ function App() {
   if (!authed) return /*#__PURE__*/React.createElement(Login, {
     onAuth: () => setAuthed(true)
   });
-  const renderPage = () => {
-    switch (page) {
-      case 'home':
-        return /*#__PURE__*/React.createElement(Dashboard, null);
-      case 'fila':
-        return /*#__PURE__*/React.createElement(FilaPage, null);
-      case 'historico':
-        return /*#__PURE__*/React.createElement(HistoricoPage, null);
-      case 'prevenda':
-        return /*#__PURE__*/React.createElement(PrevendaPage, null);
-      case 'resumo':
-        return /*#__PURE__*/React.createElement(ResumoPage, null);
-      case 'clientes':
-        return /*#__PURE__*/React.createElement(ClientesPage, null);
-      case 'loja':
-        return /*#__PURE__*/React.createElement(LojaPage, null);
-      case 'home-cfg':
-        return /*#__PURE__*/React.createElement(HomePageCfgPage, null);
-      case 'horario':
-        return /*#__PURE__*/React.createElement(HorarioPage, null);
-      case 'pagamentos':
-        return /*#__PURE__*/React.createElement(PagamentoPage, null);
-      case 'cardapio':
-        return /*#__PURE__*/React.createElement(CardapioPage, null);
-      case 'central-msg':
-        return /*#__PURE__*/React.createElement(CentralMsgPage, null);
-      case 'cfg-msg':
-        return /*#__PURE__*/React.createElement(CfgMsgPage, null);
-      case 'inteligencia':
-        return /*#__PURE__*/React.createElement(InteligenciaPage, null);
-      case 'pagto-painel':
-        return /*#__PURE__*/React.createElement(PagtoPainelPage, null);
-      case 'funil':
-        return /*#__PURE__*/React.createElement(FunilPage, null);
-      case 'alertas':
-        return /*#__PURE__*/React.createElement(AlertasPage, null);
-      case 'insights':
-        return /*#__PURE__*/React.createElement(InsightsPage, null);
-      case 'perfil':
-        return /*#__PURE__*/React.createElement(EditarPerfilPage, null);
-      default:
-        return /*#__PURE__*/React.createElement(Placeholder, {
-          pageId: page
-        });
-    }
-  };
   return /*#__PURE__*/React.createElement("div", {
     className: "app"
   }, /*#__PURE__*/React.createElement(Sidebar, {
@@ -85,7 +111,11 @@ function App() {
     pageLabel: label,
     onNavigate: handleNavigate,
     onHamburger: () => setSbOpen(o => !o)
-  }), renderPage()));
+  }), /*#__PURE__*/React.createElement(ErrorBoundary, {
+    key: page
+  }, /*#__PURE__*/React.createElement(SafePage, {
+    pageId: page
+  }))));
 }
 function Login({
   onAuth

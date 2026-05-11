@@ -1,4 +1,4 @@
-/* global React, Ic, KPI, AreaChart, Donut, brl, brlShort, Delta */
+/* global React, Ic, KPI, AreaChart, Donut, brl, brlShort, Delta, SafeIcon */
 const { useState: useStD, useEffect: useEfD } = React;
 
 // ---------- helpers ----------
@@ -492,7 +492,7 @@ function Dashboard() {
             {alerts.map((a, i) => (
               <div className={`alert ${a.kind}`} key={i}>
                 <span className="a-ic">
-                  {a.kind === 'info' ? <Ic.info/> : a.kind === 'ok' ? <Ic.shield/> : <Ic.warn/>}
+                  <SafeIcon icon={a.kind === 'info' ? Ic.info : a.kind === 'ok' ? Ic.shield : Ic.warn}/>
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <b>{a.title}</b>

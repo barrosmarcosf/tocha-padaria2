@@ -1,4 +1,4 @@
-/* global React, Ic, KPI, AreaChart, Donut, brl, brlShort, Delta */
+/* global React, Ic, KPI, AreaChart, Donut, brl, brlShort, Delta, SafeIcon */
 const {
   useState: useStD,
   useEffect: useEfD
@@ -738,7 +738,9 @@ function Dashboard() {
     key: i
   }, /*#__PURE__*/React.createElement("span", {
     className: "a-ic"
-  }, a.kind === 'info' ? /*#__PURE__*/React.createElement(Ic.info, null) : a.kind === 'ok' ? /*#__PURE__*/React.createElement(Ic.shield, null) : /*#__PURE__*/React.createElement(Ic.warn, null)), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(SafeIcon, {
+    icon: a.kind === 'info' ? Ic.info : a.kind === 'ok' ? Ic.shield : Ic.warn
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
       minWidth: 0

@@ -430,6 +430,32 @@ const brlShort = n => {
   return 'R$ ' + Math.round(val).toLocaleString('pt-BR');
 };
 const pct = (curr, prev) => prev === 0 ? 0 : (curr - prev) / prev * 100;
+
+/* ---------- SAFE RENDERERS ---------- */
+// Previne React #130: componente undefined não derruba a árvore inteira
+function SafeIcon({
+  icon: Icon,
+  ...props
+}) {
+  if (!Icon || typeof Icon !== 'function') {
+    if (typeof console !== 'undefined') console.warn('[SafeIcon] ícone inválido ou inexistente:', Icon);
+    return null;
+  }
+  return /*#__PURE__*/React.createElement(Icon, props);
+}
+
+// Previne React #130 em renderização dinâmica de componentes de página
+function SafeComponent({
+  component: Comp,
+  fallback,
+  ...props
+}) {
+  if (!Comp || typeof Comp !== 'function') {
+    if (typeof console !== 'undefined') console.warn('[SafeComponent] componente inválido:', Comp);
+    return fallback || null;
+  }
+  return /*#__PURE__*/React.createElement(Comp, props);
+}
 function Delta({
   curr,
   prev,
@@ -551,7 +577,9 @@ function KPI({
       color: color,
       background: `color-mix(in oklch, ${color} 14%, transparent)`
     }
-  }, /*#__PURE__*/React.createElement(Icon, null)), label), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(SafeIcon, {
+    icon: Icon
+  })), label), /*#__PURE__*/React.createElement("div", {
     className: "kpi-value"
   }, unit && /*#__PURE__*/React.createElement("span", {
     className: "unit"
@@ -901,7 +929,10 @@ Object.assign(window, {
   useCount,
   brl,
   brlShort,
+  pct,
   Delta,
+  SafeIcon,
+  SafeComponent,
   Sparkline,
   KPI,
   AreaChart,

@@ -1,11 +1,67 @@
-/* global React, ReactDOM, Sidebar, Topbar, NAV, Dashboard,
-   FilaPage, HistoricoPage, PrevendaPage, ResumoPage, ClientesPage,
+/* global React, ReactDOM, Sidebar, Topbar, NAV, SafeComponent,
+   Dashboard, FilaPage, HistoricoPage, PrevendaPage, ResumoPage, ClientesPage,
    PagamentoPage, HorarioPage, HomePageCfgPage, LojaPage,
    CardapioPage, CentralMsgPage, CfgMsgPage, InteligenciaPage,
    PagtoPainelPage, FunilPage, AlertasPage, InsightsPage, EditarPerfilPage,
    Placeholder */
 
 const AUTH_KEY = 'tocha_admin_token';
+
+/* ---------- ERROR BOUNDARY ---------- */
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(err) {
+    return { error: err };
+  }
+  componentDidCatch(err, info) {
+    console.error('[ErrorBoundary] página crashou:', err, info.componentStack);
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-3)' }}>
+          <p style={{ fontSize: 14, marginBottom: 8 }}>Erro ao carregar esta página.</p>
+          <button
+            className="btn-secondary"
+            onClick={() => this.setState({ error: null })}
+          >Tentar novamente</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/* ---------- PAGE MAP ---------- */
+const PAGE_MAP = {
+  home:           'Dashboard',
+  fila:           'FilaPage',
+  historico:      'HistoricoPage',
+  prevenda:       'PrevendaPage',
+  resumo:         'ResumoPage',
+  clientes:       'ClientesPage',
+  loja:           'LojaPage',
+  'home-cfg':     'HomePageCfgPage',
+  horario:        'HorarioPage',
+  pagamentos:     'PagamentoPage',
+  cardapio:       'CardapioPage',
+  'central-msg':  'CentralMsgPage',
+  'cfg-msg':      'CfgMsgPage',
+  inteligencia:   'InteligenciaPage',
+  'pagto-painel': 'PagtoPainelPage',
+  funil:          'FunilPage',
+  alertas:        'AlertasPage',
+  insights:       'InsightsPage',
+  perfil:         'EditarPerfilPage',
+};
+
+function SafePage({ pageId }) {
+  const Comp = window[PAGE_MAP[pageId]] || window.Placeholder;
+  return <SafeComponent component={Comp} pageId={pageId}/>;
+}
 
 function App() {
   const [page, setPage] = React.useState(
@@ -31,37 +87,14 @@ function App() {
 
   if (!authed) return <Login onAuth={() => setAuthed(true)} />;
 
-  const renderPage = () => {
-    switch (page) {
-      case 'home':          return <Dashboard/>;
-      case 'fila':          return <FilaPage/>;
-      case 'historico':     return <HistoricoPage/>;
-      case 'prevenda':      return <PrevendaPage/>;
-      case 'resumo':        return <ResumoPage/>;
-      case 'clientes':      return <ClientesPage/>;
-      case 'loja':          return <LojaPage/>;
-      case 'home-cfg':      return <HomePageCfgPage/>;
-      case 'horario':       return <HorarioPage/>;
-      case 'pagamentos':    return <PagamentoPage/>;
-      case 'cardapio':      return <CardapioPage/>;
-      case 'central-msg':   return <CentralMsgPage/>;
-      case 'cfg-msg':       return <CfgMsgPage/>;
-      case 'inteligencia':  return <InteligenciaPage/>;
-      case 'pagto-painel':  return <PagtoPainelPage/>;
-      case 'funil':         return <FunilPage/>;
-      case 'alertas':       return <AlertasPage/>;
-      case 'insights':      return <InsightsPage/>;
-      case 'perfil':        return <EditarPerfilPage/>;
-      default:              return <Placeholder pageId={page}/>;
-    }
-  };
-
   return (
     <div className="app">
       <Sidebar active={page} onNavigate={handleNavigate} mobileOpen={sbOpen} onClose={() => setSbOpen(false)}/>
       <div className="main">
         <Topbar pageLabel={label} onNavigate={handleNavigate} onHamburger={() => setSbOpen(o => !o)}/>
-        {renderPage()}
+        <ErrorBoundary key={page}>
+          <SafePage pageId={page}/>
+        </ErrorBoundary>
       </div>
     </div>
   );

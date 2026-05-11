@@ -1,4 +1,4 @@
-/* global React, Ic */
+/* global React, Ic, SafeIcon */
 const {
   useState: useSt
 } = React;
@@ -145,14 +145,15 @@ function Sidebar({
       className: "sb-section",
       key: i
     }, n.label);
-    const Ico = n.icon;
     return /*#__PURE__*/React.createElement("div", {
       key: n.id,
       className: `sb-item ${active === n.id ? 'active' : ''}`,
       onClick: () => onNavigate(n.id)
     }, /*#__PURE__*/React.createElement("span", {
       className: "sb-ic"
-    }, /*#__PURE__*/React.createElement(Ico, null)), /*#__PURE__*/React.createElement("span", null, n.label), n.badge && /*#__PURE__*/React.createElement("span", {
+    }, /*#__PURE__*/React.createElement(SafeIcon, {
+      icon: n.icon
+    })), /*#__PURE__*/React.createElement("span", null, n.label), n.badge && /*#__PURE__*/React.createElement("span", {
       className: "sb-badge"
     }, n.badge));
   })), /*#__PURE__*/React.createElement("div", {
