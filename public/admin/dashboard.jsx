@@ -73,25 +73,23 @@ function Dashboard() {
         <div className="card hoverable">
           <div className="card-head">
             <h3><Ic.chart/>Faturamento ao longo do tempo</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-              <div className="legend">
-                <span>
-                  <i style={{ background: 'var(--gold)' }}/>
-                  Este mês
-                </span>
-                <span style={{ opacity: 0.6 }}>
-                  <i style={{
-                    background: 'none',
-                    width: 16,
-                    height: 0,
-                    borderTop: '2px dashed var(--line-3)',
-                    borderRadius: 0,
-                    display: 'inline-block',
-                    verticalAlign: 'middle',
-                  }}/>
-                  Mês anterior
-                </span>
-              </div>
+            <div className="legend">
+              <span>
+                <i style={{ background: 'var(--gold)' }}/>
+                Este mês
+              </span>
+              <span style={{ color: 'var(--ink-4)' }}>
+                <i style={{
+                  background: 'none',
+                  width: 16,
+                  height: 0,
+                  borderTop: '2px dashed var(--line-3)',
+                  borderRadius: 0,
+                  display: 'inline-block',
+                  verticalAlign: 'middle',
+                }}/>
+                Mês anterior
+              </span>
             </div>
           </div>
           <AreaChart

@@ -373,7 +373,7 @@ button { font-family: inherit; }
   border-radius: var(--r-lg);
   padding: var(--pad-card);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   transition: border-color 220ms var(--ease), transform 220ms var(--ease);
 }
 .card::after {
@@ -1424,7 +1424,7 @@ button { font-family: inherit; }
 .donut-legend .row .sw { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
 .donut-legend .row .lbl { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .donut-legend .row .v { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 500; white-space: nowrap; text-align: right; }
-.donut-legend .row .v small { color: var(--ink-4); margin-left: 5px; font-size: 10px; font-weight: 400; }
+.donut-legend .row .v small { color: var(--ink-4); margin-left: 4px; font-size: 10px; font-weight: 400; }
 
 /* Tooltip */
 .tt {

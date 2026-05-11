@@ -23,9 +23,9 @@
 .lt-sum-item b { font-family: var(--display); font-weight: 400; font-size: 22px; color: var(--ink); }
 .lt-sum-line { display: flex; align-items: center; gap: 8px; }
 .lt-mono { font-family: var(--mono); }
-.delta { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-family: var(--mono); }
-.delta.up { color: oklch(0.72 0.15 160); background: color-mix(in oklch, oklch(0.72 0.15 160) 14%, transparent); }
-.delta.dn { color: oklch(0.62 0.20 25); background: color-mix(in oklch, oklch(0.62 0.20 25) 14%, transparent); }
+.lt-summary .delta { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-family: var(--mono); }
+.lt-summary .delta.up { color: oklch(0.72 0.15 160); background: color-mix(in oklch, oklch(0.72 0.15 160) 14%, transparent); }
+.lt-summary .delta.dn { color: oklch(0.62 0.20 25); background: color-mix(in oklch, oklch(0.62 0.20 25) 14%, transparent); }
 .lt-chart-wrap { padding: 4px 0 0; }
 .lt-legend { display: flex; gap: 18px; justify-content: center; margin-top: 8px; font-size: 12px; color: var(--ink-3); }
 .lt-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
@@ -295,18 +295,19 @@
 .client-card-modal { max-width: 440px; text-align: center; padding: 36px 36px 28px; }
 .client-card-modal .cc-avatar {
   width: 64px; height: 64px; border-radius: 16px;
-  background: color-mix(in oklch, var(--brand) 18%, var(--panel));
+  background: var(--gold-soft);
   display: flex; align-items: center; justify-content: center;
-  margin: 8px auto 18px; font-family: var(--display); font-size: 28px; color: var(--brand); font-weight: 600;
+  margin: 8px auto 18px; font-family: var(--display); font-size: 28px; color: var(--gold); font-weight: 600;
 }
 .client-card-modal .cc-name { font-family: var(--display); font-weight: 500; font-size: 22px; color: var(--ink); margin: 0 0 4px; }
 .client-card-modal .cc-phone { color: var(--ink-3); font-size: 14px; margin-bottom: 12px; }
 .client-card-modal .cc-tag {
   display: inline-block; padding: 4px 12px; border-radius: 999px;
   font-size: 10px; letter-spacing: 0.12em; font-weight: 700;
-  background: color-mix(in oklch, var(--brand) 14%, var(--panel-2));
-  color: var(--brand); margin-bottom: 24px;
+  background: var(--gold-soft);
+  color: var(--gold); margin-bottom: 24px;
 }
+.client-card-modal .cc-tag.rec { background: var(--gold-soft); color: var(--gold); }
 .client-card-modal .cc-tag.oc { background: var(--panel-2); color: var(--ink-3); }
 .client-card-modal .cc-stats,
 .client-card-modal .cc-score {
@@ -319,7 +320,7 @@
 .client-card-modal .cc-score .rt { text-align: right; }
 .client-card-modal small { font-size: 10px; letter-spacing: 0.08em; color: var(--ink-4); font-weight: 600; }
 .client-card-modal b { font-family: var(--display); font-size: 20px; color: var(--ink); font-weight: 500; }
-.client-card-modal .cc-score-v { color: var(--brand); }
+.client-card-modal .cc-score-v { color: var(--gold); }
 .client-card-modal .cc-msg {
   width: 100%; margin-top: 18px; padding: 14px; border: none; border-radius: 10px;
   background: #16a34a; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
@@ -327,11 +328,12 @@
 .client-card-modal .cc-msg:hover { background: #15803d; }
 .client-card-modal .cc-back {
   width: 100%; margin-top: 10px; padding: 10px; border: none; background: transparent;
-  color: var(--brand); font-size: 13px; font-weight: 500; cursor: pointer;
+  color: var(--ink-3); font-size: 13px; font-weight: 500; cursor: pointer;
 }
+.client-card-modal .cc-back:hover { color: var(--ink); }
 .row-clickable { cursor: pointer; transition: background 0.15s; }
 .row-clickable:hover { background: var(--panel-2); }
-.client-link:hover { color: var(--brand); }
+.client-link:hover { color: var(--gold); }
 
 /* ============ Modal ============ */
 .modal-backdrop {
