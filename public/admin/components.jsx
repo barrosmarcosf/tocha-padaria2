@@ -140,100 +140,165 @@ function KPI({ label, icon: Icon, value, prev, unit, spark, color, decimals = 0,
 function AreaChart({ current, previous, style = 'area' }) {
   const [hover, setHover] = useState(null);
   const wrapRef = useRef(null);
+  const uid = useMemo(() => Math.random().toString(36).slice(2, 8), []);
+
   const w = 800, h = 240;
-  const padL = 44, padR = 16, padT = 14, padB = 28;
+  const padL = 50, padR = 20, padT = 16, padB = 32;
   const iw = w - padL - padR, ih = h - padT - padB;
+
   const all = [...current.map(d => d.value), ...previous.map(d => d.value)];
-  const max = Math.max(...all) * 1.1;
+  const max = Math.max(...all) * 1.08;
   const n = current.length;
 
-  const x = (i) => padL + (i / (n - 1)) * iw;
-  const y = (v) => padT + ih - (v / max) * ih;
+  const xCoord = (i) => padL + (i / (n - 1)) * iw;
+  const yCoord = (v) => padT + ih - (v / max) * ih;
 
   const smoothPath = (data) => {
-    const pts = data.map((d, i) => [x(i), y(d.value)]);
+    const pts = data.map((d, i) => [xCoord(i), yCoord(d.value)]);
     return pts.map((p, i) => {
       if (i === 0) return `M ${p[0].toFixed(2)} ${p[1].toFixed(2)}`;
-      const prev = pts[i - 1];
-      const cpx = (prev[0] + p[0]) / 2;
-      const cpy1 = prev[1];
-      const cpy2 = p[1];
-      return `C ${cpx.toFixed(2)} ${cpy1.toFixed(2)} ${cpx.toFixed(2)} ${cpy2.toFixed(2)} ${p[0].toFixed(2)} ${p[1].toFixed(2)}`;
+      const pr = pts[i - 1];
+      const cpx = (pr[0] + p[0]) / 2;
+      return `C ${cpx.toFixed(2)} ${pr[1].toFixed(2)} ${cpx.toFixed(2)} ${p[1].toFixed(2)} ${p[0].toFixed(2)} ${p[1].toFixed(2)}`;
     }).join(' ');
   };
 
   const currPath = smoothPath(current);
   const prevPath = smoothPath(previous);
-  const areaPath = `${currPath} L ${x(n - 1)} ${padT + ih} L ${padL} ${padT + ih} Z`;
+  const areaPath = `${currPath} L ${xCoord(n-1)} ${padT+ih} L ${padL} ${padT+ih} Z`;
 
-  // Y-axis ticks
   const ticks = [0, 0.25, 0.5, 0.75, 1].map(t => Math.round(max * t));
-
-  // X-axis labels (every 5 days)
   const xLabels = current.filter((_, i) => i % 5 === 0 || i === n - 1);
+
+  const gradId = `ag-${uid}`;
+  const glowId = `gl-${uid}`;
 
   const onMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const px = ((e.clientX - rect.left) / rect.width) * w;
-    const idx = Math.round(((px - padL) / iw) * (n - 1));
-    if (idx >= 0 && idx < n) {
-      setHover({ i: idx, x: x(idx) / w * 100, y: y(current[idx].value) / h * 100 });
-    }
+    const svgX = ((e.clientX - rect.left) / rect.width) * w;
+    const idx = Math.max(0, Math.min(n - 1, Math.round(((svgX - padL) / iw) * (n - 1))));
+    const pxX = e.clientX - rect.left;
+    const pxY = (yCoord(current[idx].value) / h) * rect.height;
+    setHover({ i: idx, pxX, pxY });
   };
 
   return (
     <div className="chart-wrap" ref={wrapRef} onMouseLeave={() => setHover(null)}>
-      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 240, display: 'block' }} onMouseMove={onMove}>
+      <svg
+        viewBox={`0 0 ${w} ${h}`}
+        style={{ width: '100%', height: 240, display: 'block', overflow: 'visible' }}
+        onMouseMove={onMove}
+      >
         <defs>
-          <linearGradient id="areaGrad" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="var(--gold)" stopOpacity="0.32"/>
+          <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%"   stopColor="var(--gold)" stopOpacity="0.26"/>
+            <stop offset="55%"  stopColor="var(--gold)" stopOpacity="0.07"/>
             <stop offset="100%" stopColor="var(--gold)" stopOpacity="0"/>
           </linearGradient>
+          {/* glow: blurred copy merged beneath crisp line */}
+          <filter id={glowId} x="-4%" y="-120%" width="108%" height="340%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="2.8" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
         </defs>
 
-        {/* Grid */}
-        {ticks.map((t, i) => (
-          <g key={i}>
-            <line x1={padL} x2={w - padR} y1={y(t)} y2={y(t)} stroke="var(--line)" strokeDasharray="2 4"/>
-            <text x={padL - 8} y={y(t) + 3} fill="var(--ink-4)" fontSize="10" textAnchor="end" fontFamily="var(--mono)">
-              {t >= 1000 ? `${(t / 1000).toFixed(1)}k` : t}
-            </text>
-          </g>
+        {/* Discrete horizontal grid — skip zero (baseline handles it) */}
+        {ticks.slice(1).map((t, i) => (
+          <line key={i}
+            x1={padL} x2={w - padR}
+            y1={yCoord(t)} y2={yCoord(t)}
+            stroke="var(--line)" strokeOpacity="0.55" strokeDasharray="1 6" strokeWidth="1"
+          />
         ))}
 
-        {/* X labels */}
+        {/* Baseline */}
+        <line x1={padL} x2={w - padR} y1={padT + ih} y2={padT + ih} stroke="var(--line-2)" strokeWidth="1"/>
+
+        {/* Y-axis labels */}
+        {ticks.map((t, i) => (
+          <text key={i}
+            x={padL - 10} y={yCoord(t) + 4}
+            fill="var(--ink-4)" fontSize="9.5" textAnchor="end" fontFamily="var(--mono)"
+          >
+            {t >= 1000 ? `${(t / 1000).toFixed(1)}k` : t}
+          </text>
+        ))}
+
+        {/* X-axis labels */}
         {xLabels.map((d, i) => {
           const idx = current.indexOf(d);
-          return <text key={i} x={x(idx)} y={h - 8} fill="var(--ink-4)" fontSize="10" textAnchor="middle">{d.label}</text>;
+          return (
+            <text key={i}
+              x={xCoord(idx)} y={h - 10}
+              fill="var(--ink-4)" fontSize="9.5" textAnchor="middle" fontFamily="var(--mono)"
+            >
+              {d.label}
+            </text>
+          );
         })}
 
-        {/* Previous month — dashed */}
-        <path d={prevPath} fill="none" stroke="var(--ink-4)" strokeWidth="1.2" strokeDasharray="4 4" opacity="0.7"/>
+        {/* Previous month — secondary, subtle */}
+        <path d={prevPath} fill="none"
+          stroke="var(--line-3)" strokeWidth="1.1"
+          strokeDasharray="3 5" opacity="0.55"
+        />
 
-        {/* Current area + line */}
-        {style === 'area' && <path d={areaPath} fill="url(#areaGrad)"/>}
-        <path d={currPath} fill="none" stroke="var(--gold)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        {/* Area fill */}
+        {style === 'area' && <path d={areaPath} fill={`url(#${gradId})`}/>}
 
-        {/* Hover indicator */}
+        {/* Main gold line with glow */}
+        <path d={currPath} fill="none"
+          stroke="var(--gold)" strokeWidth="2"
+          strokeLinecap="round" strokeLinejoin="round"
+          filter={`url(#${glowId})`}
+        />
+
+        {/* Hover crosshair + dots */}
         {hover && (
           <g>
-            <line x1={x(hover.i)} x2={x(hover.i)} y1={padT} y2={padT + ih} stroke="var(--gold)" strokeWidth="1" opacity="0.4" strokeDasharray="2 2"/>
-            <circle cx={x(hover.i)} cy={y(current[hover.i].value)} r="5" fill="var(--bg)" stroke="var(--gold)" strokeWidth="2"/>
-            <circle cx={x(hover.i)} cy={y(previous[hover.i].value)} r="3" fill="var(--bg)" stroke="var(--ink-3)" strokeWidth="1.4"/>
+            <line
+              x1={xCoord(hover.i)} x2={xCoord(hover.i)}
+              y1={padT} y2={padT + ih}
+              stroke="var(--gold)" strokeWidth="1" opacity="0.3" strokeDasharray="2 4"
+            />
+            {/* Previous month dot */}
+            <circle cx={xCoord(hover.i)} cy={yCoord(previous[hover.i]?.value ?? 0)}
+              r="3.5" fill="var(--bg)" stroke="var(--line-3)" strokeWidth="1.4"
+            />
+            {/* Current month: outer ring + filled dot */}
+            <circle cx={xCoord(hover.i)} cy={yCoord(current[hover.i].value)}
+              r="7" fill="var(--gold)" opacity="0.14"
+            />
+            <circle cx={xCoord(hover.i)} cy={yCoord(current[hover.i].value)}
+              r="4.5" fill="var(--bg)" stroke="var(--gold)" strokeWidth="2"
+            />
+            <circle cx={xCoord(hover.i)} cy={yCoord(current[hover.i].value)}
+              r="1.6" fill="var(--gold)"
+            />
           </g>
         )}
       </svg>
 
       {hover && (
-        <div className={`tt on`} style={{ left: `${hover.x}%`, top: `${hover.y}%` }}>
+        <div
+          className="tt on"
+          style={{
+            left: `clamp(76px, ${hover.pxX}px, calc(100% - 76px))`,
+            top: hover.pxY,
+            transform: 'translate(-50%, calc(-100% - 14px))',
+          }}
+        >
           <div className="tt-d">{current[hover.i].label}</div>
           <div className="tt-row">
             <span className="l"><i style={{ background: 'var(--gold)' }}/>Este mês</span>
             <span className="v">{brlShort(current[hover.i].value)}</span>
           </div>
           <div className="tt-row">
-            <span className="l"><i style={{ background: 'var(--ink-4)' }}/>Mês anterior</span>
-            <span className="v" style={{ color: 'var(--ink-2)' }}>{brlShort(previous[hover.i].value)}</span>
+            <span className="l"><i style={{ background: 'var(--line-3)', opacity: 0.8 }}/>Mês anterior</span>
+            <span className="v" style={{ color: 'var(--ink-2)' }}>{brlShort(previous[hover.i]?.value ?? 0)}</span>
           </div>
         </div>
       )}

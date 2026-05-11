@@ -1,4 +1,4 @@
-/* global React, ReactDOM, Sidebar, Topbar, NAV */
+/* global React, ReactDOM, Sidebar, Topbar, NAV, Dashboard */
 
 const AUTH_KEY = 'tocha_admin_token';
 
@@ -29,14 +29,19 @@ function App() {
       <Sidebar active={page} onNavigate={handleNavigate}/>
       <div className="main">
         <Topbar pageLabel={label} onNavigate={handleNavigate}/>
-        <div className="page">
-          <div className="page-head">
-            <div>
-              <h1><em>{label}</em></h1>
-              <p className="sub">Módulo em implementação</p>
+        {page === 'home'
+          ? <Dashboard/>
+          : (
+            <div className="page">
+              <div className="page-head">
+                <div>
+                  <h1><em>{label}</em></h1>
+                  <p className="sub">Módulo em implementação</p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          )
+        }
       </div>
     </div>
   );
