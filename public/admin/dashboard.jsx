@@ -189,6 +189,73 @@ function Dashboard() {
         </div>
       </div>
 
+      {/* Clientes em pausa + Alertas */}
+      <div className="grid row-half mt">
+
+        {/* Clientes em pausa */}
+        <div className="card pause-card hoverable">
+          <div className="card-head">
+            <h3><Ic.users/>Clientes em pausa</h3>
+            <span className="meta">Recorrentes sem comprar há +15 dias</span>
+          </div>
+
+          {D.pausa.healthy ? (
+            <>
+              <div className="health">
+                <div className="pulse"/>
+                <b>Base de clientes saudável</b>
+                <small>Nenhum cliente recorrente em pausa</small>
+              </div>
+              <div className="pair">
+                <div className="mini">
+                  <small>Clientes recorrentes ativos</small>
+                  <b>{D.pausa.activeRecurrent}</b>
+                </div>
+                <div className="mini">
+                  <small>Ticket médio (fiel)</small>
+                  <b>{brl(D.pausa.avgTicket)}</b>
+                </div>
+              </div>
+              <div className="highlight">
+                <small>Intervalo de recompra</small>
+                <b>
+                  Média de {D.pausa.repurchaseInterval.toLocaleString('pt-BR')} dias
+                  {' '}<em>({D.pausa.repurchaseStatus})</em>
+                </b>
+              </div>
+            </>
+          ) : (
+            <div className="empty-state">
+              <Ic.users/>
+              <span>Nenhum cliente em pausa</span>
+            </div>
+          )}
+        </div>
+
+        {/* Alertas */}
+        <div className="card hoverable">
+          <div className="card-head">
+            <h3><Ic.bell/>Alertas</h3>
+            <span className="meta">{D.alerts.length} novos</span>
+          </div>
+          <div className="alert-list">
+            {D.alerts.map((a, i) => (
+              <div className={`alert ${a.kind}`} key={i}>
+                <span className="a-ic">
+                  {a.kind === 'info' ? <Ic.info/> : <Ic.warn/>}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <b>{a.title}</b>
+                  <small>{a.body}</small>
+                </div>
+                <small style={{ flexShrink: 0, color: 'var(--ink-4)', fontSize: 10 }}>{a.meta}</small>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+
       {openClient && <ClientCardModal client={openClient} onClose={() => setOpenClient(null)}/>}
     </div>
   );
