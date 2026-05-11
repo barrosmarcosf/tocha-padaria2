@@ -2,7 +2,7 @@
 const {
   useState: useSt
 } = React;
-const LOGO = '/assets/logo-footer%20(1).png';
+const LOGO = '/assets/logo.png';
 const NAV = [{
   kind: 'item',
   id: 'home',
@@ -171,7 +171,7 @@ function Topbar({
   return /*#__PURE__*/React.createElement("div", {
     className: "topbar"
   }, /*#__PURE__*/React.createElement("img", {
-    src: "/assets/logo.png",
+    src: LOGO,
     style: {
       height: 28,
       width: 'auto',

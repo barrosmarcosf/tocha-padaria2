@@ -1,7 +1,7 @@
 /* global React, Ic */
 const { useState: useSt } = React;
 
-const LOGO = '/assets/logo-footer%20(1).png';
+const LOGO = '/assets/logo.png';
 
 const NAV = [
   { kind: 'item', id: 'home', label: 'Início', icon: Ic.home },
@@ -72,7 +72,7 @@ function Topbar({ pageLabel, onNavigate, onHamburger }) {
   }, [open]);
   return (
     <div className="topbar">
-      <img src="/assets/logo.png" style={{ height: 28, width: 'auto', objectFit: 'contain', flexShrink: 0 }}/>
+      <img src={LOGO} style={{ height: 28, width: 'auto', objectFit: 'contain', flexShrink: 0 }}/>
       <div className="crumb">
         <span>Admin</span>
         <Ic.chev/>
