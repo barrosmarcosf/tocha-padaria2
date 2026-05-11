@@ -1,5 +1,5 @@
 /* global React, Ic */
-const { useState: useStC } = React;
+const { useState: useStC, useEffect: useEffC, useCallback: useCbC } = React;
 
 function PageHead2({ title, subtitle, badge, right }) {
   return (
@@ -111,8 +111,100 @@ function PagamentoPage() {
 }
 
 /* ========== HORÁRIO / CICLOS DE VENDA ========== */
+function fmtForInput(dateStr) {
+  if (!dateStr) return '';
+  const [datePart, timePart] = dateStr.split('T');
+  if (!datePart) return '';
+  const [y, m, d] = datePart.split('-');
+  const base = `${d}/${m}/${y}`;
+  if (timePart) return `${base} ${timePart.slice(0,5)}`;
+  return base;
+}
+
+function parseInputToISO(str) {
+  if (!str) return '';
+  const [datePart, timePart] = str.trim().split(' ');
+  const parts = datePart.split('/');
+  if (parts.length !== 3) return str;
+  const [d, m, y] = parts;
+  return timePart ? `${y}-${m}-${d}T${timePart}` : `${y}-${m}-${d}`;
+}
+
+function calcTimeLeft(endStr) {
+  if (!endStr) return null;
+  const end = new Date(endStr.includes('T') ? endStr : endStr + 'T23:59:59');
+  const diff = end.getTime() - Date.now();
+  if (diff <= 0) return 'Encerrado';
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  return `${days}d ${hours}h ${mins}min`;
+}
+
 function HorarioPage() {
   const [auto, setAuto] = useStC(true);
+  const [loading, setLoading] = useStC(true);
+  const [saving, setSaving] = useStC(false);
+  const [savedMsg, setSavedMsg] = useStC('');
+  const [config, setConfig] = useStC(null);
+
+  const [curr, setCurr] = useStC({ prodDate: '', winStart: '', winEnd: '' });
+  const [next, setNext] = useStC({ prodDate: '', winStart: '', winEnd: '' });
+
+  const load = useCbC(() => {
+    window.apiGet('/api/admin/config')
+      .then(d => {
+        const oh = d?.siteContent?.opening_hours || {};
+        setConfig(oh);
+        setAuto(!oh.manualBlock);
+        if (oh.currentBatch) {
+          setCurr({
+            prodDate: fmtForInput(oh.currentBatch.bakeDate),
+            winStart: fmtForInput(oh.currentBatch.start),
+            winEnd:   fmtForInput(oh.currentBatch.end),
+          });
+        }
+        if (oh.nextBatch) {
+          setNext({
+            prodDate: fmtForInput(oh.nextBatch.bakeDate),
+            winStart: fmtForInput(oh.nextBatch.start),
+            winEnd:   fmtForInput(oh.nextBatch.end),
+          });
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffC(() => { load(); }, [load]);
+
+  const handleSave = () => {
+    setSaving(true);
+    setSavedMsg('');
+    const updated = {
+      ...(config || {}),
+      manualBlock: !auto,
+      currentBatch: {
+        bakeDate: parseInputToISO(curr.prodDate),
+        start:    parseInputToISO(curr.winStart),
+        end:      parseInputToISO(curr.winEnd),
+      },
+      nextBatch: {
+        bakeDate: parseInputToISO(next.prodDate),
+        start:    parseInputToISO(next.winStart),
+        end:      parseInputToISO(next.winEnd),
+      },
+    };
+    window.apiPost('/api/admin/save-content', { key: 'opening_hours', value: updated })
+      .then(() => { setConfig(updated); setSavedMsg('Configuração salva com sucesso!'); })
+      .catch(e => setSavedMsg('Erro: ' + e.message))
+      .finally(() => setSaving(false));
+  };
+
+  const currentEnd = config?.currentBatch?.end;
+  const timeLeft = calcTimeLeft(currentEnd);
+  const currentBakeLabel = curr.prodDate || '—';
+
   return (
     <div className="page">
       <PageHead2 title="Ciclos de Venda" subtitle="Gerencia janelas de pedidos e datas de produção."/>
@@ -128,27 +220,50 @@ function HorarioPage() {
         <Toggle on={auto} onChange={setAuto}/>
       </div>
 
-      <div className="grid mt" style={{ gridTemplateColumns: '1fr', gap: 18 }}>
-        <CycleCard num="1" label="Fornada atual" prodDate="16/05/2026" winStart="07/05/2026 16:01" winEnd="14/05/2026 16:00"/>
-        <CycleCard num="2" label="Próxima fornada" prodDate="23/05/2026" winStart="14/05/2026 16:01" winEnd="21/05/2026 16:00"/>
-      </div>
-
-      <div className="card mt status-card">
-        <div className="status-card-row">
-          <div className="status-pill"><span className="dot-up"/> Status calculado · <b>Fornada atual</b></div>
-          <div className="status-text"><Ic.clock/> <b>Comunicação para o cliente:</b> Pedidos abertos para este sábado — <b style={{ color: 'var(--gold)' }}>16/05</b> — Encerra em <b style={{ color: 'var(--gold)' }}>3d 4h 50min</b></div>
+      {loading ? (
+        <div className="empty-state" style={{ height: 160 }}><Ic.clock/><div>Carregando configuração…</div></div>
+      ) : (
+        <div className="grid mt" style={{ gridTemplateColumns: '1fr', gap: 18 }}>
+          <CycleCard
+            num="1" label="Fornada atual"
+            values={curr} onChange={setCurr}
+          />
+          <CycleCard
+            num="2" label="Próxima fornada"
+            values={next} onChange={setNext}
+          />
         </div>
-      </div>
+      )}
+
+      {!loading && (
+        <div className="card mt status-card">
+          <div className="status-card-row">
+            <div className="status-pill"><span className="dot-up"/> Status calculado · <b>Fornada atual</b></div>
+            <div className="status-text">
+              <Ic.clock/> <b>Comunicação para o cliente:</b> Pedidos abertos para este sábado —{' '}
+              <b style={{ color: 'var(--gold)' }}>{currentBakeLabel}</b>
+              {timeLeft && <> — Encerra em <b style={{ color: 'var(--gold)' }}>{timeLeft}</b></>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {savedMsg && (
+        <div style={{ textAlign: 'center', color: savedMsg.startsWith('Erro') ? 'var(--down)' : 'var(--up)', fontSize: 13, marginTop: 12 }}>
+          {savedMsg}
+        </div>
+      )}
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
-        <button className="btn-ghost" style={{ flex: 'none', padding: '8px 16px' }}>Cancelar</button>
-        <button className="btn-primary">Salvar</button>
+        <button className="btn-ghost" style={{ flex: 'none', padding: '8px 16px' }} onClick={load}>Cancelar</button>
+        <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Salvando…' : 'Salvar'}</button>
       </div>
     </div>
   );
 }
 
-function CycleCard({ num, label, prodDate, winStart, winEnd }) {
+function CycleCard({ num, label, values, onChange }) {
+  const set = (field) => (e) => onChange(prev => ({ ...prev, [field]: e.target.value }));
   return (
     <div className="card cycle-card">
       <div className="cycle-head">
@@ -157,16 +272,16 @@ function CycleCard({ num, label, prodDate, winStart, winEnd }) {
       </div>
       <div className="cycle-field">
         <label>Data da produção <small>(exibida ao cliente)</small></label>
-        <input className="date-input lg" type="text" defaultValue={prodDate}/>
+        <input className="date-input lg" type="text" value={values.prodDate} onChange={set('prodDate')} placeholder="DD/MM/AAAA"/>
       </div>
       <div className="grid row-2 cycle-fields">
         <div className="cycle-field">
           <label>Início da janela</label>
-          <input className="date-input lg" type="text" defaultValue={winStart}/>
+          <input className="date-input lg" type="text" value={values.winStart} onChange={set('winStart')} placeholder="DD/MM/AAAA HH:MM"/>
         </div>
         <div className="cycle-field">
           <label>Fim da janela</label>
-          <input className="date-input lg" type="text" defaultValue={winEnd}/>
+          <input className="date-input lg" type="text" value={values.winEnd} onChange={set('winEnd')} placeholder="DD/MM/AAAA HH:MM"/>
         </div>
       </div>
     </div>

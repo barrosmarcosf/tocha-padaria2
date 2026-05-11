@@ -1,6 +1,8 @@
-/* global React, Ic */
+/* global React, Ic, brl */
 const {
-  useState: useStX
+  useState: useStX,
+  useEffect: useEffX,
+  useCallback: useCbX
 } = React;
 function PH({
   title,
@@ -21,7 +23,21 @@ function PH({
   }, subtitle)));
 }
 
-/* ========== INSIGHTS AUTOMÁTICOS ========== */
+/* ---------- shared helpers ---------- */
+function fmtDateX(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+}
+function fmtPhoneX(w) {
+  if (!w) return '—';
+  const d = String(w).replace(/\D/g, '');
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return w;
+}
+
+/* ========== INSIGHTS AUTOMÁTICOS (estático — análise comportamental) ========== */
 const INSIGHTS = [{
   title: 'Pico de Visitas',
   tone: 'c1',
@@ -272,68 +288,7 @@ function InsightsPage() {
   })));
 }
 
-/* ========== INTELIGÊNCIA — DASHBOARD ========== */
-const MESES_LONGO = [{
-  l: 'Jun/2025',
-  f: 0,
-  p: 0,
-  lr: 0
-}, {
-  l: 'Jul/2025',
-  f: 0,
-  p: 0,
-  lr: 0
-}, {
-  l: 'Ago/2025',
-  f: 0,
-  p: 0,
-  lr: 0
-}, {
-  l: 'Set/2025',
-  f: 0,
-  p: 0,
-  lr: 0
-}, {
-  l: 'Out/2025',
-  f: 0,
-  p: 0,
-  lr: 0
-}, {
-  l: 'Nov/2025',
-  f: 0,
-  p: 0,
-  lr: 0
-}, {
-  l: 'Dez/2025',
-  f: 0,
-  p: 0,
-  lr: 0
-}, {
-  l: 'Jan/2026',
-  f: 0,
-  p: 0,
-  lr: 0
-}, {
-  l: 'Fev/2026',
-  f: 0,
-  p: 0,
-  lr: 0
-}, {
-  l: 'Mar/2026',
-  f: 0,
-  p: 0,
-  lr: 0
-}, {
-  l: 'Abr/2026',
-  f: 126.7,
-  p: 2,
-  lr: 76
-}, {
-  l: 'Mai/2026',
-  f: 8,
-  p: 4,
-  lr: 4.8
-}];
+/* ========== INTELIGÊNCIA — LongTermChart ========== */
 function LongTermChart({
   data
 }) {
@@ -347,7 +302,7 @@ function LongTermChart({
     ih = H - PT - PB;
   const maxR = Math.max(...data.map(d => Math.max(d.f, d.lr)), 1);
   const maxP = Math.max(...data.map(d => d.p), 1);
-  const step = iw / (data.length - 1);
+  const step = iw / Math.max(data.length - 1, 1);
   const bw = Math.min(step * 0.35, 26);
   const yR = v => PT + ih - v / maxR * ih;
   const yP = v => PT + ih - v / maxP * ih;
@@ -509,60 +464,93 @@ function LongTermChart({
     }
   }), "Lucro Real")));
 }
-const CAL_2026_MAI = (() => {
-  const sales = {
-    3: {
-      v: 6,
-      p: 2
-    },
-    6: {
-      v: 1,
-      p: 1
-    },
-    11: {
-      v: 1,
-      p: 1
-    }
-  };
-  const startDow = 5;
-  const days = 31;
+function buildCalendar(year, month, dailyBreakdown) {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const startDow = new Date(year, month - 1, 1).getDay();
   const cells = [];
   for (let i = 0; i < startDow; i++) cells.push(null);
-  for (let d = 1; d <= days; d++) cells.push({
-    d,
-    ...(sales[d] || {
-      v: 0
-    })
-  });
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${year}-${month}-${d}`;
+    const info = dailyBreakdown[key] || {
+      revenue: 0,
+      orders: 0
+    };
+    cells.push({
+      d,
+      v: info.revenue || 0,
+      p: info.orders || 0
+    });
+  }
   while (cells.length % 7) cells.push(null);
   const weeks = [];
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
   return weeks;
-})();
-const RANKING_ITENS = [{
-  p: 'Sourdough Tradicional (São João)',
-  cat: 'PADARIA',
-  qtd: 5,
-  bruto: 128,
-  lucro: 76.8
-}, {
-  p: 'Focaccia de Damasco & Gorgonzola',
-  cat: 'PADARIA',
-  qtd: 1,
-  bruto: 5,
-  lucro: 3
-}, {
-  p: 'Sourdough Tradicional',
-  cat: 'PADARIA',
-  qtd: 1,
-  bruto: 1,
-  lucro: 0.6
-}];
+}
+function generate12Months() {
+  const now = new Date();
+  const months = [];
+  const names = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({
+      value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+      label: `${names[d.getMonth()]} de ${d.getFullYear()}`,
+      year: d.getFullYear(),
+      month: d.getMonth() + 1
+    });
+  }
+  return months;
+}
 function InteligenciaPage() {
-  const totalMes = CAL_2026_MAI.flat().reduce((a, c) => a + (c?.v || 0), 0);
-  const totalSemana = w => w.reduce((a, c) => a + (c?.v || 0), 0);
-  const totalDow = i => CAL_2026_MAI.reduce((a, w) => a + (w[i]?.v || 0), 0);
+  const MONTHS = generate12Months();
+  const currentMonth = MONTHS[MONTHS.length - 1];
+  const [historical, setHistorical] = useStX([]);
+  const [selMonth, setSelMonth] = useStX(currentMonth.value);
+  const [dailyBreakdown, setDailyBreakdown] = useStX({});
+  const [ranking, setRanking] = useStX([]);
+  const [loadingChart, setLoadingChart] = useStX(true);
+  const [loadingCal, setLoadingCal] = useStX(true);
+  useEffX(() => {
+    window.apiGet('/api/admin/historical-monthly-metrics').then(d => setHistorical(d || [])).catch(() => {}).finally(() => setLoadingChart(false));
+  }, []);
+  const fetchMonthDetail = useCbX(value => {
+    const mo = MONTHS.find(m => m.value === value) || currentMonth;
+    const from = new Date(mo.year, mo.month - 1, 1).toISOString();
+    const to = new Date(mo.year, mo.month, 0, 23, 59, 59).toISOString();
+    setLoadingCal(true);
+    window.apiGet(`/api/admin/detailed-analytics?period=custom&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&tzOffset=180`).then(d => {
+      setDailyBreakdown(d?.dailyBreakdown || {});
+      setRanking(d?.itemPerformance?.products || []);
+    }).catch(() => {}).finally(() => setLoadingCal(false));
+  }, []);
+  useEffX(() => {
+    fetchMonthDetail(selMonth);
+  }, [selMonth]);
+  const chartData = historical.map(m => ({
+    l: m.label || m.key,
+    f: m.revenue || 0,
+    p: m.orders || 0,
+    lr: m.profit || 0
+  }));
+  const lastMonth = historical.length > 0 ? historical[historical.length - 1] : null;
+  const prevMonth = historical.length > 1 ? historical[historical.length - 2] : null;
+  const revVar = lastMonth && prevMonth && prevMonth.revenue > 0 ? ((lastMonth.revenue - prevMonth.revenue) / prevMonth.revenue * 100).toFixed(1) : '0.0';
+  const ordVar = lastMonth && prevMonth && prevMonth.orders > 0 ? ((lastMonth.orders - prevMonth.orders) / prevMonth.orders * 100).toFixed(1) : '0.0';
+  const tikVar = lastMonth && prevMonth ? (() => {
+    const curr = lastMonth.orders > 0 ? lastMonth.revenue / lastMonth.orders : 0;
+    const prev = prevMonth.orders > 0 ? prevMonth.revenue / prevMonth.orders : 0;
+    return prev > 0 ? ((curr - prev) / prev * 100).toFixed(1) : '0.0';
+  })() : '0.0';
+  const curRev = lastMonth?.revenue || 0;
+  const curOrd = lastMonth?.orders || 0;
+  const curTik = curOrd > 0 ? curRev / curOrd : 0;
+  const mo = MONTHS.find(m => m.value === selMonth) || currentMonth;
+  const cal = buildCalendar(mo.year, mo.month, dailyBreakdown);
   const dows = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
+  const totalMes = Object.values(dailyBreakdown).reduce((s, d) => s + (d.revenue || 0), 0);
+  const totalOrdMes = Object.values(dailyBreakdown).reduce((s, d) => s + (d.orders || 0), 0);
+  const totalSemana = w => w.reduce((a, c) => a + (c?.v || 0), 0);
+  const totalDow = i => cal.reduce((a, w) => a + (w[i]?.v || 0), 0);
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement("div", {
@@ -582,17 +570,17 @@ function InteligenciaPage() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "kpi-card"
-  }, /*#__PURE__*/React.createElement("small", null, "VENDAS TOTAIS"), /*#__PURE__*/React.createElement("b", null, "R$ 134,00"), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("em", {
-    className: "up-text"
-  }, "\u25B2 +12.4%"), " vs. m\xEAs anterior")), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "VENDAS TOTAIS"), /*#__PURE__*/React.createElement("b", null, "R$ ", curRev.toFixed(2).replace('.', ',')), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("em", {
+    className: Number(revVar) >= 0 ? 'up-text' : 'dn-text'
+  }, Number(revVar) >= 0 ? '▲' : '▼', " ", revVar, "%"), " vs. m\xEAs anterior")), /*#__PURE__*/React.createElement("div", {
     className: "kpi-card"
-  }, /*#__PURE__*/React.createElement("small", null, "TICKET M\xC9DIO"), /*#__PURE__*/React.createElement("b", null, "R$ 22,33"), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("em", {
-    className: "dn-text"
-  }, "\u25BC \u22123.1%"), " vs. m\xEAs anterior")), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "TICKET M\xC9DIO"), /*#__PURE__*/React.createElement("b", null, "R$ ", curTik.toFixed(2).replace('.', ',')), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("em", {
+    className: Number(tikVar) >= 0 ? 'up-text' : 'dn-text'
+  }, Number(tikVar) >= 0 ? '▲' : '▼', " ", tikVar, "%"), " vs. m\xEAs anterior")), /*#__PURE__*/React.createElement("div", {
     className: "kpi-card"
-  }, /*#__PURE__*/React.createElement("small", null, "PEDIDOS"), /*#__PURE__*/React.createElement("b", null, "6"), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("em", {
-    className: "up-text"
-  }, "\u25B2 +100%"), " vs. m\xEAs anterior"))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "PEDIDOS"), /*#__PURE__*/React.createElement("b", null, curOrd), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("em", {
+    className: Number(ordVar) >= 0 ? 'up-text' : 'dn-text'
+  }, Number(ordVar) >= 0 ? '▲' : '▼', " ", ordVar, "%"), " vs. m\xEAs anterior"))), /*#__PURE__*/React.createElement("div", {
     className: "card mt"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card-head",
@@ -607,33 +595,43 @@ function InteligenciaPage() {
     style: {
       color: 'var(--ink-3)'
     }
-  }, "Hist\xF3rico mensal consolidado dos \xFAltimos 12 meses"))), /*#__PURE__*/React.createElement("div", {
+  }, "Hist\xF3rico mensal consolidado dos \xFAltimos 12 meses"))), lastMonth && /*#__PURE__*/React.createElement("div", {
     className: "lt-summary"
   }, /*#__PURE__*/React.createElement("div", {
     className: "lt-sum-item"
   }, /*#__PURE__*/React.createElement("small", null, "\xDALTIMO M\xCAS"), /*#__PURE__*/React.createElement("b", {
     className: "lt-mono"
-  }, "Mai/2026")), /*#__PURE__*/React.createElement("div", {
+  }, lastMonth.label || lastMonth.key)), /*#__PURE__*/React.createElement("div", {
     className: "lt-sum-item"
   }, /*#__PURE__*/React.createElement("small", null, "FATURAMENTO"), /*#__PURE__*/React.createElement("div", {
     className: "lt-sum-line"
-  }, /*#__PURE__*/React.createElement("b", null, "R$ 8"), /*#__PURE__*/React.createElement("span", {
-    className: "delta dn"
-  }, "\u221293.7%"))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("b", null, "R$ ", curRev.toFixed(0)), /*#__PURE__*/React.createElement("span", {
+    className: `delta ${Number(revVar) >= 0 ? 'up' : 'dn'}`
+  }, Number(revVar) >= 0 ? '+' : '', revVar, "%"))), /*#__PURE__*/React.createElement("div", {
     className: "lt-sum-item"
   }, /*#__PURE__*/React.createElement("small", null, "VENDAS"), /*#__PURE__*/React.createElement("div", {
     className: "lt-sum-line"
-  }, /*#__PURE__*/React.createElement("b", null, "4"), /*#__PURE__*/React.createElement("span", {
-    className: "delta up"
-  }, "+100.0%"))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("b", null, curOrd), /*#__PURE__*/React.createElement("span", {
+    className: `delta ${Number(ordVar) >= 0 ? 'up' : 'dn'}`
+  }, Number(ordVar) >= 0 ? '+' : '', ordVar, "%"))), /*#__PURE__*/React.createElement("div", {
     className: "lt-sum-item"
   }, /*#__PURE__*/React.createElement("small", null, "LUCRO REAL"), /*#__PURE__*/React.createElement("div", {
     className: "lt-sum-line"
-  }, /*#__PURE__*/React.createElement("b", null, "R$ 4,8"), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("b", null, "R$ ", (lastMonth.profit || 0).toFixed(1)), /*#__PURE__*/React.createElement("span", {
     className: "delta dn"
-  }, "\u221293.7%")))), /*#__PURE__*/React.createElement(LongTermChart, {
-    data: MESES_LONGO
-  })), /*#__PURE__*/React.createElement("div", {
+  }, "\u2014")))), loadingChart ? /*#__PURE__*/React.createElement("div", {
+    className: "empty-state",
+    style: {
+      height: 160
+    }
+  }, /*#__PURE__*/React.createElement(Ic.clock, null), /*#__PURE__*/React.createElement("div", null, "Carregando hist\xF3rico\u2026")) : chartData.length > 0 ? /*#__PURE__*/React.createElement(LongTermChart, {
+    data: chartData
+  }) : /*#__PURE__*/React.createElement("div", {
+    className: "empty-state",
+    style: {
+      height: 160
+    }
+  }, /*#__PURE__*/React.createElement(Ic.chart, null), /*#__PURE__*/React.createElement("div", null, "Sem dados hist\xF3ricos dispon\xEDveis."))), /*#__PURE__*/React.createElement("div", {
     className: "card mt"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card-head"
@@ -644,16 +642,14 @@ function InteligenciaPage() {
   }, "Vendas do m\xEAs")), /*#__PURE__*/React.createElement("select", {
     className: "inp",
     style: {
-      width: 180
+      width: 220
     },
-    defaultValue: "2026-05"
-  }, /*#__PURE__*/React.createElement("option", {
-    value: "2026-05"
-  }, "Maio de 2026"), /*#__PURE__*/React.createElement("option", {
-    value: "2026-04"
-  }, "Abril de 2026"), /*#__PURE__*/React.createElement("option", {
-    value: "2026-03"
-  }, "Mar\xE7o de 2026"))), /*#__PURE__*/React.createElement("div", {
+    value: selMonth,
+    onChange: e => setSelMonth(e.target.value)
+  }, MONTHS.map(m => /*#__PURE__*/React.createElement("option", {
+    key: m.value,
+    value: m.value
+  }, m.label)))), /*#__PURE__*/React.createElement("div", {
     className: "grid",
     style: {
       gridTemplateColumns: '1fr 1fr',
@@ -664,9 +660,14 @@ function InteligenciaPage() {
     className: "kpi-soft v"
   }, /*#__PURE__*/React.createElement("small", null, "VENDA TOTAL"), /*#__PURE__*/React.createElement("b", null, "R$ ", totalMes.toFixed(2).replace('.', ','))), /*#__PURE__*/React.createElement("div", {
     className: "kpi-soft"
-  }, /*#__PURE__*/React.createElement("small", null, "PEDIDOS"), /*#__PURE__*/React.createElement("b", null, "4"))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "PEDIDOS"), /*#__PURE__*/React.createElement("b", null, totalOrdMes))), /*#__PURE__*/React.createElement("div", {
     className: "cal-hint"
-  }, "As informa\xE7\xF5es correspondem ao m\xEAs de Maio de 2026"), /*#__PURE__*/React.createElement("div", {
+  }, "As informa\xE7\xF5es correspondem ao m\xEAs de ", MONTHS.find(m => m.value === selMonth)?.label || '—'), loadingCal ? /*#__PURE__*/React.createElement("div", {
+    className: "empty-state",
+    style: {
+      height: 120
+    }
+  }, /*#__PURE__*/React.createElement(Ic.clock, null), /*#__PURE__*/React.createElement("div", null, "Carregando calend\xE1rio\u2026")) : /*#__PURE__*/React.createElement("div", {
     className: "cal-grid"
   }, /*#__PURE__*/React.createElement("div", {
     className: "cal-head"
@@ -674,7 +675,7 @@ function InteligenciaPage() {
     key: d
   }, d)), /*#__PURE__*/React.createElement("div", {
     className: "cal-total"
-  }, "TOTAL SEMANA")), CAL_2026_MAI.map((w, wi) => /*#__PURE__*/React.createElement("div", {
+  }, "TOTAL SEMANA")), cal.map((w, wi) => /*#__PURE__*/React.createElement("div", {
     className: "cal-row",
     key: wi
   }, w.map((c, ci) => /*#__PURE__*/React.createElement("div", {
@@ -684,7 +685,7 @@ function InteligenciaPage() {
     className: "cal-d"
   }, c.d), /*#__PURE__*/React.createElement("div", {
     className: "cal-val"
-  }, /*#__PURE__*/React.createElement("b", null, "R$ ", c.v.toFixed(2).replace('.', ',')), c.p && /*#__PURE__*/React.createElement("small", null, c.p, " pedido", c.p > 1 ? 's' : ''))))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("b", null, "R$ ", c.v.toFixed(2).replace('.', ',')), c.p > 0 && /*#__PURE__*/React.createElement("small", null, c.p, " pedido", c.p > 1 ? 's' : ''))))), /*#__PURE__*/React.createElement("div", {
     className: "cal-cell wk-total"
   }, /*#__PURE__*/React.createElement("b", null, "R$ ", totalSemana(w).toFixed(2).replace('.', ','))))), /*#__PURE__*/React.createElement("div", {
     className: "cal-row cal-foot"
@@ -715,56 +716,108 @@ function InteligenciaPage() {
     className: "rt"
   }, "BRUTO"), /*#__PURE__*/React.createElement("div", {
     className: "rt"
-  }, "LUCRO")), RANKING_ITENS.map((r, i) => /*#__PURE__*/React.createElement("div", {
+  }, "LUCRO")), ranking.slice(0, 100).map((r, i) => /*#__PURE__*/React.createElement("div", {
     className: "rk-row",
     key: i
   }, /*#__PURE__*/React.createElement("div", {
     className: "rk-pos"
-  }, i + 1), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, r.p)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+  }, i + 1), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, r.name)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
     className: "tag"
-  }, r.cat)), /*#__PURE__*/React.createElement("div", {
+  }, (r.category || 'PADARIA').toUpperCase())), /*#__PURE__*/React.createElement("div", {
     className: "rt num"
-  }, r.qtd), /*#__PURE__*/React.createElement("div", {
+  }, r.qty || 0), /*#__PURE__*/React.createElement("div", {
     className: "rt num"
-  }, "R$ ", r.bruto.toFixed(2).replace('.', ',')), /*#__PURE__*/React.createElement("div", {
+  }, "R$ ", (r.revenue || 0).toFixed(2).replace('.', ',')), /*#__PURE__*/React.createElement("div", {
     className: "rt num up-text"
-  }, "R$ ", r.lucro.toFixed(2).replace('.', ',')))))));
+  }, "R$ ", (r.profit || 0).toFixed(2).replace('.', ',')))), ranking.length === 0 && !loadingCal && /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      color: 'var(--ink-4)',
+      padding: 20,
+      fontSize: 13
+    }
+  }, "Nenhum item vendido neste per\xEDodo."))));
 }
 
 /* ========== ALERTAS ========== */
-const ALERTS = [{
-  k: 'crit',
-  title: 'Taxa de rejeição',
-  desc: '18% — acima do threshold de 10%'
-}, {
-  k: 'warn',
-  title: 'Ticket médio',
-  desc: 'Queda de 12% na última semana'
-}, {
-  k: 'warn',
-  title: 'Carrinhos abandonados',
-  desc: '32% de aumento nos últimos 3 dias'
-}, {
-  k: 'warn',
-  title: 'Queda de visitas',
-  desc: '8% abaixo da média semanal esperada'
-}, {
-  k: 'ok',
-  title: 'Taxa de aprovação',
-  desc: 'Acima de 80% — dentro do esperado'
-}, {
-  k: 'ok',
-  title: 'Taxa de conversão',
-  desc: 'Estável em 10,8% — dentro da meta'
-}, {
-  k: 'ok',
-  title: 'Perfil do comprador',
-  desc: 'Comportamento dentro do padrão histórico'
-}];
 function AlertasPage() {
-  const crit = ALERTS.filter(a => a.k === 'crit').length;
-  const warn = ALERTS.filter(a => a.k === 'warn').length;
-  const ok = ALERTS.filter(a => a.k === 'ok').length;
+  const [health, setHealth] = useStX(null);
+  const [metrics, setMetrics] = useStX(null);
+  const [loading, setLoading] = useStX(true);
+  useEffX(() => {
+    Promise.all([window.apiGet('/api/admin/payments-health'), window.apiGet('/api/admin/metrics')]).then(([h, m]) => {
+      setHealth(h);
+      setMetrics(m);
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+  const alerts = [];
+  if (!loading && health && metrics) {
+    if ((health.stale_locks || 0) > 0) {
+      alerts.push({
+        k: 'crit',
+        title: 'Locks de pagamento presos',
+        desc: `${health.stale_locks} pagamentos em processamento há mais de 2 minutos`
+      });
+    }
+    if ((health.failed || 0) > 0) {
+      alerts.push({
+        k: 'crit',
+        title: 'Pagamentos com falha',
+        desc: `${health.failed} pedidos com status payment_failed ou error`
+      });
+    }
+    if ((health.pending || 0) > 10) {
+      alerts.push({
+        k: 'warn',
+        title: 'Volume de pendentes alto',
+        desc: `${health.pending} pedidos aguardando confirmação de pagamento`
+      });
+    }
+    if ((health.fila_reprocessamento || 0) > 0) {
+      alerts.push({
+        k: 'warn',
+        title: 'Fila de reprocessamento',
+        desc: `${health.fila_reprocessamento} pagamentos aguardando nova tentativa`
+      });
+    }
+    const ar = metrics?.payments?.approval_rate ?? 100;
+    if (ar < 70) {
+      alerts.push({
+        k: 'crit',
+        title: 'Taxa de aprovação crítica',
+        desc: `${ar}% — abaixo do limite mínimo de 70%`
+      });
+    } else if (ar < 80) {
+      alerts.push({
+        k: 'warn',
+        title: 'Taxa de aprovação',
+        desc: `${ar}% — abaixo do threshold de 80%`
+      });
+    } else {
+      alerts.push({
+        k: 'ok',
+        title: 'Taxa de aprovação',
+        desc: `${ar}% — dentro do esperado`
+      });
+    }
+    if ((health.paid || 0) > 0) {
+      alerts.push({
+        k: 'ok',
+        title: 'Pagamentos confirmados',
+        desc: `${health.paid} pedidos com status paid`
+      });
+    }
+    if ((health.pending || 0) <= 10) {
+      alerts.push({
+        k: 'ok',
+        title: 'Fila de pendentes',
+        desc: `${health.pending || 0} pedidos pendentes — dentro do normal`
+      });
+    }
+  }
+  const crit = alerts.filter(a => a.k === 'crit').length;
+  const warn = alerts.filter(a => a.k === 'warn').length;
+  const ok = alerts.filter(a => a.k === 'ok').length;
   const labels = {
     crit: 'CRÍTICO',
     warn: 'ATENÇÃO',
@@ -783,16 +836,26 @@ function AlertasPage() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "alert-summary k-crit"
-  }, /*#__PURE__*/React.createElement("b", null, crit), /*#__PURE__*/React.createElement("small", null, "CR\xCDTICOS")), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("b", null, loading ? '—' : crit), /*#__PURE__*/React.createElement("small", null, "CR\xCDTICOS")), /*#__PURE__*/React.createElement("div", {
     className: "alert-summary k-warn"
-  }, /*#__PURE__*/React.createElement("b", null, warn), /*#__PURE__*/React.createElement("small", null, "ATEN\xC7\xC3O")), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("b", null, loading ? '—' : warn), /*#__PURE__*/React.createElement("small", null, "ATEN\xC7\xC3O")), /*#__PURE__*/React.createElement("div", {
     className: "alert-summary k-ok"
-  }, /*#__PURE__*/React.createElement("b", null, ok), /*#__PURE__*/React.createElement("small", null, "OK"))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("b", null, loading ? '—' : ok), /*#__PURE__*/React.createElement("small", null, "OK"))), /*#__PURE__*/React.createElement("div", {
     className: "card mt",
     style: {
       padding: 8
     }
-  }, ALERTS.map((a, i) => /*#__PURE__*/React.createElement("div", {
+  }, loading && /*#__PURE__*/React.createElement("div", {
+    className: "empty-state",
+    style: {
+      height: 120
+    }
+  }, /*#__PURE__*/React.createElement(Ic.clock, null), /*#__PURE__*/React.createElement("div", null, "Carregando alertas\u2026")), !loading && alerts.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "empty-state",
+    style: {
+      height: 120
+    }
+  }, /*#__PURE__*/React.createElement(Ic.check, null), /*#__PURE__*/React.createElement("div", null, "Nenhum alerta ativo.")), alerts.map((a, i) => /*#__PURE__*/React.createElement("div", {
     className: `alert-row k-${a.k}`,
     key: i
   }, /*#__PURE__*/React.createElement("span", {
@@ -805,37 +868,65 @@ function AlertasPage() {
 }
 
 /* ========== FUNIL DE VENDAS ========== */
-const FUNIL = [{
-  label: 'VISITANTES',
-  v: 33,
-  pct: 100,
-  tone: 'c1'
-}, {
-  label: 'CARRINHOS CRIADOS',
-  v: 10,
-  pct: 30.3,
-  tone: 'c1',
-  step: -0.06
-}, {
-  label: 'CHECKOUTS INICIADOS',
-  v: 1,
-  pct: 3.0,
-  tone: 'c1',
-  step: -0.13
-}, {
-  label: 'PAGAMENTOS CONCLUÍDOS',
-  v: 0,
-  pct: 0.0,
-  tone: 'c2',
-  step: -0.2
-}];
 function FunilPage() {
+  const [data, setData] = useStX(null);
+  const [loading, setLoading] = useStX(true);
+  useEffX(() => {
+    window.apiGet('/api/admin/metrics').then(d => setData(d)).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+  const funnel = data?.funnel || {
+    visitors: 0,
+    add_to_cart: 0,
+    checkout: 0,
+    success: 0
+  };
+  const payments = data?.payments || {
+    total: 0,
+    success: 0,
+    failed: 0,
+    pending: 0,
+    approval_rate: 0
+  };
+  const pct = (v, base) => base > 0 ? (v / base * 100).toFixed(1) : '0.0';
+  const FUNIL = [{
+    label: 'VISITANTES',
+    v: funnel.visitors,
+    pct: 100,
+    tone: 'c1'
+  }, {
+    label: 'CARRINHOS CRIADOS',
+    v: funnel.add_to_cart,
+    pct: parseFloat(pct(funnel.add_to_cart, funnel.visitors)),
+    tone: 'c1'
+  }, {
+    label: 'CHECKOUTS INICIADOS',
+    v: funnel.checkout,
+    pct: parseFloat(pct(funnel.checkout, funnel.visitors)),
+    tone: 'c1'
+  }, {
+    label: 'PAGAMENTOS CONCLUÍDOS',
+    v: funnel.success,
+    pct: parseFloat(pct(funnel.success, funnel.visitors)),
+    tone: 'c2'
+  }];
+  const abandoned = Math.max(0, funnel.add_to_cart - funnel.success);
+  const abandonedPct = pct(abandoned, funnel.add_to_cart);
+  const checkAbandoned = Math.max(0, funnel.checkout - funnel.success);
+  const checkAbandonedPct = pct(checkAbandoned, funnel.checkout);
+  const pixRev = 0;
+  const creditRev = 0;
+  const debitRev = 0;
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement(PH, {
     title: "Funil de Vendas",
     subtitle: "Onde os clientes entram \u2014 e onde saem."
-  }), /*#__PURE__*/React.createElement("div", {
+  }), loading ? /*#__PURE__*/React.createElement("div", {
+    className: "empty-state",
+    style: {
+      height: 200
+    }
+  }, /*#__PURE__*/React.createElement(Ic.clock, null), /*#__PURE__*/React.createElement("div", null, "Carregando m\xE9tricas\u2026")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "funnel"
@@ -863,42 +954,48 @@ function FunilPage() {
     className: "section-title"
   }, "ABANDONO"), /*#__PURE__*/React.createElement("div", {
     className: "abandon-row down"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Carrinhos abandonados"), /*#__PURE__*/React.createElement("small", null, "90,0% dos carrinhos")), /*#__PURE__*/React.createElement("b", {
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Carrinhos abandonados"), /*#__PURE__*/React.createElement("small", null, abandonedPct, "% dos carrinhos")), /*#__PURE__*/React.createElement("b", {
     className: "abandon-v"
-  }, "9")), /*#__PURE__*/React.createElement("div", {
+  }, abandoned)), /*#__PURE__*/React.createElement("div", {
     className: "abandon-row down"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Checkouts abandonados"), /*#__PURE__*/React.createElement("small", null, "100,0% dos checkouts")), /*#__PURE__*/React.createElement("b", {
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Checkouts abandonados"), /*#__PURE__*/React.createElement("small", null, checkAbandonedPct, "% dos checkouts")), /*#__PURE__*/React.createElement("b", {
     className: "abandon-v"
-  }, "1"))), /*#__PURE__*/React.createElement("div", {
+  }, checkAbandoned))), /*#__PURE__*/React.createElement("div", {
     className: "card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-title"
-  }, "RECUPERA\xC7\xC3O"), /*#__PURE__*/React.createElement("div", {
+  }, "PAGAMENTOS"), /*#__PURE__*/React.createElement("div", {
     className: "abandon-row up"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Carrinhos recuperados"), /*#__PURE__*/React.createElement("small", null, "233,3% dos abandonados")), /*#__PURE__*/React.createElement("b", {
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Aprovados"), /*#__PURE__*/React.createElement("small", null, payments.approval_rate, "% de aprova\xE7\xE3o")), /*#__PURE__*/React.createElement("b", {
     className: "abandon-v"
-  }, "21")), /*#__PURE__*/React.createElement("div", {
-    className: "abandon-row up"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Checkouts recuperados"), /*#__PURE__*/React.createElement("small", null, "1400,0% dos abandonados")), /*#__PURE__*/React.createElement("b", {
+  }, payments.success)), /*#__PURE__*/React.createElement("div", {
+    className: "abandon-row down"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Reprovados"), /*#__PURE__*/React.createElement("small", null, "Falhas de pagamento")), /*#__PURE__*/React.createElement("b", {
     className: "abandon-v"
-  }, "14")))), /*#__PURE__*/React.createElement("div", {
+  }, payments.failed)))), /*#__PURE__*/React.createElement("div", {
     className: "grid row-2 mt"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-title"
-  }, "ORIGEM DO PAGAMENTO"), [{
+  }, "ORIGEM DO PAGAMENTO"), payments.total === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--ink-4)',
+      fontSize: 13,
+      padding: '12px 0'
+    }
+  }, "Sem dados de pagamento dispon\xEDveis.") : [{
     l: 'PIX',
-    v: 134,
-    pct: 68
+    v: 0,
+    pct: 0
   }, {
     l: 'Cartão de Crédito',
-    v: 48,
-    pct: 24
+    v: 0,
+    pct: 0
   }, {
     l: 'Cartão de Débito',
-    v: 16,
-    pct: 8
+    v: 0,
+    pct: 0
   }].map((r, i) => /*#__PURE__*/React.createElement("div", {
     className: "origin-row",
     key: i
@@ -934,7 +1031,7 @@ function FunilPage() {
     style: {
       margin: 0
     }
-  }, "TEMPO M\xC9DIO DE CONVERS\xC3O"), /*#__PURE__*/React.createElement("b", {
+  }, "TAXA DE APROVA\xC7\xC3O"), /*#__PURE__*/React.createElement("b", {
     style: {
       fontFamily: 'var(--display)',
       fontSize: 40,
@@ -942,42 +1039,70 @@ function FunilPage() {
       color: 'var(--ink)',
       margin: '8px 0'
     }
-  }, "8m 32s"), /*#__PURE__*/React.createElement("small", {
+  }, payments.approval_rate, "%"), /*#__PURE__*/React.createElement("small", {
     style: {
       color: 'var(--ink-4)'
     }
-  }, "do carrinho ao pagamento"))));
+  }, "total de ", payments.total, " transa\xE7\xF5es")))));
 }
 
 /* ========== PAINEL DE PAGAMENTOS ========== */
 function PagtoPainelPage() {
+  const [health, setHealth] = useStX(null);
+  const [metrics, setMetrics] = useStX(null);
+  const [loading, setLoading] = useStX(true);
+  useEffX(() => {
+    Promise.all([window.apiGet('/api/admin/payments-health'), window.apiGet('/api/admin/metrics')]).then(([h, m]) => {
+      setHealth(h);
+      setMetrics(m);
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+  const pay = metrics?.payments || {
+    total: 0,
+    success: 0,
+    failed: 0,
+    pending: 0,
+    approval_rate: 0
+  };
+  const h = health || {
+    pending: 0,
+    paid: 0,
+    failed: 0,
+    stale_locks: 0,
+    fila_reprocessamento: 0
+  };
   const motivos = [{
     l: 'Saldo insuficiente',
-    n: 14,
-    p: 45
+    n: 0,
+    p: 0
   }, {
     l: 'Cartão expirado',
-    n: 7,
-    p: 23
+    n: 0,
+    p: 0
   }, {
     l: 'Dados inválidos',
-    n: 5,
-    p: 16
+    n: 0,
+    p: 0
   }, {
     l: 'Limite excedido',
-    n: 3,
-    p: 10
+    n: 0,
+    p: 0
   }, {
     l: 'Outros',
-    n: 2,
-    p: 6
-  }];
+    n: pay.failed,
+    p: 100
+  }].filter(m => m.n > 0 || pay.failed > 0 && m.l === 'Outros');
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement(PH, {
     title: "Painel de Pagamentos",
     subtitle: "Vis\xE3o geral de aprova\xE7\xF5es, rejei\xE7\xF5es e estornos."
-  }), /*#__PURE__*/React.createElement("div", {
+  }), loading ? /*#__PURE__*/React.createElement("div", {
+    className: "empty-state",
+    style: {
+      height: 200
+    }
+  }, /*#__PURE__*/React.createElement(Ic.clock, null), /*#__PURE__*/React.createElement("div", null, "Carregando dados\u2026")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "grid",
     style: {
       gridTemplateColumns: 'repeat(3,1fr)',
@@ -985,11 +1110,11 @@ function PagtoPainelPage() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "pay-stat k-up"
-  }, /*#__PURE__*/React.createElement("small", null, "APROVADOS"), /*#__PURE__*/React.createElement("b", null, "6"), /*#__PURE__*/React.createElement("span", null, "4,5% do total \u2014 R$ 18.450,00")), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "APROVADOS"), /*#__PURE__*/React.createElement("b", null, h.paid), /*#__PURE__*/React.createElement("span", null, pay.approval_rate, "% do total")), /*#__PURE__*/React.createElement("div", {
     className: "pay-stat k-warn"
-  }, /*#__PURE__*/React.createElement("small", null, "PENDENTES"), /*#__PURE__*/React.createElement("b", null, "115"), /*#__PURE__*/React.createElement("span", null, "R$ 960,00")), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "PENDENTES"), /*#__PURE__*/React.createElement("b", null, h.pending), /*#__PURE__*/React.createElement("span", null, "Aguardando confirma\xE7\xE3o")), /*#__PURE__*/React.createElement("div", {
     className: "pay-stat k-down"
-  }, /*#__PURE__*/React.createElement("small", null, "REJEITADOS"), /*#__PURE__*/React.createElement("b", null, "10"), /*#__PURE__*/React.createElement("span", null, "7,5% do total"))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "REJEITADOS"), /*#__PURE__*/React.createElement("b", null, h.failed), /*#__PURE__*/React.createElement("span", null, pay.total > 0 ? (h.failed / pay.total * 100).toFixed(1) : '0', "% do total"))), /*#__PURE__*/React.createElement("div", {
     className: "grid row-2 mt"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card"
@@ -1002,7 +1127,7 @@ function PagtoPainelPage() {
       fontSize: 38,
       color: 'var(--ink)'
     }
-  }, "134")), /*#__PURE__*/React.createElement("div", {
+  }, pay.total)), /*#__PURE__*/React.createElement("div", {
     className: "card pay-stat k-c1",
     style: {
       background: 'transparent',
@@ -1010,18 +1135,18 @@ function PagtoPainelPage() {
     }
   }, /*#__PURE__*/React.createElement("small", {
     className: "kv-l"
-  }, "ESTORNADOS"), /*#__PURE__*/React.createElement("b", {
+  }, "LOCKS PRESOS"), /*#__PURE__*/React.createElement("b", {
     style: {
       fontFamily: 'var(--display)',
       fontWeight: 400,
       fontSize: 38,
       color: 'var(--ink)'
     }
-  }, "6"), /*#__PURE__*/React.createElement("span", {
+  }, h.stale_locks), /*#__PURE__*/React.createElement("span", {
     style: {
       color: 'var(--ink-3)'
     }
-  }, "R$ 420,00"))), /*#__PURE__*/React.createElement("div", {
+  }, "Fila de reprocessamento: ", h.fila_reprocessamento))), pay.failed > 0 && /*#__PURE__*/React.createElement("div", {
     className: "card mt"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-title"
@@ -1047,114 +1172,34 @@ function PagtoPainelPage() {
     style: {
       color: 'var(--down)'
     }
-  }, m.p, "%"))))));
+  }, m.p, "%")))))));
 }
 
 /* ========== CARDÁPIO ========== */
-const CATEGORIAS = [{
-  id: 'sourdough',
-  name: 'Sourdough',
-  desc: 'O clássico da TOCHA: casca crocante, miolo leve e macio.'
-}, {
-  id: 'focaccia',
-  name: 'Focaccias',
-  desc: 'Clássicas italianas com azeite de ponta.'
-}, {
-  id: 'brioches',
-  name: 'Brioches',
-  desc: 'Manteiga, maciez e recheios indescritíveis.'
-}, {
-  id: 'mini',
-  name: 'Mini Brioches',
-  desc: 'Perfeitos para entradas refinadas.'
-}, {
-  id: 'lanches',
-  name: 'Lanches',
-  desc: 'Pães brioches para Hambúrguer, Hot Dog e Joelhos.'
-}, {
-  id: 'folhados',
-  name: 'Folhados & Tortas',
-  desc: 'Massa folhada incrivelmente crocante.'
-}, {
-  id: 'doces',
-  name: 'Confeitaria & Doces',
-  desc: 'A finalização perfeita.'
-}, {
-  id: 'queijo',
-  name: 'Pães de Queijo',
-  desc: 'Nossa versão especial em vários recheios.'
-}];
-const PRODUTOS = [{
-  name: 'Sourdough Tradicional (São João)',
-  desc: 'O clássico da TOCHA. Crosta caramelizada, miolo alveolado.',
-  price: 1.00,
-  status: 'ATIVO',
-  stock: '2 un.'
-}, {
-  name: 'Sourdough Integral',
-  desc: 'Farinha integral, sabor profundo e nutritivo.',
-  price: 55.00,
-  status: 'ATIVO',
-  stock: '5 un.'
-}, {
-  name: 'Sourdough Gorgonzola',
-  desc: 'Intenso, ousado, inesquecível.',
-  price: 68.00,
-  status: 'ATIVO',
-  stock: 'Esgotado'
-}, {
-  name: 'Sourdough Parmesão',
-  desc: 'Crosta dourada com parmesão caramelizado.',
-  price: 68.00,
-  status: 'ATIVO',
-  stock: 'Esgotado'
-}, {
-  name: 'Sourdough Provolone',
-  desc: 'Levemente defumado, harmonioso.',
-  price: 68.00,
-  status: 'ATIVO',
-  stock: 'Esgotado'
-}, {
-  name: 'Sourdough Multi Grãos',
-  desc: 'Cheio de textura e personalidade.',
-  price: 60.00,
-  status: 'ATIVO',
-  stock: 'Esgotado'
-}, {
-  name: 'Sourdough Ervas com Queijos',
-  desc: 'Ervas frescas e queijos selecionados.',
-  price: 65.00,
-  status: 'ATIVO',
-  stock: 'Esgotado'
-}, {
-  name: 'Sourdough Azeitonas Pretas',
-  desc: 'Mediterrâneo em cada fatia.',
-  price: 65.00,
-  status: 'ATIVO',
-  stock: 'Esgotado'
-}, {
-  name: 'Sourdough Cheddar, Bacon & Jalapeño',
-  desc: 'Para os que gostam de emoção.',
-  price: 72.00,
-  status: 'ATIVO',
-  stock: 'Esgotado'
-}, {
-  name: 'Sourdough Cacau com Frutas Caramelizadas',
-  desc: 'Chocolate, doce, complexo e único.',
-  price: 75.00,
-  status: 'ATIVO',
-  stock: 'Esgotado'
-}];
 function CategoriaModal({
   cat,
   onClose,
   onSave
 }) {
   const [name, setName] = useStX(cat?.name || '');
-  const [slug, setSlug] = useStX(cat?.id || '');
-  const [desc, setDesc] = useStX(cat?.desc || '');
-  const [visible, setVisible] = useStX(cat?.visible !== false);
-  const isNew = !cat;
+  const [slug, setSlug] = useStX(cat?.slug || '');
+  const [desc, setDesc] = useStX(cat?.description || '');
+  const [visible, setVisible] = useStX(cat?.is_active !== false);
+  const [saving, setSaving] = useStX(false);
+  const isNew = !cat?.id;
+  const handleSave = () => {
+    setSaving(true);
+    const payload = {
+      slug,
+      name,
+      description: desc,
+      is_active: visible
+    };
+    if (cat?.id) payload.id = cat.id;
+    window.apiPost('/api/admin/save-category', payload).then(() => onSave({
+      ...payload
+    })).catch(e => alert('Erro: ' + e.message)).finally(() => setSaving(false));
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "modal-backdrop",
     onClick: onClose
@@ -1186,7 +1231,8 @@ function CategoriaModal({
   }, /*#__PURE__*/React.createElement("span", null, "Identificador (Slug)"), /*#__PURE__*/React.createElement("input", {
     className: "inp",
     value: slug,
-    onChange: e => setSlug(e.target.value)
+    onChange: e => setSlug(e.target.value),
+    disabled: !isNew
   }))), /*#__PURE__*/React.createElement("label", {
     className: "field",
     style: {
@@ -1235,13 +1281,9 @@ function CategoriaModal({
     onClick: onClose
   }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
     className: "btn-primary",
-    onClick: () => onSave({
-      id: slug,
-      name,
-      desc,
-      visible
-    })
-  }, "Salvar Categoria"))));
+    onClick: handleSave,
+    disabled: saving
+  }, saving ? 'Salvando…' : 'Salvar Categoria'))));
 }
 function ProdutoModal({
   prod,
@@ -1250,13 +1292,29 @@ function ProdutoModal({
 }) {
   const [name, setName] = useStX(prod?.name || '');
   const [price, setPrice] = useStX(prod?.price || 0);
-  const [desc, setDesc] = useStX(prod?.desc || '');
-  const [estoque, setEstoque] = useStX(prod?.estoque ?? 2);
-  const [vendidos] = useStX(prod?.vendidos ?? 0);
-  const [active, setActive] = useStX(prod?.status !== 'INATIVO');
+  const [desc, setDesc] = useStX(prod?.description || '');
+  const [estoque, setEstoque] = useStX(prod?.initial_stock ?? prod?.stock_quantity ?? 0);
+  const [active, setActive] = useStX(prod?.is_active !== false);
+  const [saving, setSaving] = useStX(false);
+  const vendidos = prod?.vendidos || 0;
   const disp = Math.max(0, estoque - vendidos);
   const fillPct = estoque ? Math.min(100, disp / estoque * 100) : 0;
-  const isNew = !prod;
+  const isNew = !prod?.id;
+  const handleSave = () => {
+    setSaving(true);
+    const payload = {
+      name,
+      price: parseFloat(price) || 0,
+      description: desc,
+      is_active: active,
+      initial_stock: parseInt(estoque) || 0,
+      category_slug: prod?.category_slug || ''
+    };
+    if (prod?.id) payload.id = prod.id;
+    window.apiPost('/api/admin/save-product', payload).then(() => onSave({
+      ...payload
+    })).catch(e => alert('Erro: ' + e.message)).finally(() => setSaving(false));
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "modal-backdrop",
     onClick: onClose
@@ -1290,7 +1348,7 @@ function ProdutoModal({
     type: "number",
     step: "0.01",
     value: price,
-    onChange: e => setPrice(parseFloat(e.target.value) || 0)
+    onChange: e => setPrice(e.target.value)
   }))), /*#__PURE__*/React.createElement("label", {
     className: "field",
     style: {
@@ -1312,7 +1370,15 @@ function ProdutoModal({
     className: "field"
   }, /*#__PURE__*/React.createElement("span", null, "Foto do Produto"), /*#__PURE__*/React.createElement("div", {
     className: "img-slot"
-  }, /*#__PURE__*/React.createElement("div", {
+  }, prod?.image_url ? /*#__PURE__*/React.createElement("img", {
+    src: `/${prod.image_url}`,
+    style: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      borderRadius: 4
+    }
+  }) : /*#__PURE__*/React.createElement("div", {
     className: "img-empty"
   }, "Escolher Foto"))), /*#__PURE__*/React.createElement("div", {
     className: "field"
@@ -1365,28 +1431,30 @@ function ProdutoModal({
     onClick: onClose
   }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
     className: "btn-primary",
-    onClick: () => onSave({
-      name,
-      price,
-      desc,
-      estoque,
-      status: active ? 'ATIVO' : 'INATIVO'
-    })
-  }, "Salvar Produto"))));
+    onClick: handleSave,
+    disabled: saving
+  }, saving ? 'Salvando…' : 'Salvar Produto'))));
 }
 function CardapioPage() {
-  const [sel, setSel] = useStX('sourdough');
-  const [cats, setCats] = useStX(CATEGORIAS.map(c => ({
-    ...c,
-    visible: true
-  })));
-  const [prods, setProds] = useStX(PRODUTOS.map(p => ({
-    ...p,
-    estoque: p.stock === 'Esgotado' ? 0 : parseInt(p.stock) || 2,
-    vendidos: p.stock === 'Esgotado' ? parseInt(p.stock) || 2 : 0
-  })));
+  const [cats, setCats] = useStX([]);
+  const [prods, setProds] = useStX([]);
+  const [sel, setSel] = useStX('');
+  const [loading, setLoading] = useStX(true);
   const [catModal, setCatModal] = useStX(null);
   const [prodModal, setProdModal] = useStX(null);
+  const loadConfig = useCbX(() => {
+    setLoading(true);
+    window.apiGet('/api/admin/config').then(d => {
+      const cs = d?.categorias || [];
+      const ps = d?.produtos || [];
+      setCats(cs);
+      setProds(ps);
+      if (cs.length > 0 && !sel) setSel(cs[0].slug);
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+  useEffX(() => {
+    loadConfig();
+  }, [loadConfig]);
   const stop = e => e.stopPropagation();
   const editCat = (cat, e) => {
     stop(e);
@@ -1396,19 +1464,18 @@ function CardapioPage() {
   };
   const delCat = (cat, e) => {
     stop(e);
-    if (confirm(`Excluir categoria "${cat.name}"?`)) setCats(cats.filter(c => c.id !== cat.id));
+    if (!confirm(`Excluir categoria "${cat.name}"?`)) return;
+    window.apiPost('/api/admin/delete-item', {
+      table: 'categorias',
+      id: cat.id
+    }).then(() => setCats(prev => prev.filter(c => c.id !== cat.id))).catch(err => alert('Erro: ' + err.message));
   };
   const newCat = () => setCatModal({
     cat: null
   });
-  const saveCat = data => {
-    if (catModal.cat) setCats(cats.map(c => c.id === catModal.cat.id ? {
-      ...c,
-      ...data
-    } : c));else setCats([...cats, {
-      ...data
-    }]);
+  const saveCat = () => {
     setCatModal(null);
+    loadConfig();
   };
   const editProd = (p, e) => {
     stop(e);
@@ -1418,20 +1485,22 @@ function CardapioPage() {
   };
   const delProd = (p, e) => {
     stop(e);
-    if (confirm(`Excluir produto "${p.name}"?`)) setProds(prods.filter(x => x !== p));
+    if (!confirm(`Excluir produto "${p.name}"?`)) return;
+    window.apiPost('/api/admin/delete-item', {
+      table: 'produtos',
+      id: p.id
+    }).then(() => setProds(prev => prev.filter(x => x.id !== p.id))).catch(err => alert('Erro: ' + err.message));
   };
   const newProd = () => setProdModal({
-    prod: null
+    prod: {
+      category_slug: sel
+    }
   });
-  const saveProd = data => {
-    if (prodModal.prod) setProds(prods.map(p => p === prodModal.prod ? {
-      ...p,
-      ...data
-    } : p));else setProds([...prods, {
-      ...data
-    }]);
+  const saveProd = () => {
     setProdModal(null);
+    loadConfig();
   };
+  const filteredProds = prods.filter(p => p.category_slug === sel);
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement("div", {
@@ -1443,7 +1512,12 @@ function CardapioPage() {
     }
   }, "Loja \xB7 Card\xE1pio"), /*#__PURE__*/React.createElement("h1", null, "Gest\xE3o do Card\xE1pio"), /*#__PURE__*/React.createElement("div", {
     className: "sub"
-  }, "Categorias e produtos exibidos no site."))), /*#__PURE__*/React.createElement("div", {
+  }, "Categorias e produtos exibidos no site."))), loading ? /*#__PURE__*/React.createElement("div", {
+    className: "empty-state",
+    style: {
+      height: 200
+    }
+  }, /*#__PURE__*/React.createElement(Ic.list, null), /*#__PURE__*/React.createElement("div", null, "Carregando card\xE1pio\u2026")) : /*#__PURE__*/React.createElement("div", {
     className: "grid",
     style: {
       gridTemplateColumns: '1fr 1fr',
@@ -1473,19 +1547,19 @@ function CardapioPage() {
       gap: 8
     }
   }, cats.map(c => /*#__PURE__*/React.createElement("div", {
-    key: c.id,
-    onClick: () => setSel(c.id),
-    className: `cat-row ${sel === c.id ? 'on' : ''}`
+    key: c.slug,
+    onClick: () => setSel(c.slug),
+    className: `cat-row ${sel === c.slug ? 'on' : ''}`
   }, /*#__PURE__*/React.createElement("div", {
     className: "cat-thumb"
   }), /*#__PURE__*/React.createElement("div", {
     className: "cat-text"
-  }, /*#__PURE__*/React.createElement("b", null, c.name), /*#__PURE__*/React.createElement("small", null, c.desc), /*#__PURE__*/React.createElement("span", {
-    className: `tag ${c.visible ? 'up' : 'down'}`,
+  }, /*#__PURE__*/React.createElement("b", null, c.name), /*#__PURE__*/React.createElement("small", null, c.description), /*#__PURE__*/React.createElement("span", {
+    className: `tag ${c.is_active !== false ? 'up' : 'down'}`,
     style: {
       marginTop: 4
     }
-  }, c.visible ? 'ATIVA' : 'INATIVA')), /*#__PURE__*/React.createElement("div", {
+  }, c.is_active !== false ? 'ATIVA' : 'INATIVA')), /*#__PURE__*/React.createElement("div", {
     className: "row-actions"
   }, /*#__PURE__*/React.createElement("button", {
     className: "icon-btn",
@@ -1495,7 +1569,13 @@ function CardapioPage() {
     className: "icon-btn danger",
     title: "Excluir",
     onClick: e => delCat(c, e)
-  }, "\uD83D\uDDD1")))))), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDDD1")))), cats.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--ink-4)',
+      fontSize: 13,
+      padding: 12
+    }
+  }, "Nenhuma categoria cadastrada."))), /*#__PURE__*/React.createElement("div", {
     className: "card"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1514,7 +1594,7 @@ function CardapioPage() {
       color: 'var(--ink)',
       display: 'block'
     }
-  }, cats.find(c => c.id === sel)?.name || '—')), /*#__PURE__*/React.createElement("button", {
+  }, cats.find(c => c.slug === sel)?.name || '—')), /*#__PURE__*/React.createElement("button", {
     className: "btn-primary",
     onClick: newProd
   }, "Novo Produto")), /*#__PURE__*/React.createElement("div", {
@@ -1526,37 +1606,55 @@ function CardapioPage() {
       overflowY: 'auto',
       paddingRight: 4
     }
-  }, prods.map((p, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    className: "prod-row-full"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "prod-thumb"
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "prod-text"
-  }, /*#__PURE__*/React.createElement("b", null, p.name), /*#__PURE__*/React.createElement("small", null, p.desc)), /*#__PURE__*/React.createElement("div", {
-    className: "prod-meta"
-  }, /*#__PURE__*/React.createElement("b", {
-    className: "num",
+  }, filteredProds.map(p => {
+    const stock = p.stock_quantity ?? p.initial_stock ?? 0;
+    const esgotado = stock <= 0;
+    return /*#__PURE__*/React.createElement("div", {
+      key: p.id,
+      className: "prod-row-full"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "prod-thumb"
+    }, p.image_url && /*#__PURE__*/React.createElement("img", {
+      src: `/${p.image_url}`,
+      style: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        borderRadius: 4
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      className: "prod-text"
+    }, /*#__PURE__*/React.createElement("b", null, p.name), /*#__PURE__*/React.createElement("small", null, p.description)), /*#__PURE__*/React.createElement("div", {
+      className: "prod-meta"
+    }, /*#__PURE__*/React.createElement("b", {
+      className: "num",
+      style: {
+        color: 'var(--ink)'
+      }
+    }, "R$ ", Number(p.price || 0).toFixed(2).replace('.', ',')), /*#__PURE__*/React.createElement("span", {
+      className: `tag ${p.is_active !== false ? 'up' : 'down'}`
+    }, p.is_active !== false ? 'ATIVO' : 'INATIVO'), /*#__PURE__*/React.createElement("small", {
+      style: {
+        color: esgotado ? 'var(--down)' : 'var(--ink-3)'
+      }
+    }, esgotado ? 'Esgotado' : `${stock} un.`)), /*#__PURE__*/React.createElement("div", {
+      className: "row-actions"
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "icon-btn",
+      title: "Editar",
+      onClick: e => editProd(p, e)
+    }, "\u270F"), /*#__PURE__*/React.createElement("button", {
+      className: "icon-btn danger",
+      title: "Excluir",
+      onClick: e => delProd(p, e)
+    }, "\uD83D\uDDD1")));
+  }), filteredProds.length === 0 && /*#__PURE__*/React.createElement("div", {
     style: {
-      color: 'var(--ink)'
+      color: 'var(--ink-4)',
+      fontSize: 13,
+      padding: 12
     }
-  }, "R$ ", p.price.toFixed(2).replace('.', ',')), /*#__PURE__*/React.createElement("span", {
-    className: `tag ${p.status === 'ATIVO' ? 'up' : 'down'}`
-  }, p.status), /*#__PURE__*/React.createElement("small", {
-    style: {
-      color: p.estoque - (p.vendidos || 0) <= 0 ? 'var(--down)' : 'var(--ink-3)'
-    }
-  }, p.estoque - (p.vendidos || 0) <= 0 ? 'Esgotado' : `${p.estoque - (p.vendidos || 0)} un.`)), /*#__PURE__*/React.createElement("div", {
-    className: "row-actions"
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "icon-btn",
-    title: "Editar",
-    onClick: e => editProd(p, e)
-  }, "\u270F"), /*#__PURE__*/React.createElement("button", {
-    className: "icon-btn danger",
-    title: "Excluir",
-    onClick: e => delProd(p, e)
-  }, "\uD83D\uDDD1"))))))), catModal && /*#__PURE__*/React.createElement(CategoriaModal, {
+  }, "Nenhum produto nesta categoria.")))), catModal && /*#__PURE__*/React.createElement(CategoriaModal, {
     cat: catModal.cat,
     onClose: () => setCatModal(null),
     onSave: saveCat
@@ -1568,53 +1666,54 @@ function CardapioPage() {
 }
 
 /* ========== CENTRAL DE MENSAGENS ========== */
-const CONTATOS = [{
-  name: 'Gabriel Machado',
-  phone: '(21) 98072-5247'
-}, {
-  name: 'Janete José',
-  phone: '(21) 98016-2578'
-}, {
-  name: 'Julia Correa',
-  phone: '(21) 96946-0158'
-}, {
-  name: 'Marcos',
-  phone: '(21) 98705-8131'
-}, {
-  name: 'Marcos Felipe da Silva Ba…',
-  phone: '(21) 96627-8965'
-}, {
-  name: 'StabTest',
-  phone: '(21) 90000-0001'
-}, {
-  name: 'Tamiris Barros',
-  phone: '(21) 98600-1350'
-}, {
-  name: 'Teste Automatizado',
-  phone: '(21) 99999-9999'
-}, {
-  name: 'Teste CID',
-  phone: '(21) 99999-0001'
-}, {
-  name: 'Teste Deploy',
-  phone: '(21) 99999-9999'
-}, {
-  name: 'Teste DevOps',
-  phone: '(21) 99999-9999'
-}, {
-  name: 'Teste Resiliencia',
-  phone: '(21) 99999-0001'
-}, {
-  name: 'Validacao Teste',
-  phone: '(21) 99999-0000'
-}];
 function CentralMsgPage() {
+  const [contacts, setContacts] = useStX([]);
+  const [loading, setLoading] = useStX(true);
   const [sel, setSel] = useStX(new Set());
   const [msg, setMsg] = useStX('');
-  const toggle = n => {
+  const [sending, setSending] = useStX(false);
+  const [newName, setNewName] = useStX('');
+  const [newPhone, setNewPhone] = useStX('');
+  const [search, setSearch] = useStX('');
+  const loadContacts = useCbX(() => {
+    window.apiGet('/api/admin/customers').then(d => setContacts(d || [])).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+  useEffX(() => {
+    loadContacts();
+  }, [loadContacts]);
+  const filtered = contacts.filter(c => {
+    const q = search.toLowerCase();
+    return !q || (c.name || '').toLowerCase().includes(q) || (c.whatsapp || '').includes(q);
+  });
+  const toggle = id => {
     const s = new Set(sel);
-    s.has(n) ? s.delete(n) : s.add(n);
+    s.has(id) ? s.delete(id) : s.add(id);
     setSel(s);
+  };
+  const selAll = () => setSel(new Set(filtered.map(c => c.id)));
+  const clearSel = () => setSel(new Set());
+  const handleSend = () => {
+    if (!sel.size || !msg || sending) return;
+    const recipients = contacts.filter(c => sel.has(c.id)).map(c => ({
+      phone: c.whatsapp,
+      name: c.name
+    }));
+    setSending(true);
+    window.apiPost('/api/admin/send-bulk-message', {
+      recipients,
+      message: msg
+    }).then(r => alert(`Envio concluído: ${r.success} enviados, ${r.fail} falhas.`)).catch(e => alert('Erro no envio: ' + e.message)).finally(() => setSending(false));
+  };
+  const handleAddContact = () => {
+    if (!newName || !newPhone) return;
+    window.apiPost('/api/admin/save-customer', {
+      name: newName,
+      whatsapp: newPhone
+    }).then(() => {
+      setNewName('');
+      setNewPhone('');
+      loadContacts();
+    }).catch(e => alert('Erro: ' + e.message));
   };
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
@@ -1651,7 +1750,9 @@ function CentralMsgPage() {
     placeholder: "Filtrar por nome ou celular\u2026",
     style: {
       marginBottom: 10
-    }
+    },
+    value: search,
+    onChange: e => setSearch(e.target.value)
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
@@ -1661,13 +1762,13 @@ function CentralMsgPage() {
     }
   }, /*#__PURE__*/React.createElement("a", {
     className: "link-id",
-    onClick: () => setSel(new Set(CONTATOS.map(c => c.name))),
+    onClick: selAll,
     style: {
       cursor: 'pointer'
     }
   }, "Selecionar Todos"), /*#__PURE__*/React.createElement("a", {
     className: "link-muted",
-    onClick: () => setSel(new Set()),
+    onClick: clearSel,
     style: {
       cursor: 'pointer'
     }
@@ -1679,11 +1780,17 @@ function CentralMsgPage() {
       maxHeight: 500,
       overflowY: 'auto'
     }
-  }, CONTATOS.map((c, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    className: `contact-row ${sel.has(c.name) ? 'on' : ''}`,
-    onClick: () => toggle(c.name)
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, c.name), /*#__PURE__*/React.createElement("small", null, c.phone)))))), /*#__PURE__*/React.createElement("div", {
+  }, loading && /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--ink-4)',
+      fontSize: 13,
+      padding: 8
+    }
+  }, "Carregando\u2026"), filtered.map(c => /*#__PURE__*/React.createElement("div", {
+    key: c.id,
+    className: `contact-row ${sel.has(c.id) ? 'on' : ''}`,
+    onClick: () => toggle(c.id)
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, c.name), /*#__PURE__*/React.createElement("small", null, fmtPhoneX(c.whatsapp))))))), /*#__PURE__*/React.createElement("div", {
     className: "card"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1707,8 +1814,10 @@ function CentralMsgPage() {
   }), /*#__PURE__*/React.createElement("div", {
     className: "campaign-status"
   }, sel.size === 0 ? 'Nenhum cliente selecionado para o disparo' : `${sel.size} cliente(s) selecionado(s)`), /*#__PURE__*/React.createElement("button", {
-    className: `campaign-btn ${sel.size > 0 && msg ? 'on' : ''}`
-  }, "ENVIAR CAMPANHA AGORA"), /*#__PURE__*/React.createElement("small", {
+    className: `campaign-btn ${sel.size > 0 && msg ? 'on' : ''}`,
+    onClick: handleSend,
+    disabled: sending || !sel.size || !msg
+  }, sending ? 'ENVIANDO…' : 'ENVIAR CAMPANHA AGORA'), /*#__PURE__*/React.createElement("small", {
     style: {
       display: 'block',
       textAlign: 'center',
@@ -1743,13 +1852,17 @@ function CentralMsgPage() {
     placeholder: "Nome do Cliente",
     style: {
       marginBottom: 8
-    }
+    },
+    value: newName,
+    onChange: e => setNewName(e.target.value)
   }), /*#__PURE__*/React.createElement("input", {
     className: "inp",
     placeholder: "WhatsApp (DDD+N\xFAmero)",
     style: {
       marginBottom: 10
-    }
+    },
+    value: newPhone,
+    onChange: e => setNewPhone(e.target.value)
   }), /*#__PURE__*/React.createElement("small", {
     style: {
       color: 'var(--ink-4)',
@@ -1761,7 +1874,8 @@ function CentralMsgPage() {
     className: "btn-primary",
     style: {
       width: '100%'
-    }
+    },
+    onClick: handleAddContact
   }, "Cadastrar Contato")), /*#__PURE__*/React.createElement("div", {
     className: "card"
   }, /*#__PURE__*/React.createElement("div", {
@@ -1783,7 +1897,7 @@ function CentralMsgPage() {
   }, /*#__PURE__*/React.createElement("b", null, "Crie agilidade"), /*#__PURE__*/React.createElement("small", null, "Salve frases prontas para realizar disparos r\xE1pidos em segundos."))))));
 }
 
-/* ========== CONFIGURAÇÕES DE MENSAGEM ========== */
+/* ========== CONFIGURAÇÕES DE MENSAGEM (estático — templates de notificação) ========== */
 const TEMPLATES = [{
   title: 'Email confirmação compra',
   desc: 'Mensagem enviada automaticamente para o cliente no e-mail cadastrado assim que o pagamento é confirmado.',
@@ -1865,14 +1979,45 @@ function CfgMsgPage() {
 
 /* ========== EDITAR PERFIL ========== */
 function EditarPerfilPage() {
-  const [nome, setNome] = useStX('TOCHA PADARIA');
-  const [tel, setTel] = useStX('(21) 96627-8965');
-  const [email, setEmail] = useStX('admin@tochapadaria');
-  const [senha, setSenha] = useStX('••••••••');
+  const stored = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('tocha_admin_user') || '{}');
+    } catch {
+      return {};
+    }
+  })();
+  const [nome, setNome] = useStX(stored.nome || '');
+  const [tel, setTel] = useStX(stored.telefone || '');
+  const [email, setEmail] = useStX(stored.email || '');
+  const [senha, setSenha] = useStX('');
   const [dirty, setDirty] = useStX(false);
+  const [saving, setSaving] = useStX(false);
+  const [msg, setMsg] = useStX('');
   const upd = (fn, v) => {
     fn(v);
     setDirty(true);
+    setMsg('');
+  };
+  const handleSave = () => {
+    setSaving(true);
+    const payload = {
+      nome,
+      email,
+      telefone: tel
+    };
+    if (senha && senha.trim()) payload.senha = senha;
+    window.apiPost('/api/admin/update-profile', payload).then(() => {
+      const updated = {
+        ...stored,
+        nome,
+        email,
+        telefone: tel
+      };
+      localStorage.setItem('tocha_admin_user', JSON.stringify(updated));
+      setDirty(false);
+      setSenha('');
+      setMsg('Perfil atualizado com sucesso!');
+    }).catch(e => setMsg('Erro: ' + e.message)).finally(() => setSaving(false));
   };
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
@@ -1910,7 +2055,7 @@ function EditarPerfilPage() {
     className: "avatar-circle"
   }, /*#__PURE__*/React.createElement("div", {
     className: "avatar-mark"
-  }, "T")), /*#__PURE__*/React.createElement("b", {
+  }, (nome || 'A')[0].toUpperCase())), /*#__PURE__*/React.createElement("b", {
     className: "av-title"
   }, "Foto de Perfil"), /*#__PURE__*/React.createElement("small", null, "Formato: PNG ou JPG"), /*#__PURE__*/React.createElement("small", null, "Resolu\xE7\xE3o m\xEDnima: 350px x 195px"), /*#__PURE__*/React.createElement("div", {
     className: "av-drop"
@@ -1966,14 +2111,14 @@ function EditarPerfilPage() {
     className: "inp",
     type: "password",
     value: senha,
+    placeholder: "Deixe em branco para manter a atual",
     onChange: e => upd(setSenha, e.target.value)
-  }), /*#__PURE__*/React.createElement("a", {
-    className: "link-id",
+  })), msg && /*#__PURE__*/React.createElement("div", {
     style: {
-      cursor: 'pointer',
-      marginTop: 4
+      color: msg.startsWith('Erro') ? 'var(--down)' : 'var(--up)',
+      fontSize: 13
     }
-  }, "Alterar Senha"))))), /*#__PURE__*/React.createElement("div", {
+  }, msg)))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       justifyContent: 'center',
@@ -1981,8 +2126,9 @@ function EditarPerfilPage() {
     }
   }, /*#__PURE__*/React.createElement("button", {
     className: `btn-primary save-wide ${dirty ? '' : 'disabled'}`,
-    disabled: !dirty
-  }, "Salvar")));
+    disabled: !dirty || saving,
+    onClick: handleSave
+  }, saving ? 'Salvando…' : 'Salvar')));
 }
 Object.assign(window, {
   InsightsPage,

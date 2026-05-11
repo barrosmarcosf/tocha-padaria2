@@ -1,6 +1,8 @@
 /* global React, Ic */
 const {
-  useState: useStC
+  useState: useStC,
+  useEffect: useEffC,
+  useCallback: useCbC
 } = React;
 function PageHead2({
   title,
@@ -191,8 +193,101 @@ function PagamentoPage() {
 }
 
 /* ========== HORÁRIO / CICLOS DE VENDA ========== */
+function fmtForInput(dateStr) {
+  if (!dateStr) return '';
+  const [datePart, timePart] = dateStr.split('T');
+  if (!datePart) return '';
+  const [y, m, d] = datePart.split('-');
+  const base = `${d}/${m}/${y}`;
+  if (timePart) return `${base} ${timePart.slice(0, 5)}`;
+  return base;
+}
+function parseInputToISO(str) {
+  if (!str) return '';
+  const [datePart, timePart] = str.trim().split(' ');
+  const parts = datePart.split('/');
+  if (parts.length !== 3) return str;
+  const [d, m, y] = parts;
+  return timePart ? `${y}-${m}-${d}T${timePart}` : `${y}-${m}-${d}`;
+}
+function calcTimeLeft(endStr) {
+  if (!endStr) return null;
+  const end = new Date(endStr.includes('T') ? endStr : endStr + 'T23:59:59');
+  const diff = end.getTime() - Date.now();
+  if (diff <= 0) return 'Encerrado';
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor(diff % 86400000 / 3600000);
+  const mins = Math.floor(diff % 3600000 / 60000);
+  return `${days}d ${hours}h ${mins}min`;
+}
 function HorarioPage() {
   const [auto, setAuto] = useStC(true);
+  const [loading, setLoading] = useStC(true);
+  const [saving, setSaving] = useStC(false);
+  const [savedMsg, setSavedMsg] = useStC('');
+  const [config, setConfig] = useStC(null);
+  const [curr, setCurr] = useStC({
+    prodDate: '',
+    winStart: '',
+    winEnd: ''
+  });
+  const [next, setNext] = useStC({
+    prodDate: '',
+    winStart: '',
+    winEnd: ''
+  });
+  const load = useCbC(() => {
+    window.apiGet('/api/admin/config').then(d => {
+      const oh = d?.siteContent?.opening_hours || {};
+      setConfig(oh);
+      setAuto(!oh.manualBlock);
+      if (oh.currentBatch) {
+        setCurr({
+          prodDate: fmtForInput(oh.currentBatch.bakeDate),
+          winStart: fmtForInput(oh.currentBatch.start),
+          winEnd: fmtForInput(oh.currentBatch.end)
+        });
+      }
+      if (oh.nextBatch) {
+        setNext({
+          prodDate: fmtForInput(oh.nextBatch.bakeDate),
+          winStart: fmtForInput(oh.nextBatch.start),
+          winEnd: fmtForInput(oh.nextBatch.end)
+        });
+      }
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+  useEffC(() => {
+    load();
+  }, [load]);
+  const handleSave = () => {
+    setSaving(true);
+    setSavedMsg('');
+    const updated = {
+      ...(config || {}),
+      manualBlock: !auto,
+      currentBatch: {
+        bakeDate: parseInputToISO(curr.prodDate),
+        start: parseInputToISO(curr.winStart),
+        end: parseInputToISO(curr.winEnd)
+      },
+      nextBatch: {
+        bakeDate: parseInputToISO(next.prodDate),
+        start: parseInputToISO(next.winStart),
+        end: parseInputToISO(next.winEnd)
+      }
+    };
+    window.apiPost('/api/admin/save-content', {
+      key: 'opening_hours',
+      value: updated
+    }).then(() => {
+      setConfig(updated);
+      setSavedMsg('Configuração salva com sucesso!');
+    }).catch(e => setSavedMsg('Erro: ' + e.message)).finally(() => setSaving(false));
+  };
+  const currentEnd = config?.currentBatch?.end;
+  const timeLeft = calcTimeLeft(currentEnd);
+  const currentBakeLabel = curr.prodDate || '—';
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement(PageHead2, {
@@ -222,7 +317,12 @@ function HorarioPage() {
   }, "O fechamento manual ignora as janelas abaixo.")), /*#__PURE__*/React.createElement(Toggle, {
     on: auto,
     onChange: setAuto
-  })), /*#__PURE__*/React.createElement("div", {
+  })), loading ? /*#__PURE__*/React.createElement("div", {
+    className: "empty-state",
+    style: {
+      height: 160
+    }
+  }, /*#__PURE__*/React.createElement(Ic.clock, null), /*#__PURE__*/React.createElement("div", null, "Carregando configura\xE7\xE3o\u2026")) : /*#__PURE__*/React.createElement("div", {
     className: "grid mt",
     style: {
       gridTemplateColumns: '1fr',
@@ -231,16 +331,14 @@ function HorarioPage() {
   }, /*#__PURE__*/React.createElement(CycleCard, {
     num: "1",
     label: "Fornada atual",
-    prodDate: "16/05/2026",
-    winStart: "07/05/2026 16:01",
-    winEnd: "14/05/2026 16:00"
+    values: curr,
+    onChange: setCurr
   }), /*#__PURE__*/React.createElement(CycleCard, {
     num: "2",
     label: "Pr\xF3xima fornada",
-    prodDate: "23/05/2026",
-    winStart: "14/05/2026 16:01",
-    winEnd: "21/05/2026 16:00"
-  })), /*#__PURE__*/React.createElement("div", {
+    values: next,
+    onChange: setNext
+  })), !loading && /*#__PURE__*/React.createElement("div", {
     className: "card mt status-card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "status-card-row"
@@ -250,15 +348,22 @@ function HorarioPage() {
     className: "dot-up"
   }), " Status calculado \xB7 ", /*#__PURE__*/React.createElement("b", null, "Fornada atual")), /*#__PURE__*/React.createElement("div", {
     className: "status-text"
-  }, /*#__PURE__*/React.createElement(Ic.clock, null), " ", /*#__PURE__*/React.createElement("b", null, "Comunica\xE7\xE3o para o cliente:"), " Pedidos abertos para este s\xE1bado \u2014 ", /*#__PURE__*/React.createElement("b", {
+  }, /*#__PURE__*/React.createElement(Ic.clock, null), " ", /*#__PURE__*/React.createElement("b", null, "Comunica\xE7\xE3o para o cliente:"), " Pedidos abertos para este s\xE1bado \u2014", ' ', /*#__PURE__*/React.createElement("b", {
     style: {
       color: 'var(--gold)'
     }
-  }, "16/05"), " \u2014 Encerra em ", /*#__PURE__*/React.createElement("b", {
+  }, currentBakeLabel), timeLeft && /*#__PURE__*/React.createElement(React.Fragment, null, " \u2014 Encerra em ", /*#__PURE__*/React.createElement("b", {
     style: {
       color: 'var(--gold)'
     }
-  }, "3d 4h 50min")))), /*#__PURE__*/React.createElement("div", {
+  }, timeLeft))))), savedMsg && /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      color: savedMsg.startsWith('Erro') ? 'var(--down)' : 'var(--up)',
+      fontSize: 13,
+      marginTop: 12
+    }
+  }, savedMsg), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       justifyContent: 'flex-end',
@@ -270,18 +375,24 @@ function HorarioPage() {
     style: {
       flex: 'none',
       padding: '8px 16px'
-    }
+    },
+    onClick: load
   }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
-    className: "btn-primary"
-  }, "Salvar")));
+    className: "btn-primary",
+    onClick: handleSave,
+    disabled: saving
+  }, saving ? 'Salvando…' : 'Salvar')));
 }
 function CycleCard({
   num,
   label,
-  prodDate,
-  winStart,
-  winEnd
+  values,
+  onChange
 }) {
+  const set = field => e => onChange(prev => ({
+    ...prev,
+    [field]: e.target.value
+  }));
   return /*#__PURE__*/React.createElement("div", {
     className: "card cycle-card"
   }, /*#__PURE__*/React.createElement("div", {
@@ -293,7 +404,9 @@ function CycleCard({
   }, /*#__PURE__*/React.createElement("label", null, "Data da produ\xE7\xE3o ", /*#__PURE__*/React.createElement("small", null, "(exibida ao cliente)")), /*#__PURE__*/React.createElement("input", {
     className: "date-input lg",
     type: "text",
-    defaultValue: prodDate
+    value: values.prodDate,
+    onChange: set('prodDate'),
+    placeholder: "DD/MM/AAAA"
   })), /*#__PURE__*/React.createElement("div", {
     className: "grid row-2 cycle-fields"
   }, /*#__PURE__*/React.createElement("div", {
@@ -301,13 +414,17 @@ function CycleCard({
   }, /*#__PURE__*/React.createElement("label", null, "In\xEDcio da janela"), /*#__PURE__*/React.createElement("input", {
     className: "date-input lg",
     type: "text",
-    defaultValue: winStart
+    value: values.winStart,
+    onChange: set('winStart'),
+    placeholder: "DD/MM/AAAA HH:MM"
   })), /*#__PURE__*/React.createElement("div", {
     className: "cycle-field"
   }, /*#__PURE__*/React.createElement("label", null, "Fim da janela"), /*#__PURE__*/React.createElement("input", {
     className: "date-input lg",
     type: "text",
-    defaultValue: winEnd
+    value: values.winEnd,
+    onChange: set('winEnd'),
+    placeholder: "DD/MM/AAAA HH:MM"
   }))));
 }
 
