@@ -1,5 +1,5 @@
 /* global React, Ic, KPI, AreaChart, Donut, brl, brlShort */
-const { useState: useStD } = React;
+const { useState: useStD, useEffect: useEffD } = React;
 
 function ClientCardModal({ client, onClose }) {
   const initial = client.name.split(' ').map(s => s[0]).slice(0, 1).join('');
@@ -27,11 +27,32 @@ function ClientCardModal({ client, onClose }) {
   );
 }
 
+const PERIOD_API   = { hoje: 'today', ontem: 'yesterday', '7d': '7d', mes: 'month', custom: 'custom' };
+const PERIOD_LABEL = { hoje: 'Hoje', ontem: 'Ontem', '7d': 'Últimos 7 dias', mes: 'Este mês', custom: 'Personalizado' };
+
 function Dashboard() {
   const D = window.DASH_DATA;
   const [period, setPeriod] = useStD('mes');
   const [openClient, setOpenClient] = useStD(null);
+  const [kpiData, setKpiData] = useStD(null);
 
+  useEffD(() => {
+    const prevFrom = (val, varPct) => varPct === 0 ? val : val * 100 / (100 + varPct);
+    const safeSpk  = (arr) => arr.length >= 2 ? arr : arr.length === 1 ? [arr[0], arr[0]] : [0, 0];
+    window.apiGet('/api/admin/stats?period=' + (PERIOD_API[period] || 'month'))
+      .then(data => {
+        const s = data.serieTemporal || [];
+        setKpiData({
+          faturamento: { value: data.faturamento, prev: prevFrom(data.faturamento, data.variacao.faturamento), spark: safeSpk(s.map(p => p.faturamento)) },
+          pedidos:     { value: data.pedidos,     prev: prevFrom(data.pedidos,     data.variacao.pedidos),     spark: safeSpk(s.map(p => p.pedidos)) },
+          ticket:      { value: data.ticketMedio, prev: prevFrom(data.ticketMedio, data.variacao.ticketMedio), spark: safeSpk(s.map(p => p.ticketMedio)) },
+          lucro:       { value: data.lucro,       prev: prevFrom(data.lucro,       data.variacao.lucro),       spark: safeSpk(s.map(p => p.lucro)) },
+        });
+      })
+      .catch(() => setKpiData(null));
+  }, [period]);
+
+  const K = kpiData || D.kpis;
   const today = D.today || new Date();
   const dateLabel = today.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -39,7 +60,7 @@ function Dashboard() {
     <div className="page">
       <div className="page-head">
         <div>
-          <div className="sub" style={{ marginBottom: 6 }}>{dateLabel} · {D.period}</div>
+          <div className="sub" style={{ marginBottom: 6 }}>{dateLabel} · {PERIOD_LABEL[period]}</div>
           <h1>Boas vindas, <em>Tocha Padaria</em></h1>
           <div className="sub">
             Próxima fornada em <b>5 dias</b> · <b>{D.fornada.pedidos} pedidos</b> confirmados
@@ -55,17 +76,17 @@ function Dashboard() {
       {/* KPI row */}
       <div className="grid kpi-row">
         <KPI label="Faturamento" icon={Ic.chart}
-          value={D.kpis.faturamento.value} prev={D.kpis.faturamento.prev}
-          unit="R$" decimals={2} spark={D.kpis.faturamento.spark} color="var(--c1)"/>
+          value={K.faturamento.value} prev={K.faturamento.prev}
+          unit="R$" decimals={2} spark={K.faturamento.spark} color="var(--c1)"/>
         <KPI label="Pedidos" icon={Ic.cart}
-          value={D.kpis.pedidos.value} prev={D.kpis.pedidos.prev}
-          spark={D.kpis.pedidos.spark} color="var(--c3)"/>
+          value={K.pedidos.value} prev={K.pedidos.prev}
+          spark={K.pedidos.spark} color="var(--c3)"/>
         <KPI label="Ticket médio" icon={Ic.card}
-          value={D.kpis.ticket.value} prev={D.kpis.ticket.prev}
-          unit="R$" decimals={2} spark={D.kpis.ticket.spark} color="var(--c4)"/>
+          value={K.ticket.value} prev={K.ticket.prev}
+          unit="R$" decimals={2} spark={K.ticket.spark} color="var(--c4)"/>
         <KPI label="Lucro" icon={Ic.bulb}
-          value={D.kpis.lucro.value} prev={D.kpis.lucro.prev}
-          unit="R$" decimals={2} spark={D.kpis.lucro.spark} color="var(--c2)"/>
+          value={K.lucro.value} prev={K.lucro.prev}
+          unit="R$" decimals={2} spark={K.lucro.spark} color="var(--c2)"/>
       </div>
 
       {/* Faturamento + Pagamentos */}

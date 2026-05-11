@@ -63,3 +63,13 @@ window.DASH_DATA = (function () {
     fornada: { when: 'Sábado, 16 de Maio', pedidos: 38, itens: 124, faturamento: 4280, capacidade: 0.68 },
   };
 })();
+
+window.apiGet = function(path) {
+  const token = localStorage.getItem('tocha_admin_token');
+  return fetch(path, {
+    headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+  }).then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  });
+};
