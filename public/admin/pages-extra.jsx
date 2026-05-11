@@ -1125,6 +1125,55 @@ function CardapioPage() {
   );
 }
 
+/* ========== MODELO MODAL ========== */
+function ModeloModal({ template, index, onClose, onSave, onDelete }) {
+  const [title, setTitle] = useStX(template?.title || '');
+  const [body, setBody] = useStX(template?.body || '');
+  const [saving, setSaving] = useStX(false);
+  const isNew = index === undefined;
+
+  const handleSave = () => {
+    if (!title.trim() || !body.trim() || saving) return;
+    setSaving(true);
+    onSave({ title: title.trim(), body: body.trim() }, index, () => setSaving(false));
+  };
+
+  const handleDelete = () => {
+    if (!confirm(`Excluir o modelo "${title}"?`)) return;
+    onDelete(index);
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <button className="modal-x" onClick={onClose} aria-label="Fechar">×</button>
+        <h2 className="modal-title">{isNew ? 'Novo Modelo' : 'Editar Modelo'}</h2>
+        <p className="modal-sub">Salve mensagens prontas para disparos rápidos.</p>
+        <label className="field">
+          <span>Título</span>
+          <input className="inp" value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: Promoção de sábado"/>
+        </label>
+        <label className="field" style={{ marginTop: 12 }}>
+          <span>Mensagem</span>
+          <textarea className="inp" rows={8} value={body} onChange={e => setBody(e.target.value)}
+            placeholder="Texto da mensagem. Use {nome} para personalizar."/>
+        </label>
+        <div className="modal-actions">
+          {!isNew && (
+            <button className="btn-ghost" style={{ color: 'var(--down)', marginRight: 'auto' }} onClick={handleDelete}>
+              Excluir
+            </button>
+          )}
+          <button className="btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn-primary" onClick={handleSave} disabled={saving || !title.trim() || !body.trim()}>
+            {saving ? 'Salvando…' : 'Salvar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ========== CENTRAL DE MENSAGENS ========== */
 function CentralMsgPage() {
   const [contacts, setContacts] = useStX([]);
@@ -1135,6 +1184,9 @@ function CentralMsgPage() {
   const [newName, setNewName] = useStX('');
   const [newPhone, setNewPhone] = useStX('');
   const [search, setSearch] = useStX('');
+  const [deleting, setDeleting] = useStX(new Set());
+  const [templates, setTemplates] = useStX([]);
+  const [templateModal, setTemplateModal] = useStX(null);
 
   const loadContacts = useCbX(() => {
     window.apiGet('/api/admin/customers')
@@ -1145,6 +1197,12 @@ function CentralMsgPage() {
 
   useEffX(() => { loadContacts(); }, [loadContacts]);
 
+  useEffX(() => {
+    window.apiGet('/api/admin/config')
+      .then(d => setTemplates(d?.siteContent?.msg_templates || []))
+      .catch(() => {});
+  }, []);
+
   const filtered = contacts.filter(c => {
     const q = search.toLowerCase();
     return !q || (c.name || '').toLowerCase().includes(q) || (c.whatsapp || '').includes(q);
@@ -1153,6 +1211,19 @@ function CentralMsgPage() {
   const toggle = (id) => { const s = new Set(sel); s.has(id) ? s.delete(id) : s.add(id); setSel(s); };
   const selAll = () => setSel(new Set(filtered.map(c => c.id)));
   const clearSel = () => setSel(new Set());
+
+  const handleDeleteContact = (e, c) => {
+    e.stopPropagation();
+    if (!confirm(`Excluir o contato "${c.name}"?`)) return;
+    setDeleting(prev => new Set(prev).add(c.id));
+    window.apiPost('/api/admin/delete-item', { table: 'clientes', id: c.id })
+      .then(() => {
+        setContacts(prev => prev.filter(x => x.id !== c.id));
+        setSel(prev => { const s = new Set(prev); s.delete(c.id); return s; });
+      })
+      .catch(err => alert('Erro ao excluir: ' + err.message))
+      .finally(() => setDeleting(prev => { const s = new Set(prev); s.delete(c.id); return s; }));
+  };
 
   const handleSend = () => {
     if (!sel.size || !msg || sending) return;
@@ -1171,6 +1242,24 @@ function CentralMsgPage() {
     window.apiPost('/api/admin/save-customer', { name: newName, whatsapp: newPhone })
       .then(() => { setNewName(''); setNewPhone(''); loadContacts(); })
       .catch(e => alert('Erro: ' + e.message));
+  };
+
+  const persistTemplates = (newList, done) => {
+    window.apiPost('/api/admin/save-content', { key: 'msg_templates', value: newList })
+      .then(() => { setTemplates(newList); setTemplateModal(null); })
+      .catch(e => alert('Erro ao salvar modelo: ' + e.message))
+      .finally(() => { if (done) done(); });
+  };
+
+  const handleSaveTemplate = (data, index, done) => {
+    const updated = index === undefined
+      ? [...templates, data]
+      : templates.map((t, i) => i === index ? data : t);
+    persistTemplates(updated, done);
+  };
+
+  const handleDeleteTemplate = (index) => {
+    persistTemplates(templates.filter((_, i) => i !== index), null);
   };
 
   return (
@@ -1197,8 +1286,19 @@ function CentralMsgPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 500, overflowY: 'auto' }}>
             {loading && <div style={{ color: 'var(--ink-4)', fontSize: 13, padding: 8 }}>Carregando…</div>}
             {filtered.map((c) => (
-              <div key={c.id} className={`contact-row ${sel.has(c.id) ? 'on' : ''}`} onClick={() => toggle(c.id)}>
-                <div><b>{c.name}</b><small>{fmtPhoneX(c.whatsapp)}</small></div>
+              <div key={c.id} className={`contact-row ${sel.has(c.id) ? 'on' : ''}`}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                onClick={() => toggle(c.id)}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <b>{c.name}</b><small>{fmtPhoneX(c.whatsapp)}</small>
+                </div>
+                <button
+                  className="icon-btn danger"
+                  style={{ flexShrink: 0, opacity: deleting.has(c.id) ? 0.4 : 0.55, fontSize: 12 }}
+                  disabled={deleting.has(c.id)}
+                  onClick={e => handleDeleteContact(e, c)}
+                  title="Excluir contato"
+                >🗑</button>
               </div>
             ))}
           </div>
@@ -1240,15 +1340,52 @@ function CentralMsgPage() {
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <span className="insight-chip tc2"/>
-              <small className="kv-l" style={{ margin: 0 }}>MODELOS (0/10)</small>
+              <small className="kv-l" style={{ margin: 0, flex: 1 }}>MODELOS ({templates.length}/10)</small>
+              {templates.length < 10 && (
+                <button
+                  className="btn-ghost"
+                  style={{ padding: '2px 8px', fontSize: 11, lineHeight: 1.4 }}
+                  onClick={() => setTemplateModal({ mode: 'new' })}
+                >+ Adicionar</button>
+              )}
             </div>
-            <div className="model-empty">
-              <b>Crie agilidade</b>
-              <small>Salve frases prontas para realizar disparos rápidos em segundos.</small>
-            </div>
+            {templates.length === 0 ? (
+              <div className="model-empty">
+                <b>Crie agilidade</b>
+                <small>Salve frases prontas para realizar disparos rápidos em segundos.</small>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {templates.map((t, i) => (
+                  <div key={i} className="contact-row"
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+                    onClick={() => setMsg(t.body)}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <b style={{ fontSize: 12, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</b>
+                    </div>
+                    <button
+                      className="icon-btn"
+                      style={{ flexShrink: 0, fontSize: 12, opacity: 0.6 }}
+                      onClick={e => { e.stopPropagation(); setTemplateModal({ mode: 'edit', template: t, index: i }); }}
+                      title="Editar modelo"
+                    >✏</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {templateModal && (
+        <ModeloModal
+          template={templateModal.template}
+          index={templateModal.index}
+          onClose={() => setTemplateModal(null)}
+          onSave={handleSaveTemplate}
+          onDelete={handleDeleteTemplate}
+        />
+      )}
     </div>
   );
 }
