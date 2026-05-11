@@ -72,7 +72,7 @@ function Topbar({ pageLabel, onNavigate, onHamburger }) {
   }, [open]);
   return (
     <div className="topbar">
-      <img src={LOGO} style={{ height: 28, width: 'auto', objectFit: 'contain', flexShrink: 0 }}/>
+      <img src="/assets/logo.png" style={{ height: 28, width: 'auto', objectFit: 'contain', flexShrink: 0 }}/>
       <div className="crumb">
         <span>Admin</span>
         <Ic.chev/>

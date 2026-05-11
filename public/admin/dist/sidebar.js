@@ -171,7 +171,7 @@ function Topbar({
   return /*#__PURE__*/React.createElement("div", {
     className: "topbar"
   }, /*#__PURE__*/React.createElement("img", {
-    src: LOGO,
+    src: "/assets/logo.png",
     style: {
       height: 28,
       width: 'auto',
