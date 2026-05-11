@@ -137,6 +137,20 @@ const fmtR = v => Number(v || 0).toLocaleString('pt-BR', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2
 });
+const pmSource = method => {
+  const ml = (method || '').toLowerCase();
+  if (ml.includes('pix')) return 'Finalizado via Pix';
+  if (ml.includes('cred') || ml.includes('card_credit')) return 'Finalizado via cartão de crédito';
+  if (ml.includes('deb') || ml.includes('card_debit')) return 'Finalizado via cartão de débito';
+  return 'Finalizado via ' + (method || 'outro meio');
+};
+const deliveryLabel = order => {
+  if (order.scheduled_date) return 'Retirada na fornada ' + fmtDate(order.scheduled_date);
+  const t = (order.delivery_type || order.order_type || '').toLowerCase();
+  if (t.includes('retirada') || t.includes('pickup')) return 'Retirada em loja';
+  if (t.includes('entrega') || t.includes('delivery')) return 'Entrega no endereço';
+  return 'A definir';
+};
 
 /* next upcoming Friday — the bakery's production day */
 function nextFornada() {
@@ -155,17 +169,19 @@ function nextFornada() {
 
 function OrderModal({
   order,
-  onClose
+  onClose,
+  variant = 'historico'
 }) {
   const items = parseItems(order.items);
   const st = statusInfo(order.status);
+  const wpp = (order.customer_whatsapp || '').replace(/\D/g, '');
   return /*#__PURE__*/React.createElement("div", {
     className: "modal-backdrop",
     onClick: onClose
   }, /*#__PURE__*/React.createElement("div", {
     className: "modal",
     style: {
-      maxWidth: 520
+      maxWidth: 480
     },
     onClick: e => e.stopPropagation()
   }, /*#__PURE__*/React.createElement("button", {
@@ -173,41 +189,106 @@ function OrderModal({
     onClick: onClose
   }, "\xD7"), /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 20
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      textTransform: 'uppercase',
-      letterSpacing: '0.18em',
-      color: 'var(--ink-4)',
-      marginBottom: 8
-    }
-  }, "Pedido #", shortId(order.id), " \xB7 ", fmtDateLong(order.created_at)), /*#__PURE__*/React.createElement("div", {
-    style: {
       display: 'flex',
       alignItems: 'center',
-      gap: 10,
-      flexWrap: 'wrap'
+      justifyContent: 'space-between',
+      marginBottom: 20
     }
   }, /*#__PURE__*/React.createElement("h2", {
     style: {
       fontFamily: 'var(--display)',
       fontWeight: 400,
-      fontSize: 22,
+      fontSize: 26,
       margin: 0,
       color: 'var(--ink)'
     }
-  }, order.customer_name || 'Sem nome'), /*#__PURE__*/React.createElement("span", {
+  }, "#", shortId(order.id)), /*#__PURE__*/React.createElement("span", {
     className: `tag${st.cls ? ' ' + st.cls : ''}`
-  }, st.label)), order.customer_whatsapp && /*#__PURE__*/React.createElement("div", {
+  }, st.label)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: '14px 20px',
+      marginBottom: 20,
+      paddingBottom: 20,
+      borderBottom: '1px solid var(--line)'
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9.5,
+      textTransform: 'uppercase',
+      letterSpacing: '0.16em',
+      color: 'var(--ink-4)',
+      marginBottom: 5
+    }
+  }, "Cliente"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      color: 'var(--ink)',
+      fontSize: 13
+    }
+  }, order.customer_name || 'Sem nome'), wpp && /*#__PURE__*/React.createElement("a", {
+    href: `https://wa.me/55${wpp}`,
+    target: "_blank",
+    rel: "noreferrer",
     style: {
       fontSize: 12,
-      color: 'var(--ink-3)',
-      marginTop: 6,
-      fontFamily: 'var(--mono)'
+      color: 'var(--gold)',
+      fontFamily: 'var(--mono)',
+      textDecoration: 'none',
+      display: 'block',
+      marginTop: 2
     }
-  }, order.customer_whatsapp)), /*#__PURE__*/React.createElement("div", {
+  }, order.customer_whatsapp)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9.5,
+      textTransform: 'uppercase',
+      letterSpacing: '0.16em',
+      color: 'var(--ink-4)',
+      marginBottom: 5
+    }
+  }, "Pagamento"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      color: 'var(--ink)',
+      fontSize: 13,
+      textTransform: 'uppercase'
+    }
+  }, pmLabel(order.payment_method)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--ink-3)',
+      marginTop: 2
+    }
+  }, pmSource(order.payment_method))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9.5,
+      textTransform: 'uppercase',
+      letterSpacing: '0.16em',
+      color: 'var(--ink-4)',
+      marginBottom: 5
+    }
+  }, "Tipo de Entrega"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      color: 'var(--ink)',
+      fontSize: 13
+    }
+  }, deliveryLabel(order))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9.5,
+      textTransform: 'uppercase',
+      letterSpacing: '0.16em',
+      color: 'var(--ink-4)',
+      marginBottom: 5
+    }
+  }, "Data e Hora"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'var(--mono)',
+      fontSize: 12,
+      color: 'var(--ink)'
+    }
+  }, fmtDateLong(order.created_at)))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       flexDirection: 'column',
@@ -219,36 +300,32 @@ function OrderModal({
     key: i
   }, /*#__PURE__*/React.createElement("div", {
     style: {
+      display: 'flex',
+      alignItems: 'baseline',
+      gap: 8,
       flex: 1,
       minWidth: 0
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: 'var(--mono)',
+      fontSize: 12,
+      color: 'var(--gold)',
+      flexShrink: 0,
+      minWidth: 22
+    }
+  }, item.qty || 1, "\xD7"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 500,
       color: 'var(--ink)'
     }
-  }, item.name), item.optionals && item.optionals.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, item.name)), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
-      color: 'var(--ink-4)',
-      marginTop: 2
-    }
-  }, item.optionals.map(op => op.name || op).join(', '))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: 'right',
+      fontWeight: 500,
+      color: 'var(--ink)',
       flexShrink: 0
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontWeight: 500,
-      color: 'var(--ink)'
-    }
-  }, brlShort((item.price || 0) * (item.qty || 1))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: 'var(--ink-4)'
-    }
-  }, item.qty || 1, "\xD7 ", brlShort(item.price || 0))))) : /*#__PURE__*/React.createElement("div", {
+  }, brlShort((item.price || 0) * (item.qty || 1))))) : /*#__PURE__*/React.createElement("div", {
     style: {
       color: 'var(--ink-4)',
       fontSize: 12,
@@ -259,35 +336,25 @@ function OrderModal({
     className: "order-total"
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontWeight: 500,
+      fontFamily: 'var(--display)',
+      fontWeight: 400,
+      fontSize: 16,
       color: 'var(--ink-2)'
     }
-  }, "Total do pedido"), /*#__PURE__*/React.createElement("span", {
+  }, "Total"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontFamily: 'var(--display)',
       fontSize: 22,
-      color: 'var(--ink)'
+      color: 'var(--gold)'
     }
   }, brl(order.total_amount || 0))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 10,
-      marginTop: 16,
-      flexWrap: 'wrap'
+      marginTop: 16
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "mini-card",
-    style: {
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("small", null, "Forma de pagamento"), /*#__PURE__*/React.createElement("b", {
-    style: {
-      fontSize: 15,
-      display: 'block',
-      marginTop: 4
-    }
-  }, pmLabel(order.payment_method))), order.customer_whatsapp && /*#__PURE__*/React.createElement("a", {
-    href: `https://wa.me/55${(order.customer_whatsapp || '').replace(/\D/g, '')}`,
+  }, wpp ? /*#__PURE__*/React.createElement("a", {
+    href: `https://wa.me/55${wpp}`,
     target: "_blank",
     rel: "noreferrer",
     className: "btn-wpp",
@@ -301,7 +368,35 @@ function OrderModal({
       width: 14,
       height: 14
     }
-  }), " WhatsApp"))));
+  }), " WhatsApp") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }), variant === 'fila' ? /*#__PURE__*/React.createElement("button", {
+    className: "btn-primary",
+    style: {
+      flex: 1
+    },
+    onClick: onClose
+  }, "Entrar em preparo") : /*#__PURE__*/React.createElement("button", {
+    className: "btn-ghost",
+    style: {
+      flex: 1
+    },
+    onClick: onClose
+  }, "Fechar hist\xF3rico")), variant === 'fila' && /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("a", {
+    className: "link-muted",
+    style: {
+      cursor: 'pointer',
+      fontSize: 12
+    },
+    onClick: onClose
+  }, "Voltar para a Fila"))));
 }
 
 /* ─── FILA DE PEDIDOS ────────────────────────────────────────────────────── */
@@ -499,6 +594,7 @@ function FilaDePedidos() {
     }, action)));
   })), selected && /*#__PURE__*/React.createElement(OrderModal, {
     order: selected,
+    variant: "fila",
     onClose: () => setSelected(null)
   }));
 }

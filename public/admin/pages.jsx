@@ -79,6 +79,22 @@ const inRetirada = (s) => (s||'').toLowerCase().trim() === 'retirada';
 /* currency value (number only, no R$ prefix) */
 const fmtR = (v) => Number(v||0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+const pmSource = (method) => {
+  const ml = (method || '').toLowerCase();
+  if (ml.includes('pix')) return 'Finalizado via Pix';
+  if (ml.includes('cred') || ml.includes('card_credit')) return 'Finalizado via cartão de crédito';
+  if (ml.includes('deb')  || ml.includes('card_debit'))  return 'Finalizado via cartão de débito';
+  return 'Finalizado via ' + (method || 'outro meio');
+};
+
+const deliveryLabel = (order) => {
+  if (order.scheduled_date) return 'Retirada na fornada ' + fmtDate(order.scheduled_date);
+  const t = (order.delivery_type || order.order_type || '').toLowerCase();
+  if (t.includes('retirada') || t.includes('pickup'))   return 'Retirada em loja';
+  if (t.includes('entrega')  || t.includes('delivery')) return 'Entrega no endereço';
+  return 'A definir';
+};
+
 /* next upcoming Friday — the bakery's production day */
 function nextFornada() {
   const now = new Date();
@@ -90,47 +106,60 @@ function nextFornada() {
 
 /* ─── SHARED: ORDER DETAIL MODAL ─────────────────────────────────────────── */
 
-function OrderModal({ order, onClose }) {
+function OrderModal({ order, onClose, variant = 'historico' }) {
   const items = parseItems(order.items);
   const st = statusInfo(order.status);
+  const wpp = (order.customer_whatsapp || '').replace(/\D/g, '');
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+      <div className="modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
         <button className="modal-x" onClick={onClose}>×</button>
 
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--ink-4)', marginBottom: 8 }}>
-            Pedido #{shortId(order.id)} · {fmtDateLong(order.created_at)}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <h2 style={{ fontFamily: 'var(--display)', fontWeight: 400, fontSize: 22, margin: 0, color: 'var(--ink)' }}>
-              {order.customer_name || 'Sem nome'}
-            </h2>
-            <span className={`tag${st.cls ? ' ' + st.cls : ''}`}>{st.label}</span>
-          </div>
-          {order.customer_whatsapp && (
-            <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 6, fontFamily: 'var(--mono)' }}>
-              {order.customer_whatsapp}
-            </div>
-          )}
+        {/* Header: order ID + status badge */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <h2 style={{ fontFamily: 'var(--display)', fontWeight: 400, fontSize: 26, margin: 0, color: 'var(--ink)' }}>
+            #{shortId(order.id)}
+          </h2>
+          <span className={`tag${st.cls ? ' ' + st.cls : ''}`}>{st.label}</span>
         </div>
 
+        {/* Info 2×2 grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px', marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid var(--line)' }}>
+          <div>
+            <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--ink-4)', marginBottom: 5 }}>Cliente</div>
+            <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 13 }}>{order.customer_name || 'Sem nome'}</div>
+            {wpp && (
+              <a href={`https://wa.me/55${wpp}`} target="_blank" rel="noreferrer"
+                style={{ fontSize: 12, color: 'var(--gold)', fontFamily: 'var(--mono)', textDecoration: 'none', display: 'block', marginTop: 2 }}>
+                {order.customer_whatsapp}
+              </a>
+            )}
+          </div>
+          <div>
+            <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--ink-4)', marginBottom: 5 }}>Pagamento</div>
+            <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 13, textTransform: 'uppercase' }}>{pmLabel(order.payment_method)}</div>
+            <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 2 }}>{pmSource(order.payment_method)}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--ink-4)', marginBottom: 5 }}>Tipo de Entrega</div>
+            <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 13 }}>{deliveryLabel(order)}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--ink-4)', marginBottom: 5 }}>Data e Hora</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink)' }}>{fmtDateLong(order.created_at)}</div>
+          </div>
+        </div>
+
+        {/* Item rows */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
           {items.length > 0 ? items.map((item, i) => (
             <div className="order-line-item" key={i}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 500, color: 'var(--ink)' }}>{item.name}</div>
-                {item.optionals && item.optionals.length > 0 && (
-                  <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 2 }}>
-                    {item.optionals.map(op => op.name || op).join(', ')}
-                  </div>
-                )}
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flex: 1, minWidth: 0 }}>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--gold)', flexShrink: 0, minWidth: 22 }}>{item.qty || 1}×</span>
+                <span style={{ fontWeight: 500, color: 'var(--ink)' }}>{item.name}</span>
               </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div style={{ fontWeight: 500, color: 'var(--ink)' }}>{brlShort((item.price || 0) * (item.qty || 1))}</div>
-                <div style={{ fontSize: 11, color: 'var(--ink-4)' }}>{item.qty || 1}× {brlShort(item.price || 0)}</div>
-              </div>
+              <div style={{ fontWeight: 500, color: 'var(--ink)', flexShrink: 0 }}>{brlShort((item.price || 0) * (item.qty || 1))}</div>
             </div>
           )) : (
             <div style={{ color: 'var(--ink-4)', fontSize: 12, textAlign: 'center', padding: '16px 0' }}>
@@ -139,28 +168,31 @@ function OrderModal({ order, onClose }) {
           )}
         </div>
 
+        {/* Total */}
         <div className="order-total">
-          <span style={{ fontWeight: 500, color: 'var(--ink-2)' }}>Total do pedido</span>
-          <span style={{ fontFamily: 'var(--display)', fontSize: 22, color: 'var(--ink)' }}>{brl(order.total_amount || 0)}</span>
+          <span style={{ fontFamily: 'var(--display)', fontWeight: 400, fontSize: 16, color: 'var(--ink-2)' }}>Total</span>
+          <span style={{ fontFamily: 'var(--display)', fontSize: 22, color: 'var(--gold)' }}>{brl(order.total_amount || 0)}</span>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
-          <div className="mini-card" style={{ flex: 1 }}>
-            <small>Forma de pagamento</small>
-            <b style={{ fontSize: 15, display: 'block', marginTop: 4 }}>{pmLabel(order.payment_method)}</b>
-          </div>
-          {order.customer_whatsapp && (
-            <a
-              href={`https://wa.me/55${(order.customer_whatsapp || '').replace(/\D/g, '')}`}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-wpp"
-              style={{ flex: 1, textDecoration: 'none', justifyContent: 'center' }}
-            >
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+          {wpp ? (
+            <a href={`https://wa.me/55${wpp}`} target="_blank" rel="noreferrer"
+              className="btn-wpp" style={{ flex: 1, textDecoration: 'none', justifyContent: 'center' }}>
               <Ic.msg style={{ width: 14, height: 14 }}/> WhatsApp
             </a>
+          ) : <div style={{ flex: 1 }}/>}
+          {variant === 'fila' ? (
+            <button className="btn-primary" style={{ flex: 1 }} onClick={onClose}>Entrar em preparo</button>
+          ) : (
+            <button className="btn-ghost" style={{ flex: 1 }} onClick={onClose}>Fechar histórico</button>
           )}
         </div>
+        {variant === 'fila' && (
+          <div style={{ textAlign: 'center', marginTop: 10 }}>
+            <a className="link-muted" style={{ cursor: 'pointer', fontSize: 12 }} onClick={onClose}>Voltar para a Fila</a>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -311,7 +343,7 @@ function FilaDePedidos() {
         </div>
       )}
 
-      {selected && <OrderModal order={selected} onClose={() => setSelected(null)}/>}
+      {selected && <OrderModal order={selected} variant="fila" onClose={() => setSelected(null)}/>}
     </div>
   );
 }
