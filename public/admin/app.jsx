@@ -1,4 +1,4 @@
-/* global React, ReactDOM, Sidebar, Topbar, NAV, Dashboard */
+/* global React, ReactDOM, Sidebar, Topbar, NAV, Dashboard, FilaDePedidos, HistoricoPedidos, Clientes */
 
 const AUTH_KEY = 'tocha_admin_token';
 
@@ -31,19 +31,20 @@ function App() {
       <Sidebar active={page} onNavigate={handleNavigate} mobileOpen={sbOpen} onClose={() => setSbOpen(false)}/>
       <div className="main">
         <Topbar pageLabel={label} onNavigate={handleNavigate} onHamburger={() => setSbOpen(o => !o)}/>
-        {page === 'home'
-          ? <Dashboard/>
-          : (
-            <div className="page">
-              <div className="page-head">
-                <div>
-                  <h1><em>{label}</em></h1>
-                  <p className="sub">Módulo em implementação</p>
-                </div>
+        {page === 'home'      && <Dashboard/>}
+        {page === 'fila'      && <FilaDePedidos/>}
+        {page === 'historico' && <HistoricoPedidos/>}
+        {page === 'clientes'  && <Clientes/>}
+        {!['home','fila','historico','clientes'].includes(page) && (
+          <div className="page">
+            <div className="page-head">
+              <div>
+                <h1><em>{label}</em></h1>
+                <p className="sub">Módulo em implementação</p>
               </div>
             </div>
-          )
-        }
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-/* global React, ReactDOM, Sidebar, Topbar, NAV, Dashboard */
+/* global React, ReactDOM, Sidebar, Topbar, NAV, Dashboard, FilaDePedidos, HistoricoPedidos, Clientes */
 
 const AUTH_KEY = 'tocha_admin_token';
 function App() {
@@ -34,7 +34,7 @@ function App() {
     pageLabel: label,
     onNavigate: handleNavigate,
     onHamburger: () => setSbOpen(o => !o)
-  }), page === 'home' ? /*#__PURE__*/React.createElement(Dashboard, null) : /*#__PURE__*/React.createElement("div", {
+  }), page === 'home' && /*#__PURE__*/React.createElement(Dashboard, null), page === 'fila' && /*#__PURE__*/React.createElement(FilaDePedidos, null), page === 'historico' && /*#__PURE__*/React.createElement(HistoricoPedidos, null), page === 'clientes' && /*#__PURE__*/React.createElement(Clientes, null), !['home', 'fila', 'historico', 'clientes'].includes(page) && /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement("div", {
     className: "page-head"
