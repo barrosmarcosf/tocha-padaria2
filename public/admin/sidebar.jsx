@@ -72,10 +72,7 @@ function Topbar({ pageLabel, onNavigate, onHamburger }) {
   }, [open]);
   return (
     <div className="topbar">
-      <div className="tb-logo-wrap">
-        <img src={LOGO} style={{ width: 26, height: 26, objectFit: 'contain' }}/>
-      </div>
-      <button className="icon-btn" onClick={onHamburger} title="Menu"><Ic.menu/></button>
+      <img src={LOGO} style={{ height: 28, width: 'auto', objectFit: 'contain', flexShrink: 0 }}/>
       <div className="crumb">
         <span>Admin</span>
         <Ic.chev/>

@@ -170,20 +170,15 @@ function Topbar({
   }, [open]);
   return /*#__PURE__*/React.createElement("div", {
     className: "topbar"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "tb-logo-wrap"
   }, /*#__PURE__*/React.createElement("img", {
     src: LOGO,
     style: {
-      width: 26,
-      height: 26,
-      objectFit: 'contain'
+      height: 28,
+      width: 'auto',
+      objectFit: 'contain',
+      flexShrink: 0
     }
-  })), /*#__PURE__*/React.createElement("button", {
-    className: "icon-btn",
-    onClick: onHamburger,
-    title: "Menu"
-  }, /*#__PURE__*/React.createElement(Ic.menu, null)), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
     className: "crumb"
   }, /*#__PURE__*/React.createElement("span", null, "Admin"), /*#__PURE__*/React.createElement(Ic.chev, null), /*#__PURE__*/React.createElement("b", null, pageLabel)), /*#__PURE__*/React.createElement("div", {
     className: "tb-spacer"
