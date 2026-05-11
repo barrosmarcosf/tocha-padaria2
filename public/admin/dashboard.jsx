@@ -189,7 +189,7 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Clientes em pausa + Alertas */}
+      {/* Clientes em pausa + Faturamento Acumulado */}
       <div className="grid row-half mt">
 
         {/* Clientes em pausa */}
@@ -232,6 +232,81 @@ function Dashboard() {
           )}
         </div>
 
+        {/* Faturamento Acumulado */}
+        <div className="card hoverable">
+          <div className="card-head">
+            <h3><Ic.chart/>Faturamento acumulado</h3>
+            <span className="meta">30 dias</span>
+          </div>
+          <CumulativeChart
+            current={D.revenueSeries.current}
+            previous={D.revenueSeries.previous}
+          />
+          <div className="legend" style={{ marginTop: 8 }}>
+            <span>
+              <i style={{ background: 'var(--gold)' }}/>
+              Mês atual{' '}
+              <b style={{ color: 'var(--ink)', marginLeft: 4 }}>
+                {brlShort(D.revenueSeries.current.reduce((s, d) => s + d.value, 0))}
+              </b>
+            </span>
+            <span>
+              <i style={{ background: 'var(--ink-4)' }}/>
+              Mês anterior{' '}
+              <b style={{ color: 'var(--ink-2)', marginLeft: 4 }}>
+                {brlShort(D.revenueSeries.previous.reduce((s, d) => s + d.value, 0))}
+              </b>
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Fornada + Alertas */}
+      <div className="grid row-half mt">
+
+        {/* Fornada */}
+        <div className="card fornada hoverable">
+          <div className="fornada-head">
+            <div>
+              <div className="when">
+                <Ic.flame style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }}/>
+                Próxima fornada
+              </div>
+              <h2>{D.fornada.when}</h2>
+              <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>
+                Janela de retirada: 9h – 14h
+              </div>
+            </div>
+            <button className="icon-btn" title="Ver detalhes"><Ic.chev/></button>
+          </div>
+          <div className="fornada-stats">
+            <div className="fornada-stat">
+              <small>Pedidos</small>
+              <b>{D.fornada.pedidos}</b>
+            </div>
+            <div className="fornada-stat">
+              <small>Itens</small>
+              <b>{D.fornada.itens}</b>
+            </div>
+            <div className="fornada-stat">
+              <small>Receita</small>
+              <b>{brlShort(D.fornada.faturamento)}</b>
+            </div>
+          </div>
+          <div className="fornada-progress">
+            <small>
+              <span>Capacidade preenchida</span>
+              <span style={{ color: 'var(--gold)', fontWeight: 500 }}>
+                {Math.round(D.fornada.capacidade * 100)}%
+              </span>
+            </small>
+            <div className="progress-track">
+              <div className="progress-fill" style={{ width: `${D.fornada.capacidade * 100}%` }}/>
+            </div>
+          </div>
+        </div>
+
         {/* Alertas */}
         <div className="card hoverable">
           <div className="card-head">
@@ -258,6 +333,47 @@ function Dashboard() {
 
       {openClient && <ClientCardModal client={openClient} onClose={() => setOpenClient(null)}/>}
     </div>
+  );
+}
+
+function CumulativeChart({ current, previous }) {
+  const w = 320, h = 140, padL = 8, padR = 8, padT = 12, padB = 18;
+  const iw = w - padL - padR, ih = h - padT - padB;
+
+  const cumA = []; let a = 0;
+  current.forEach(d => { a += d.value; cumA.push(a); });
+  const cumB = []; let b = 0;
+  previous.forEach(d => { b += d.value; cumB.push(b); });
+
+  const max = Math.max(cumA.at(-1), cumB.at(-1)) * 1.05;
+  const n = cumA.length;
+  const xp = (i) => padL + (i / (n - 1)) * iw;
+  const yp = (v) => padT + ih - (v / max) * ih;
+
+  const smooth = (arr) => arr.map((v, i) => {
+    if (i === 0) return `M ${xp(i).toFixed(1)} ${yp(v).toFixed(1)}`;
+    const cpx = ((xp(i - 1) + xp(i)) / 2).toFixed(1);
+    return `C ${cpx} ${yp(arr[i - 1]).toFixed(1)} ${cpx} ${yp(v).toFixed(1)} ${xp(i).toFixed(1)} ${yp(v).toFixed(1)}`;
+  }).join(' ');
+
+  const pathA = smooth(cumA);
+  const pathB = smooth(cumB);
+  const area = `${pathA} L ${xp(n - 1).toFixed(1)} ${padT + ih} L ${padL} ${padT + ih} Z`;
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 140, display: 'block' }}>
+      <defs>
+        <linearGradient id="cumAreaGrad" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="var(--gold)" stopOpacity="0.20"/>
+          <stop offset="100%" stopColor="var(--gold)" stopOpacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d={area} fill="url(#cumAreaGrad)"/>
+      <path d={pathB} fill="none" stroke="var(--ink-4)" strokeWidth="1.2" strokeDasharray="3 4" opacity="0.55"/>
+      {/* glow discreto: linha larga + opaca sobreposta pela linha precisa */}
+      <path d={pathA} fill="none" stroke="var(--gold)" strokeWidth="4" strokeLinecap="round" opacity="0.10"/>
+      <path d={pathA} fill="none" stroke="var(--gold)" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
   );
 }
 
