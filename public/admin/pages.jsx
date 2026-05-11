@@ -41,6 +41,11 @@ const fmtDate = (iso) => {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 };
 
+const fmtDateFull = (iso) => {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
+
 const fmtDateLong = (iso) => {
   if (!iso) return '—';
   return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -64,10 +69,24 @@ const itemsSummary = (raw) => {
 
 const shortId = (id) => String(id || '').slice(-5).toUpperCase();
 
-const isDone   = (s) => ['concluido','concluído','finalizado','entregue','delivered'].includes((s||'').toLowerCase());
-const isProg   = (s) => ['aceito','preparo','retirada'].includes((s||'').toLowerCase());
-const isWait   = (s) => ['paid','pago'].includes((s||'').toLowerCase());
-const isCanc   = (s) => ['cancelled','cancelado','rejected'].includes((s||'').toLowerCase());
+const isDone = (s) => ['concluido','concluído','finalizado','entregue','delivered'].includes((s||'').toLowerCase());
+const isCanc = (s) => ['cancelled','cancelado','rejected'].includes((s||'').toLowerCase());
+
+const inAceitos  = (s) => ['paid','pago','aceito'].includes((s||'').toLowerCase().trim());
+const inPreparo  = (s) => (s||'').toLowerCase().trim() === 'preparo';
+const inRetirada = (s) => (s||'').toLowerCase().trim() === 'retirada';
+
+/* currency value (number only, no R$ prefix) */
+const fmtR = (v) => Number(v||0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/* next upcoming Friday — the bakery's production day */
+function nextFornada() {
+  const now = new Date();
+  const day = now.getDay();
+  const daysUntilFri = ((5 - day + 7) % 7) || 7;
+  const fri = new Date(now.getTime() + daysUntilFri * 86400000);
+  return fri.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
 
 /* ─── SHARED: ORDER DETAIL MODAL ─────────────────────────────────────────── */
 
@@ -150,9 +169,9 @@ function OrderModal({ order, onClose }) {
 /* ─── FILA DE PEDIDOS ────────────────────────────────────────────────────── */
 
 function FilaDePedidos() {
-  const [orders, setOrders] = usePgSt([]);
+  const [orders, setOrders]   = usePgSt([]);
   const [loading, setLoading] = usePgSt(true);
-  const [tab, setTab]         = usePgSt('todos');
+  const [tab, setTab]         = usePgSt('aceitos');
   const [selected, setSelected] = usePgSt(null);
 
   const load = () => {
@@ -165,117 +184,132 @@ function FilaDePedidos() {
   usePgEff(() => { load(); }, []);
 
   const counts = {
-    total:     orders.length,
-    aguardando: orders.filter(o => isWait(o.status)).length,
-    preparo:    orders.filter(o => isProg(o.status)).length,
+    aceitos:    orders.filter(o => inAceitos(o.status)).length,
+    preparo:    orders.filter(o => inPreparo(o.status)).length,
+    retirada:   orders.filter(o => inRetirada(o.status)).length,
     concluidos: orders.filter(o => isDone(o.status)).length,
     cancelados: orders.filter(o => isCanc(o.status)).length,
   };
 
   const TABS = [
-    ['todos',      'Todos',       counts.total],
-    ['aguardando', 'Aguardando',  counts.aguardando],
-    ['preparo',    'Em preparo',  counts.preparo],
-    ['concluidos', 'Concluídos',  counts.concluidos],
-    ['cancelados', 'Cancelados',  counts.cancelados],
+    ['aceitos',    'Aceitos',             counts.aceitos],
+    ['preparo',    'Em Preparo',          counts.preparo],
+    ['retirada',   'Pronto p/ Retirada',  counts.retirada],
+    ['concluidos', 'Concluídos',          counts.concluidos],
+    ['cancelados', 'Cancelados',          counts.cancelados],
   ];
 
   const visible = orders.filter(o => {
-    if (tab === 'todos')      return true;
-    if (tab === 'aguardando') return isWait(o.status);
-    if (tab === 'preparo')    return isProg(o.status);
+    if (tab === 'aceitos')    return inAceitos(o.status);
+    if (tab === 'preparo')    return inPreparo(o.status);
+    if (tab === 'retirada')   return inRetirada(o.status);
     if (tab === 'concluidos') return isDone(o.status);
     if (tab === 'cancelados') return isCanc(o.status);
     return true;
   });
 
-  const receita = orders.filter(o => !isCanc(o.status)).reduce((s, o) => s + (o.total_amount || 0), 0);
+  /* tab-level badge shown on each card */
+  const TAB_BADGE = {
+    aceitos:    { label: 'Aceitos',      cls: 'up'   },
+    preparo:    { label: 'Em Preparo',   cls: 'gold' },
+    retirada:   { label: 'Retirada',     cls: 'gold' },
+    concluidos: { label: 'Concluído',    cls: 'up'   },
+    cancelados: { label: 'Cancelado',    cls: 'down' },
+  };
+
+  /* primary action label per tab */
+  const TAB_ACTION = {
+    aceitos:    'Preparar',
+    preparo:    'Pronto',
+    retirada:   'Entregar',
+    concluidos: '',
+    cancelados: '',
+  };
+
+  const badge  = TAB_BADGE[tab]  || TAB_BADGE.aceitos;
+  const action = TAB_ACTION[tab] || '';
+
+  const fornada = nextFornada();
 
   return (
     <div className="page">
       <div className="page-head">
         <div>
-          <div className="sub" style={{ marginBottom: 6 }}>Operação do dia · pedidos do ciclo atual</div>
-          <h1>Fila de <em>Pedidos</em></h1>
+          <div className="sub" style={{ marginBottom: 6 }}>Admin</div>
+          <h1>
+            Fila de <em>Produção</em>
+            <span className="page-badge" style={{ marginLeft: 14 }}>FORNADA {fornada}</span>
+          </h1>
+          <div className="sub">Gerencie os pedidos confirmados para a produção deste ciclo.</div>
         </div>
         <button className="icon-btn" title="Atualizar" onClick={load} style={{ width: 36, height: 36 }}>
           <Ic.spark/>
         </button>
       </div>
 
-      {/* Mini cards */}
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(4,1fr)', gap: 'var(--gap)', marginBottom: 'var(--gap)' }}>
-        {[
-          { label: 'Pedidos hoje',  value: counts.total,     mono: true },
-          { label: 'Aguardando',    value: counts.aguardando, mono: true },
-          { label: 'Em preparo',    value: counts.preparo,    mono: true },
-          { label: 'Receita do dia',value: brlShort(receita), mono: false },
-        ].map((c, i) => (
-          <div className="mini-card" key={i} style={{ padding: '16px 18px' }}>
-            <small>{c.label}</small>
-            <b style={{ fontSize: 22, display: 'block', marginTop: 4, fontFamily: c.mono ? 'var(--display)' : undefined }}>{c.value}</b>
-          </div>
-        ))}
-      </div>
-
-      <div className="card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 14 }}>
-          <div className="tabs">
-            {TABS.map(([k, l, ct]) => (
-              <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
-                {l}
-                {ct > 0 && <span className="tab-count">{ct}</span>}
-              </button>
-            ))}
-          </div>
-          <span style={{ fontSize: 11.5, color: 'var(--ink-4)', flexShrink: 0 }}>
-            {visible.length} pedido{visible.length !== 1 ? 's' : ''}
-          </span>
+      {/* Tabs + batch actions */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, gap: 14, flexWrap: 'wrap' }}>
+        <div className="tabs">
+          {TABS.map(([k, l, ct]) => (
+            <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
+              {l}
+              {ct > 0 && <span className="tab-count">{ct}</span>}
+            </button>
+          ))}
         </div>
-
-        {loading ? (
-          <div className="empty-state"><Ic.spark/><span>Carregando pedidos...</span></div>
-        ) : !visible.length ? (
-          <div className="empty-state"><Ic.cart/><span>Nenhum pedido neste filtro</span></div>
-        ) : (
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Cliente</th>
-                <th>Itens</th>
-                <th style={{ textAlign: 'right' }}>Total</th>
-                <th>Pagamento</th>
-                <th>Hora</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map(o => {
-                const st = statusInfo(o.status);
-                return (
-                  <tr key={o.id} className="row-clickable" onClick={() => setSelected(o)}>
-                    <td>
-                      <span className="link-id">#{shortId(o.id)}</span>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 500, color: 'var(--ink)' }}>{o.customer_name || '—'}</div>
-                      {o.customer_whatsapp && (
-                        <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--mono)' }}>{o.customer_whatsapp}</div>
-                      )}
-                    </td>
-                    <td style={{ color: 'var(--ink-2)', fontSize: 12.5 }}>{itemsSummary(o.items)}</td>
-                    <td className="num">{brlShort(o.total_amount || 0)}</td>
-                    <td><span className="tag">{pmLabel(o.payment_method)}</span></td>
-                    <td style={{ color: 'var(--ink-3)', fontFamily: 'var(--mono)', fontSize: 12 }}>{fmtTime(o.created_at)}</td>
-                    <td><span className={`tag${st.cls ? ' ' + st.cls : ''}`}>{st.label}</span></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <select className="select-mini"><option>Ações em lote…</option></select>
+          <button className="btn-primary" style={{ padding: '6px 14px' }}>Aplicar</button>
+        </div>
       </div>
+
+      {/* Card grid or states */}
+      {loading ? (
+        <div className="empty-state"><Ic.spark/><span>Carregando pedidos...</span></div>
+      ) : !visible.length ? (
+        <div className="empty-state"><Ic.cart/><span>Nenhum pedido nesta fase.</span></div>
+      ) : (
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
+          {visible.map(o => {
+            const name = o.customer_name || '—';
+            const displayName = name.length > 22 ? name.slice(0, 21) + '…' : name;
+            return (
+              <div key={o.id} className="order-card" onClick={() => setSelected(o)}>
+                <div className="order-card-strip"/>
+                <div className="order-card-head">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input type="checkbox" onClick={e => e.stopPropagation()}/>
+                    <span className="tag">#{shortId(o.id)}</span>
+                  </div>
+                  <span className={`tag${badge.cls ? ' ' + badge.cls : ''}`}>{badge.label}</span>
+                </div>
+                <div className="order-card-body">
+                  <b>{displayName}</b>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink-3)', marginTop: 8 }}>
+                    <span>{fmtTime(o.created_at)}</span>
+                    <span>{fmtDateFull(o.created_at)}</span>
+                  </div>
+                </div>
+                <div className="order-card-foot">
+                  <div>
+                    <small style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ink-4)' }}>Total gasto</small>
+                    <b style={{ display: 'block', color: 'var(--gold)', fontWeight: 500, fontSize: 16 }}>{brlShort(o.total_amount || 0)}</b>
+                  </div>
+                  {action && (
+                    <button
+                      className="btn-primary"
+                      style={{ padding: '6px 12px', fontSize: 12 }}
+                      onClick={e => e.stopPropagation()}
+                    >
+                      {action}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {selected && <OrderModal order={selected} onClose={() => setSelected(null)}/>}
     </div>
@@ -288,12 +322,13 @@ function HistoricoPedidos() {
   const today        = new Date().toISOString().slice(0, 10);
   const firstOfMonth = today.slice(0, 8) + '01';
 
-  const [from, setFrom]       = usePgSt(firstOfMonth);
-  const [to, setTo]           = usePgSt(today);
-  const [pageNum, setPageNum] = usePgSt(1);
-  const [data, setData]       = usePgSt(null);
-  const [loading, setLoading] = usePgSt(false);
-  const [selected, setSelected] = usePgSt(null);
+  const [from, setFrom]             = usePgSt(firstOfMonth);
+  const [to, setTo]                 = usePgSt(today);
+  const [pageNum, setPageNum]       = usePgSt(1);
+  const [data, setData]             = usePgSt(null);
+  const [loading, setLoading]       = usePgSt(false);
+  const [selected, setSelected]     = usePgSt(null);
+  const [showCanc, setShowCanc]     = usePgSt(false);
 
   const LIMIT = 50;
 
@@ -317,14 +352,42 @@ function HistoricoPedidos() {
   const stats  = data?.stats  || {};
   const pages  = Math.max(1, Math.ceil(total / LIMIT));
 
+  const visibleOrders = showCanc ? orders : orders.filter(o => !isCanc(o.status));
+
   return (
     <div className="page">
       <div className="page-head">
         <div>
-          <div className="sub" style={{ marginBottom: 6 }}>Pedidos confirmados e finalizados</div>
+          <div className="sub" style={{ marginBottom: 6 }}>Admin</div>
           <h1>Histórico de <em>Pedidos</em></h1>
+          <div className="sub">Relatório consolidado de todas as transações da unidade.</div>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+      </div>
+
+      {/* KPI row */}
+      <div className="grid kpi-row" style={{ marginBottom: 'var(--gap)' }}>
+        <div className="card kpi">
+          <div className="kpi-label">Faturamento</div>
+          <div className="kpi-value"><span className="unit">R$</span>{fmtR(stats.totalRevenue)}</div>
+        </div>
+        <div className="card kpi">
+          <div className="kpi-label">Lucro</div>
+          <div className="kpi-value"><span className="unit">R$</span>{fmtR(stats.profit)}</div>
+        </div>
+        <div className="card kpi">
+          <div className="kpi-label">Nº Pedidos</div>
+          <div className="kpi-value">{(stats.totalOrders || 0).toLocaleString('pt-BR')}</div>
+        </div>
+        <div className="card kpi">
+          <div className="kpi-label">Ticket Médio</div>
+          <div className="kpi-value"><span className="unit">R$</span>{fmtR(stats.avgTicket)}</div>
+        </div>
+      </div>
+
+      {/* Table card */}
+      <div className="card">
+        {/* Filter row */}
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--line)' }}>
           <label className="lbl-inline">
             De
             <input className="date-input" type="date" value={from} onChange={e => setFrom(e.target.value)}/>
@@ -333,78 +396,65 @@ function HistoricoPedidos() {
             Até
             <input className="date-input" type="date" value={to} onChange={e => setTo(e.target.value)}/>
           </label>
-          <button className="btn-primary" style={{ fontSize: 12, padding: '7px 14px' }} onClick={() => load(1)}>
-            Filtrar
-          </button>
-        </div>
-      </div>
-
-      {/* KPI summary */}
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(4,1fr)', gap: 'var(--gap)', marginBottom: 'var(--gap)' }}>
-        {[
-          { label: 'Faturamento',    value: brl(stats.totalRevenue || 0) },
-          { label: 'Pedidos',        value: (stats.totalOrders || 0).toLocaleString('pt-BR') },
-          { label: 'Ticket médio',   value: brl(stats.avgTicket  || 0) },
-          { label: 'Lucro estimado', value: brl(stats.profit     || 0) },
-        ].map((c, i) => (
-          <div className="mini-card" key={i} style={{ padding: '16px 18px' }}>
-            <small>{c.label}</small>
-            <b style={{ fontSize: i === 1 ? 26 : 15, display: 'block', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
-              {c.value}
-            </b>
-          </div>
-        ))}
-      </div>
-
-      <div className="card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 14 }}>
-          <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>
-            {loading ? 'Carregando...' : `${total.toLocaleString('pt-BR')} pedido${total !== 1 ? 's' : ''} no período`}
-          </span>
-          {pages > 1 && (
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <button className="icon-btn" disabled={pageNum <= 1} onClick={() => load(pageNum - 1)}>‹</button>
-              <span style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--mono)', padding: '0 4px' }}>
-                {pageNum} / {pages}
-              </span>
-              <button className="icon-btn" disabled={pageNum >= pages} onClick={() => load(pageNum + 1)}>›</button>
-            </div>
-          )}
+          <a
+            className="link-muted"
+            onClick={() => setShowCanc(s => !s)}
+            style={{ cursor: 'pointer' }}
+          >
+            {showCanc ? 'Ocultar pedidos recusados' : 'Exibir pedidos recusados'}
+          </a>
         </div>
 
         {loading ? (
           <div className="empty-state"><Ic.spark/><span>Carregando histórico...</span></div>
-        ) : !orders.length ? (
+        ) : !visibleOrders.length ? (
           <div className="empty-state"><Ic.clock/><span>Nenhum pedido no período selecionado</span></div>
         ) : (
           <table className="tbl">
             <thead>
               <tr>
-                <th>Data</th>
-                <th>#</th>
+                <th>Código</th>
                 <th>Cliente</th>
-                <th>Itens</th>
-                <th style={{ textAlign: 'right' }}>Total</th>
+                <th>Tipo</th>
+                <th>Identificador</th>
                 <th>Pagamento</th>
                 <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Itens</th>
+                <th>Data</th>
+                <th>Agendamento</th>
               </tr>
             </thead>
             <tbody>
-              {orders.map(o => {
+              {visibleOrders.map(o => {
                 const st = statusInfo(o.status);
+                const itemCount = parseItems(o.items).length || 1;
+                const ident = o.external_id || o.payment_id ||
+                  String(o.id || '').replace(/-/g, '').slice(-8).toUpperCase();
+                const tipo = o.delivery_type || o.order_type || 'Entrega';
                 return (
                   <tr key={o.id} className="row-clickable" onClick={() => setSelected(o)}>
+                    <td>
+                      <span className="link-id">#{shortId(o.id)}</span>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 500, color: 'var(--ink)' }}>{o.customer_name || '—'}</div>
+                      {o.customer_whatsapp && (
+                        <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--mono)' }}>
+                          {o.customer_whatsapp}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ color: 'var(--ink-2)' }}>{tipo}</td>
+                    <td style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-3)' }}>{ident}</td>
+                    <td><span className="tag">{pmLabel(o.payment_method)}</span></td>
+                    <td><span className={`tag${st.cls ? ' ' + st.cls : ''}`}>{st.label}</span></td>
+                    <td className="num">{itemCount}</td>
                     <td style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--ink-3)' }}>
                       {fmtDate(o.created_at)}
                     </td>
-                    <td><span className="link-id">#{shortId(o.id)}</span></td>
-                    <td>
-                      <div style={{ fontWeight: 500, color: 'var(--ink)' }}>{o.customer_name || '—'}</div>
+                    <td style={{ color: 'var(--ink-4)' }}>
+                      {o.scheduled_date ? fmtDate(o.scheduled_date) : '—'}
                     </td>
-                    <td style={{ color: 'var(--ink-2)', fontSize: 12.5 }}>{itemsSummary(o.items)}</td>
-                    <td className="num">{brlShort(o.total_amount || 0)}</td>
-                    <td><span className="tag">{pmLabel(o.payment_method)}</span></td>
-                    <td><span className={`tag${st.cls ? ' ' + st.cls : ''}`}>{st.label}</span></td>
                   </tr>
                 );
               })}
@@ -412,26 +462,21 @@ function HistoricoPedidos() {
           </table>
         )}
 
-        {pages > 1 && !loading && (
-          <div style={{
-            display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10,
-            marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line)',
-          }}>
-            <button
-              className="btn-ghost"
-              style={{ flex: 'none', padding: '6px 16px', fontSize: 12 }}
-              disabled={pageNum <= 1}
-              onClick={() => load(pageNum - 1)}
-            >← Anterior</button>
-            <span style={{ fontSize: 12, color: 'var(--ink-3)', fontFamily: 'var(--mono)' }}>
-              {pageNum} / {pages}
+        {/* Footer */}
+        {!loading && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, gap: 14 }}>
+            <span style={{ fontSize: 11, color: 'var(--ink-4)' }}>
+              Exibindo {visibleOrders.length} de {total} pedido{total !== 1 ? 's' : ''}
             </span>
-            <button
-              className="btn-ghost"
-              style={{ flex: 'none', padding: '6px 16px', fontSize: 12 }}
-              disabled={pageNum >= pages}
-              onClick={() => load(pageNum + 1)}
-            >Próxima →</button>
+            {pages > 1 && (
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <button className="icon-btn" disabled={pageNum <= 1} onClick={() => load(pageNum - 1)}>‹</button>
+                <span style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--mono)', padding: '0 4px' }}>
+                  {pageNum} / {pages}
+                </span>
+                <button className="icon-btn" disabled={pageNum >= pages} onClick={() => load(pageNum + 1)}>›</button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -470,9 +515,9 @@ function Clientes() {
     return matchSearch && matchFilter;
   });
 
-  const totalRec     = customers.filter(isRecurrent).length;
-  const totalOrders  = customers.reduce((s, c) => s + (c.crm_count || 0), 0);
-  const avgTicket    = totalOrders > 0
+  const totalRec    = customers.filter(isRecurrent).length;
+  const totalOrders = customers.reduce((s, c) => s + (c.crm_count || 0), 0);
+  const avgTicket   = totalOrders > 0
     ? customers.reduce((s, c) => s + (c.crm_total || 0), 0) / totalOrders
     : 0;
 
@@ -493,12 +538,11 @@ function Clientes() {
         </div>
       </div>
 
-      {/* Summary */}
       <div className="grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', gap: 'var(--gap)', marginBottom: 'var(--gap)' }}>
         {[
-          { label: 'Total de clientes',    value: customers.length,          big: true },
-          { label: 'Clientes recorrentes', value: totalRec,                  big: true },
-          { label: 'Ticket médio global',  value: brl(avgTicket),            big: false },
+          { label: 'Total de clientes',    value: customers.length, big: true },
+          { label: 'Clientes recorrentes', value: totalRec,         big: true },
+          { label: 'Ticket médio global',  value: brl(avgTicket),   big: false },
         ].map((c, i) => (
           <div className="mini-card" key={i} style={{ padding: '16px 18px' }}>
             <small>{c.label}</small>
@@ -599,7 +643,6 @@ function ClienteDrawer({ customer, onClose }) {
       <div className="modal" style={{ maxWidth: 560 }} onClick={e => e.stopPropagation()}>
         <button className="modal-x" onClick={onClose}>×</button>
 
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
           <div className="sb-avatar" style={{
             width: 52, height: 52, fontSize: 20, borderRadius: 12, flexShrink: 0,
@@ -621,12 +664,11 @@ function ClienteDrawer({ customer, onClose }) {
           </div>
         </div>
 
-        {/* Stats row */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 20 }}>
           {[
-            { label: 'Total gasto',    value: brl(summary.totalSpent || customer.crm_total || 0),      size: 14 },
-            { label: 'Pedidos',        value: summary.totalOrders    || customer.crm_count || 0,       size: 26 },
-            { label: 'Última compra',  value: fmtDate(summary.lastOrderDate || customer.crm_last),     size: 13 },
+            { label: 'Total gasto',    value: brl(summary.totalSpent || customer.crm_total || 0),    size: 14 },
+            { label: 'Pedidos',        value: summary.totalOrders    || customer.crm_count || 0,      size: 26 },
+            { label: 'Última compra',  value: fmtDate(summary.lastOrderDate || customer.crm_last),   size: 13 },
           ].map((s, i) => (
             <div className="mini-card" key={i}>
               <small>{s.label}</small>
@@ -637,7 +679,6 @@ function ClienteDrawer({ customer, onClose }) {
           ))}
         </div>
 
-        {/* Order history */}
         <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ink-4)', marginBottom: 10 }}>
           Histórico de pedidos
         </div>

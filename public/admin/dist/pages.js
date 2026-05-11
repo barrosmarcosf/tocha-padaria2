@@ -91,6 +91,14 @@ const fmtDate = iso => {
     year: '2-digit'
   });
 };
+const fmtDateFull = iso => {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+};
 const fmtDateLong = iso => {
   if (!iso) return '—';
   return new Date(iso).toLocaleString('pt-BR', {
@@ -119,9 +127,29 @@ const itemsSummary = raw => {
 };
 const shortId = id => String(id || '').slice(-5).toUpperCase();
 const isDone = s => ['concluido', 'concluído', 'finalizado', 'entregue', 'delivered'].includes((s || '').toLowerCase());
-const isProg = s => ['aceito', 'preparo', 'retirada'].includes((s || '').toLowerCase());
-const isWait = s => ['paid', 'pago'].includes((s || '').toLowerCase());
 const isCanc = s => ['cancelled', 'cancelado', 'rejected'].includes((s || '').toLowerCase());
+const inAceitos = s => ['paid', 'pago', 'aceito'].includes((s || '').toLowerCase().trim());
+const inPreparo = s => (s || '').toLowerCase().trim() === 'preparo';
+const inRetirada = s => (s || '').toLowerCase().trim() === 'retirada';
+
+/* currency value (number only, no R$ prefix) */
+const fmtR = v => Number(v || 0).toLocaleString('pt-BR', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
+/* next upcoming Friday — the bakery's production day */
+function nextFornada() {
+  const now = new Date();
+  const day = now.getDay();
+  const daysUntilFri = (5 - day + 7) % 7 || 7;
+  const fri = new Date(now.getTime() + daysUntilFri * 86400000);
+  return fri.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+}
 
 /* ─── SHARED: ORDER DETAIL MODAL ─────────────────────────────────────────── */
 
@@ -281,7 +309,7 @@ function OrderModal({
 function FilaDePedidos() {
   const [orders, setOrders] = usePgSt([]);
   const [loading, setLoading] = usePgSt(true);
-  const [tab, setTab] = usePgSt('todos');
+  const [tab, setTab] = usePgSt('aceitos');
   const [selected, setSelected] = usePgSt(null);
   const load = () => {
     setLoading(true);
@@ -297,22 +325,57 @@ function FilaDePedidos() {
     load();
   }, []);
   const counts = {
-    total: orders.length,
-    aguardando: orders.filter(o => isWait(o.status)).length,
-    preparo: orders.filter(o => isProg(o.status)).length,
+    aceitos: orders.filter(o => inAceitos(o.status)).length,
+    preparo: orders.filter(o => inPreparo(o.status)).length,
+    retirada: orders.filter(o => inRetirada(o.status)).length,
     concluidos: orders.filter(o => isDone(o.status)).length,
     cancelados: orders.filter(o => isCanc(o.status)).length
   };
-  const TABS = [['todos', 'Todos', counts.total], ['aguardando', 'Aguardando', counts.aguardando], ['preparo', 'Em preparo', counts.preparo], ['concluidos', 'Concluídos', counts.concluidos], ['cancelados', 'Cancelados', counts.cancelados]];
+  const TABS = [['aceitos', 'Aceitos', counts.aceitos], ['preparo', 'Em Preparo', counts.preparo], ['retirada', 'Pronto p/ Retirada', counts.retirada], ['concluidos', 'Concluídos', counts.concluidos], ['cancelados', 'Cancelados', counts.cancelados]];
   const visible = orders.filter(o => {
-    if (tab === 'todos') return true;
-    if (tab === 'aguardando') return isWait(o.status);
-    if (tab === 'preparo') return isProg(o.status);
+    if (tab === 'aceitos') return inAceitos(o.status);
+    if (tab === 'preparo') return inPreparo(o.status);
+    if (tab === 'retirada') return inRetirada(o.status);
     if (tab === 'concluidos') return isDone(o.status);
     if (tab === 'cancelados') return isCanc(o.status);
     return true;
   });
-  const receita = orders.filter(o => !isCanc(o.status)).reduce((s, o) => s + (o.total_amount || 0), 0);
+
+  /* tab-level badge shown on each card */
+  const TAB_BADGE = {
+    aceitos: {
+      label: 'Aceitos',
+      cls: 'up'
+    },
+    preparo: {
+      label: 'Em Preparo',
+      cls: 'gold'
+    },
+    retirada: {
+      label: 'Retirada',
+      cls: 'gold'
+    },
+    concluidos: {
+      label: 'Concluído',
+      cls: 'up'
+    },
+    cancelados: {
+      label: 'Cancelado',
+      cls: 'down'
+    }
+  };
+
+  /* primary action label per tab */
+  const TAB_ACTION = {
+    aceitos: 'Preparar',
+    preparo: 'Pronto',
+    retirada: 'Entregar',
+    concluidos: '',
+    cancelados: ''
+  };
+  const badge = TAB_BADGE[tab] || TAB_BADGE.aceitos;
+  const action = TAB_ACTION[tab] || '';
+  const fornada = nextFornada();
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement("div", {
@@ -322,7 +385,14 @@ function FilaDePedidos() {
     style: {
       marginBottom: 6
     }
-  }, "Opera\xE7\xE3o do dia \xB7 pedidos do ciclo atual"), /*#__PURE__*/React.createElement("h1", null, "Fila de ", /*#__PURE__*/React.createElement("em", null, "Pedidos"))), /*#__PURE__*/React.createElement("button", {
+  }, "Admin"), /*#__PURE__*/React.createElement("h1", null, "Fila de ", /*#__PURE__*/React.createElement("em", null, "Produ\xE7\xE3o"), /*#__PURE__*/React.createElement("span", {
+    className: "page-badge",
+    style: {
+      marginLeft: 14
+    }
+  }, "FORNADA ", fornada)), /*#__PURE__*/React.createElement("div", {
+    className: "sub"
+  }, "Gerencie os pedidos confirmados para a produ\xE7\xE3o deste ciclo.")), /*#__PURE__*/React.createElement("button", {
     className: "icon-btn",
     title: "Atualizar",
     onClick: load,
@@ -331,50 +401,13 @@ function FilaDePedidos() {
       height: 36
     }
   }, /*#__PURE__*/React.createElement(Ic.spark, null))), /*#__PURE__*/React.createElement("div", {
-    className: "grid",
-    style: {
-      gridTemplateColumns: 'repeat(4,1fr)',
-      gap: 'var(--gap)',
-      marginBottom: 'var(--gap)'
-    }
-  }, [{
-    label: 'Pedidos hoje',
-    value: counts.total,
-    mono: true
-  }, {
-    label: 'Aguardando',
-    value: counts.aguardando,
-    mono: true
-  }, {
-    label: 'Em preparo',
-    value: counts.preparo,
-    mono: true
-  }, {
-    label: 'Receita do dia',
-    value: brlShort(receita),
-    mono: false
-  }].map((c, i) => /*#__PURE__*/React.createElement("div", {
-    className: "mini-card",
-    key: i,
-    style: {
-      padding: '16px 18px'
-    }
-  }, /*#__PURE__*/React.createElement("small", null, c.label), /*#__PURE__*/React.createElement("b", {
-    style: {
-      fontSize: 22,
-      display: 'block',
-      marginTop: 4,
-      fontFamily: c.mono ? 'var(--display)' : undefined
-    }
-  }, c.value)))), /*#__PURE__*/React.createElement("div", {
-    className: "card"
-  }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 16,
-      gap: 14
+      marginBottom: 18,
+      gap: 14,
+      flexWrap: 'wrap'
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "tabs"
@@ -384,60 +417,87 @@ function FilaDePedidos() {
     onClick: () => setTab(k)
   }, l, ct > 0 && /*#__PURE__*/React.createElement("span", {
     className: "tab-count"
-  }, ct)))), /*#__PURE__*/React.createElement("span", {
+  }, ct)))), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11.5,
-      color: 'var(--ink-4)',
-      flexShrink: 0
+      display: 'flex',
+      gap: 8
     }
-  }, visible.length, " pedido", visible.length !== 1 ? 's' : '')), loading ? /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("select", {
+    className: "select-mini"
+  }, /*#__PURE__*/React.createElement("option", null, "A\xE7\xF5es em lote\u2026")), /*#__PURE__*/React.createElement("button", {
+    className: "btn-primary",
+    style: {
+      padding: '6px 14px'
+    }
+  }, "Aplicar"))), loading ? /*#__PURE__*/React.createElement("div", {
     className: "empty-state"
   }, /*#__PURE__*/React.createElement(Ic.spark, null), /*#__PURE__*/React.createElement("span", null, "Carregando pedidos...")) : !visible.length ? /*#__PURE__*/React.createElement("div", {
     className: "empty-state"
-  }, /*#__PURE__*/React.createElement(Ic.cart, null), /*#__PURE__*/React.createElement("span", null, "Nenhum pedido neste filtro")) : /*#__PURE__*/React.createElement("table", {
-    className: "tbl"
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "#"), /*#__PURE__*/React.createElement("th", null, "Cliente"), /*#__PURE__*/React.createElement("th", null, "Itens"), /*#__PURE__*/React.createElement("th", {
+  }, /*#__PURE__*/React.createElement(Ic.cart, null), /*#__PURE__*/React.createElement("span", null, "Nenhum pedido nesta fase.")) : /*#__PURE__*/React.createElement("div", {
+    className: "grid",
     style: {
-      textAlign: 'right'
+      gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+      gap: 14
     }
-  }, "Total"), /*#__PURE__*/React.createElement("th", null, "Pagamento"), /*#__PURE__*/React.createElement("th", null, "Hora"), /*#__PURE__*/React.createElement("th", null, "Status"))), /*#__PURE__*/React.createElement("tbody", null, visible.map(o => {
-    const st = statusInfo(o.status);
-    return /*#__PURE__*/React.createElement("tr", {
+  }, visible.map(o => {
+    const name = o.customer_name || '—';
+    const displayName = name.length > 22 ? name.slice(0, 21) + '…' : name;
+    return /*#__PURE__*/React.createElement("div", {
       key: o.id,
-      className: "row-clickable",
+      className: "order-card",
       onClick: () => setSelected(o)
-    }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
-      className: "link-id"
-    }, "#", shortId(o.id))), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "order-card-strip"
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "order-card-head"
+    }, /*#__PURE__*/React.createElement("div", {
       style: {
-        fontWeight: 500,
-        color: 'var(--ink)'
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8
       }
-    }, o.customer_name || '—'), o.customer_whatsapp && /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11,
-        color: 'var(--ink-4)',
-        fontFamily: 'var(--mono)'
-      }
-    }, o.customer_whatsapp)), /*#__PURE__*/React.createElement("td", {
-      style: {
-        color: 'var(--ink-2)',
-        fontSize: 12.5
-      }
-    }, itemsSummary(o.items)), /*#__PURE__*/React.createElement("td", {
-      className: "num"
-    }, brlShort(o.total_amount || 0)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      onClick: e => e.stopPropagation()
+    }), /*#__PURE__*/React.createElement("span", {
       className: "tag"
-    }, pmLabel(o.payment_method))), /*#__PURE__*/React.createElement("td", {
+    }, "#", shortId(o.id))), /*#__PURE__*/React.createElement("span", {
+      className: `tag${badge.cls ? ' ' + badge.cls : ''}`
+    }, badge.label)), /*#__PURE__*/React.createElement("div", {
+      className: "order-card-body"
+    }, /*#__PURE__*/React.createElement("b", null, displayName), /*#__PURE__*/React.createElement("div", {
       style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        fontSize: 12,
         color: 'var(--ink-3)',
-        fontFamily: 'var(--mono)',
-        fontSize: 12
+        marginTop: 8
       }
-    }, fmtTime(o.created_at)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
-      className: `tag${st.cls ? ' ' + st.cls : ''}`
-    }, st.label)));
-  })))), selected && /*#__PURE__*/React.createElement(OrderModal, {
+    }, /*#__PURE__*/React.createElement("span", null, fmtTime(o.created_at)), /*#__PURE__*/React.createElement("span", null, fmtDateFull(o.created_at)))), /*#__PURE__*/React.createElement("div", {
+      className: "order-card-foot"
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("small", {
+      style: {
+        fontSize: 9.5,
+        textTransform: 'uppercase',
+        letterSpacing: '0.14em',
+        color: 'var(--ink-4)'
+      }
+    }, "Total gasto"), /*#__PURE__*/React.createElement("b", {
+      style: {
+        display: 'block',
+        color: 'var(--gold)',
+        fontWeight: 500,
+        fontSize: 16
+      }
+    }, brlShort(o.total_amount || 0))), action && /*#__PURE__*/React.createElement("button", {
+      className: "btn-primary",
+      style: {
+        padding: '6px 12px',
+        fontSize: 12
+      },
+      onClick: e => e.stopPropagation()
+    }, action)));
+  })), selected && /*#__PURE__*/React.createElement(OrderModal, {
     order: selected,
     onClose: () => setSelected(null)
   }));
@@ -454,6 +514,7 @@ function HistoricoPedidos() {
   const [data, setData] = usePgSt(null);
   const [loading, setLoading] = usePgSt(false);
   const [selected, setSelected] = usePgSt(null);
+  const [showCanc, setShowCanc] = usePgSt(false);
   const LIMIT = 50;
   const load = (p = 1) => {
     setLoading(true);
@@ -476,6 +537,7 @@ function HistoricoPedidos() {
   const total = data?.count || 0;
   const stats = data?.stats || {};
   const pages = Math.max(1, Math.ceil(total / LIMIT));
+  const visibleOrders = showCanc ? orders : orders.filter(o => !isCanc(o.status));
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement("div", {
@@ -485,12 +547,53 @@ function HistoricoPedidos() {
     style: {
       marginBottom: 6
     }
-  }, "Pedidos confirmados e finalizados"), /*#__PURE__*/React.createElement("h1", null, "Hist\xF3rico de ", /*#__PURE__*/React.createElement("em", null, "Pedidos"))), /*#__PURE__*/React.createElement("div", {
+  }, "Admin"), /*#__PURE__*/React.createElement("h1", null, "Hist\xF3rico de ", /*#__PURE__*/React.createElement("em", null, "Pedidos")), /*#__PURE__*/React.createElement("div", {
+    className: "sub"
+  }, "Relat\xF3rio consolidado de todas as transa\xE7\xF5es da unidade."))), /*#__PURE__*/React.createElement("div", {
+    className: "grid kpi-row",
+    style: {
+      marginBottom: 'var(--gap)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card kpi"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "kpi-label"
+  }, "Faturamento"), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-value"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "unit"
+  }, "R$"), fmtR(stats.totalRevenue))), /*#__PURE__*/React.createElement("div", {
+    className: "card kpi"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "kpi-label"
+  }, "Lucro"), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-value"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "unit"
+  }, "R$"), fmtR(stats.profit))), /*#__PURE__*/React.createElement("div", {
+    className: "card kpi"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "kpi-label"
+  }, "N\xBA Pedidos"), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-value"
+  }, (stats.totalOrders || 0).toLocaleString('pt-BR'))), /*#__PURE__*/React.createElement("div", {
+    className: "card kpi"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "kpi-label"
+  }, "Ticket M\xE9dio"), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-value"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "unit"
+  }, "R$"), fmtR(stats.avgTicket)))), /*#__PURE__*/React.createElement("div", {
+    className: "card"
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
-      gap: 10,
+      gap: 12,
       alignItems: 'center',
-      flexWrap: 'wrap'
+      marginBottom: 14,
+      paddingBottom: 14,
+      borderBottom: '1px solid var(--line)'
     }
   }, /*#__PURE__*/React.createElement("label", {
     className: "lbl-inline"
@@ -506,61 +609,85 @@ function HistoricoPedidos() {
     type: "date",
     value: to,
     onChange: e => setTo(e.target.value)
-  })), /*#__PURE__*/React.createElement("button", {
-    className: "btn-primary",
+  })), /*#__PURE__*/React.createElement("a", {
+    className: "link-muted",
+    onClick: () => setShowCanc(s => !s),
     style: {
-      fontSize: 12,
-      padding: '7px 14px'
-    },
-    onClick: () => load(1)
-  }, "Filtrar"))), /*#__PURE__*/React.createElement("div", {
-    className: "grid",
-    style: {
-      gridTemplateColumns: 'repeat(4,1fr)',
-      gap: 'var(--gap)',
-      marginBottom: 'var(--gap)'
+      cursor: 'pointer'
     }
-  }, [{
-    label: 'Faturamento',
-    value: brl(stats.totalRevenue || 0)
-  }, {
-    label: 'Pedidos',
-    value: (stats.totalOrders || 0).toLocaleString('pt-BR')
-  }, {
-    label: 'Ticket médio',
-    value: brl(stats.avgTicket || 0)
-  }, {
-    label: 'Lucro estimado',
-    value: brl(stats.profit || 0)
-  }].map((c, i) => /*#__PURE__*/React.createElement("div", {
-    className: "mini-card",
-    key: i,
+  }, showCanc ? 'Ocultar pedidos recusados' : 'Exibir pedidos recusados')), loading ? /*#__PURE__*/React.createElement("div", {
+    className: "empty-state"
+  }, /*#__PURE__*/React.createElement(Ic.spark, null), /*#__PURE__*/React.createElement("span", null, "Carregando hist\xF3rico...")) : !visibleOrders.length ? /*#__PURE__*/React.createElement("div", {
+    className: "empty-state"
+  }, /*#__PURE__*/React.createElement(Ic.clock, null), /*#__PURE__*/React.createElement("span", null, "Nenhum pedido no per\xEDodo selecionado")) : /*#__PURE__*/React.createElement("table", {
+    className: "tbl"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "C\xF3digo"), /*#__PURE__*/React.createElement("th", null, "Cliente"), /*#__PURE__*/React.createElement("th", null, "Tipo"), /*#__PURE__*/React.createElement("th", null, "Identificador"), /*#__PURE__*/React.createElement("th", null, "Pagamento"), /*#__PURE__*/React.createElement("th", null, "Status"), /*#__PURE__*/React.createElement("th", {
     style: {
-      padding: '16px 18px'
+      textAlign: 'right'
     }
-  }, /*#__PURE__*/React.createElement("small", null, c.label), /*#__PURE__*/React.createElement("b", {
-    style: {
-      fontSize: i === 1 ? 26 : 15,
-      display: 'block',
-      marginTop: 4,
-      fontVariantNumeric: 'tabular-nums'
-    }
-  }, c.value)))), /*#__PURE__*/React.createElement("div", {
-    className: "card"
-  }, /*#__PURE__*/React.createElement("div", {
+  }, "Itens"), /*#__PURE__*/React.createElement("th", null, "Data"), /*#__PURE__*/React.createElement("th", null, "Agendamento"))), /*#__PURE__*/React.createElement("tbody", null, visibleOrders.map(o => {
+    const st = statusInfo(o.status);
+    const itemCount = parseItems(o.items).length || 1;
+    const ident = o.external_id || o.payment_id || String(o.id || '').replace(/-/g, '').slice(-8).toUpperCase();
+    const tipo = o.delivery_type || o.order_type || 'Entrega';
+    return /*#__PURE__*/React.createElement("tr", {
+      key: o.id,
+      className: "row-clickable",
+      onClick: () => setSelected(o)
+    }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+      className: "link-id"
+    }, "#", shortId(o.id))), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 500,
+        color: 'var(--ink)'
+      }
+    }, o.customer_name || '—'), o.customer_whatsapp && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: 'var(--ink-4)',
+        fontFamily: 'var(--mono)'
+      }
+    }, o.customer_whatsapp)), /*#__PURE__*/React.createElement("td", {
+      style: {
+        color: 'var(--ink-2)'
+      }
+    }, tipo), /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontFamily: 'var(--mono)',
+        fontSize: 11,
+        color: 'var(--ink-3)'
+      }
+    }, ident), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+      className: "tag"
+    }, pmLabel(o.payment_method))), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+      className: `tag${st.cls ? ' ' + st.cls : ''}`
+    }, st.label)), /*#__PURE__*/React.createElement("td", {
+      className: "num"
+    }, itemCount), /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontFamily: 'var(--mono)',
+        fontSize: 11.5,
+        color: 'var(--ink-3)'
+      }
+    }, fmtDate(o.created_at)), /*#__PURE__*/React.createElement("td", {
+      style: {
+        color: 'var(--ink-4)'
+      }
+    }, o.scheduled_date ? fmtDate(o.scheduled_date) : '—'));
+  }))), !loading && /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 14,
+      paddingTop: 10,
       gap: 14
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 12,
-      color: 'var(--ink-3)'
+      fontSize: 11,
+      color: 'var(--ink-4)'
     }
-  }, loading ? 'Carregando...' : `${total.toLocaleString('pt-BR')} pedido${total !== 1 ? 's' : ''} no período`), pages > 1 && /*#__PURE__*/React.createElement("div", {
+  }, "Exibindo ", visibleOrders.length, " de ", total, " pedido", total !== 1 ? 's' : ''), pages > 1 && /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 6,
@@ -581,82 +708,7 @@ function HistoricoPedidos() {
     className: "icon-btn",
     disabled: pageNum >= pages,
     onClick: () => load(pageNum + 1)
-  }, "\u203A"))), loading ? /*#__PURE__*/React.createElement("div", {
-    className: "empty-state"
-  }, /*#__PURE__*/React.createElement(Ic.spark, null), /*#__PURE__*/React.createElement("span", null, "Carregando hist\xF3rico...")) : !orders.length ? /*#__PURE__*/React.createElement("div", {
-    className: "empty-state"
-  }, /*#__PURE__*/React.createElement(Ic.clock, null), /*#__PURE__*/React.createElement("span", null, "Nenhum pedido no per\xEDodo selecionado")) : /*#__PURE__*/React.createElement("table", {
-    className: "tbl"
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Data"), /*#__PURE__*/React.createElement("th", null, "#"), /*#__PURE__*/React.createElement("th", null, "Cliente"), /*#__PURE__*/React.createElement("th", null, "Itens"), /*#__PURE__*/React.createElement("th", {
-    style: {
-      textAlign: 'right'
-    }
-  }, "Total"), /*#__PURE__*/React.createElement("th", null, "Pagamento"), /*#__PURE__*/React.createElement("th", null, "Status"))), /*#__PURE__*/React.createElement("tbody", null, orders.map(o => {
-    const st = statusInfo(o.status);
-    return /*#__PURE__*/React.createElement("tr", {
-      key: o.id,
-      className: "row-clickable",
-      onClick: () => setSelected(o)
-    }, /*#__PURE__*/React.createElement("td", {
-      style: {
-        fontFamily: 'var(--mono)',
-        fontSize: 11.5,
-        color: 'var(--ink-3)'
-      }
-    }, fmtDate(o.created_at)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
-      className: "link-id"
-    }, "#", shortId(o.id))), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontWeight: 500,
-        color: 'var(--ink)'
-      }
-    }, o.customer_name || '—')), /*#__PURE__*/React.createElement("td", {
-      style: {
-        color: 'var(--ink-2)',
-        fontSize: 12.5
-      }
-    }, itemsSummary(o.items)), /*#__PURE__*/React.createElement("td", {
-      className: "num"
-    }, brlShort(o.total_amount || 0)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
-      className: "tag"
-    }, pmLabel(o.payment_method))), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
-      className: `tag${st.cls ? ' ' + st.cls : ''}`
-    }, st.label)));
-  }))), pages > 1 && !loading && /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      gap: 10,
-      marginTop: 16,
-      paddingTop: 14,
-      borderTop: '1px solid var(--line)'
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "btn-ghost",
-    style: {
-      flex: 'none',
-      padding: '6px 16px',
-      fontSize: 12
-    },
-    disabled: pageNum <= 1,
-    onClick: () => load(pageNum - 1)
-  }, "\u2190 Anterior"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: 'var(--ink-3)',
-      fontFamily: 'var(--mono)'
-    }
-  }, pageNum, " / ", pages), /*#__PURE__*/React.createElement("button", {
-    className: "btn-ghost",
-    style: {
-      flex: 'none',
-      padding: '6px 16px',
-      fontSize: 12
-    },
-    disabled: pageNum >= pages,
-    onClick: () => load(pageNum + 1)
-  }, "Pr\xF3xima \u2192"))), selected && /*#__PURE__*/React.createElement(OrderModal, {
+  }, "\u203A")))), selected && /*#__PURE__*/React.createElement(OrderModal, {
     order: selected,
     onClose: () => setSelected(null)
   }));
