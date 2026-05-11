@@ -260,7 +260,15 @@ function ClienteModal({
       setLoading(false);
       return;
     }
-    window.apiGet(`/api/admin/customer-details/${client.id}`).then(d => setData(d)).catch(() => {}).finally(() => setLoading(false));
+    let mounted = true;
+    window.apiGet(`/api/admin/customer-details/${client.id}`).then(d => {
+      if (mounted) setData(d);
+    }).catch(() => {}).finally(() => {
+      if (mounted) setLoading(false);
+    });
+    return () => {
+      mounted = false;
+    };
   }, [client?.id]);
   const orders = data?.orders || [];
   const summary = data?.summary || {};
@@ -762,6 +770,7 @@ function FilaPage() {
   const [orders, setOrders] = useStP([]);
   const [loading, setLoading] = useStP(true);
   const [config, setConfig] = useStP(null);
+  const advancing = React.useRef(new Set());
   const load = useCbP(() => {
     setLoading(true);
     Promise.all([window.apiGet('/api/admin/pedidos?tzOffset=180'), window.apiGet('/api/admin/config')]).then(([ords, cfg]) => {
@@ -794,13 +803,15 @@ function FilaPage() {
   };
   const advance = (e, o) => {
     e.stopPropagation();
+    if (advancing.current.has(o.id)) return;
     const g = STATUS_GROUP_MAP[(o.status || '').toLowerCase()];
     const nextStatus = NEXT_STATUS_MAP[g];
     if (!nextStatus) return;
+    advancing.current.add(o.id);
     window.apiPost('/api/admin/update-order-status', {
       id: o.id,
       status: nextStatus
-    }).then(() => handleStatusChange(o.id, nextStatus)).catch(err => alert('Erro: ' + err.message));
+    }).then(() => handleStatusChange(o.id, nextStatus)).catch(err => alert('Erro: ' + err.message)).finally(() => advancing.current.delete(o.id));
   };
   const currentOrders = grouped[tab] || [];
   return /*#__PURE__*/React.createElement("div", {
@@ -923,10 +934,17 @@ function PrevendaPage() {
   const [loading, setLoading] = useStP(true);
   const [config, setConfig] = useStP(null);
   useEffP(() => {
+    let mounted = true;
     Promise.all([window.apiGet('/api/admin/pre-orders'), window.apiGet('/api/admin/config')]).then(([ords, cfg]) => {
+      if (!mounted) return;
       setOrders(ords || []);
       setConfig(cfg?.siteContent?.opening_hours || null);
-    }).catch(() => {}).finally(() => setLoading(false));
+    }).catch(() => {}).finally(() => {
+      if (mounted) setLoading(false);
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
   const nextBakeDate = config?.nextBatch?.bakeDate;
   const nextLabel = nextBakeDate ? fmtDate(nextBakeDate + 'T12:00:00') : '—';
@@ -1054,7 +1072,15 @@ function ResumoPage() {
   const [analytics, setAnalytics] = useStP(null);
   const [loading, setLoading] = useStP(true);
   useEffP(() => {
-    window.apiGet('/api/admin/detailed-analytics?period=today&tzOffset=180').then(d => setAnalytics(d)).catch(() => {}).finally(() => setLoading(false));
+    let mounted = true;
+    window.apiGet('/api/admin/detailed-analytics?period=today&tzOffset=180').then(d => {
+      if (mounted) setAnalytics(d);
+    }).catch(() => {}).finally(() => {
+      if (mounted) setLoading(false);
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
   const production = analytics?.production || {};
   const currentDate = production.currentBakeDate;

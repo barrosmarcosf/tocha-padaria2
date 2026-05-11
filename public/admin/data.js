@@ -31,7 +31,7 @@ window._loadCsrf = function() {
   return window._csrfFetching;
 };
 
-window.apiPost = function(path, body) {
+window.apiPost = function(path, body, _isRetry) {
   return window._loadCsrf().then(function(csrf) {
     const authToken = localStorage.getItem('tocha_admin_token');
     const headers = { 'Content-Type': 'application/json' };
@@ -42,6 +42,11 @@ window.apiPost = function(path, body) {
       headers: headers,
       body: JSON.stringify(body)
     }).then(function(r) {
+      if (r.status === 403 && !_isRetry) {
+        window._csrfToken = null;
+        window._csrfFetching = null;
+        return window.apiPost(path, body, true);
+      }
       if (!r.ok) return r.json().then(function(e) { throw new Error(e.error || 'HTTP ' + r.status); });
       return r.json();
     });

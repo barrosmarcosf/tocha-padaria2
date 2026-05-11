@@ -182,23 +182,39 @@ function Dashboard() {
 
   // Fetch period-dependent data
   useEfD(() => {
+    let mounted = true;
     const p = PERIOD_MAP[period] || 'month';
     setLoading(true);
     Promise.all([window.apiGet(`/api/admin/stats?period=${p}`), window.apiGet(`/api/admin/detailed-analytics?period=${p}`)]).then(([s, a]) => {
+      if (!mounted) return;
       setStats(s);
       setAnalytics(a);
       setLoading(false);
     }).catch(e => {
+      if (!mounted) return;
       console.error('[Dashboard] stats/analytics error:', e.message);
       setLoading(false);
     });
+    return () => {
+      mounted = false;
+    };
   }, [period]);
 
   // Fetch once: customers, config, payments health
   useEfD(() => {
-    window.apiGet('/api/admin/customers').then(setCustomers).catch(e => console.warn('[Dashboard] customers:', e.message));
-    window.apiGet('/api/admin/config').then(setConfig).catch(e => console.warn('[Dashboard] config:', e.message));
-    window.apiGet('/api/admin/payments-health').then(setHealth).catch(e => console.warn('[Dashboard] health:', e.message));
+    let mounted = true;
+    window.apiGet('/api/admin/customers').then(d => {
+      if (mounted) setCustomers(d);
+    }).catch(e => console.warn('[Dashboard] customers:', e.message));
+    window.apiGet('/api/admin/config').then(d => {
+      if (mounted) setConfig(d);
+    }).catch(e => console.warn('[Dashboard] config:', e.message));
+    window.apiGet('/api/admin/payments-health').then(d => {
+      if (mounted) setHealth(d);
+    }).catch(e => console.warn('[Dashboard] health:', e.message));
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // ---------- derived: KPIs ----------

@@ -418,11 +418,17 @@ function useCount(target, dur = 900) {
 }
 
 /* ---------- HELPERS ---------- */
-const brl = n => 'R$ ' + n.toLocaleString('pt-BR', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2
-});
-const brlShort = n => 'R$ ' + Math.round(n).toLocaleString('pt-BR');
+const brl = n => {
+  const val = typeof n === 'number' && isFinite(n) ? n : 0;
+  return 'R$ ' + val.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+};
+const brlShort = n => {
+  const val = typeof n === 'number' && isFinite(n) ? n : 0;
+  return 'R$ ' + Math.round(val).toLocaleString('pt-BR');
+};
 const pct = (curr, prev) => prev === 0 ? 0 : (curr - prev) / prev * 100;
 function Delta({
   curr,
@@ -447,11 +453,13 @@ function Sparkline({
   const w = 200,
     h = 44,
     pad = 3;
-  const min = Math.min(...data),
-    max = Math.max(...data);
+  const safeData = Array.isArray(data) && data.length > 0 ? data : [0, 0];
+  const n = safeData.length;
+  const min = Math.min(...safeData),
+    max = Math.max(...safeData);
   const range = max - min || 1;
-  const pts = data.map((v, i) => {
-    const x = pad + i / (data.length - 1) * (w - 2 * pad);
+  const pts = safeData.map((v, i) => {
+    const x = pad + (n <= 1 ? (w - 2 * pad) / 2 : i / (n - 1) * (w - 2 * pad));
     const y = h - pad - (v - min) / range * (h - 2 * pad);
     return [x, y];
   });
@@ -577,9 +585,10 @@ function AreaChart({
   const iw = w - padL - padR,
     ih = h - padT - padB;
   const all = [...current.map(d => d.value), ...previous.map(d => d.value)];
-  const max = Math.max(...all) * 1.08;
+  const maxVal = Math.max(...all, 1);
+  const max = maxVal * 1.08;
   const n = current.length;
-  const xCoord = i => padL + i / (n - 1) * iw;
+  const xCoord = i => padL + (n <= 1 ? iw / 2 : i / (n - 1) * iw);
   const yCoord = v => padT + ih - v / max * ih;
   const smoothPath = data => {
     const pts = data.map((d, i) => [xCoord(i), yCoord(d.value)]);
@@ -784,7 +793,7 @@ function Donut({
   size = 148
 }) {
   const [hovered, setHovered] = useState(null);
-  const total = data.reduce((s, d) => s + d.value, 0);
+  const total = Math.max(data.reduce((s, d) => s + (d.value || 0), 0), 0.001);
   const stroke = 20;
   const r = size / 2 - stroke / 2 - 3;
   const cx = size / 2,

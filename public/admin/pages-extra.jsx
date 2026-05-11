@@ -298,8 +298,10 @@ function generate12Months() {
   return months;
 }
 
+const MONTHS_12 = generate12Months();
+
 function InteligenciaPage() {
-  const MONTHS = generate12Months();
+  const MONTHS = MONTHS_12;
   const currentMonth = MONTHS[MONTHS.length - 1];
 
   const [historical, setHistorical] = useStX([]);
@@ -310,10 +312,12 @@ function InteligenciaPage() {
   const [loadingCal, setLoadingCal] = useStX(true);
 
   useEffX(() => {
+    let mounted = true;
     window.apiGet('/api/admin/historical-monthly-metrics')
-      .then(d => setHistorical(d || []))
+      .then(d => { if (mounted) setHistorical(d || []); })
       .catch(() => {})
-      .finally(() => setLoadingChart(false));
+      .finally(() => { if (mounted) setLoadingChart(false); });
+    return () => { mounted = false; };
   }, []);
 
   const fetchMonthDetail = useCbX((value) => {
@@ -321,13 +325,16 @@ function InteligenciaPage() {
     const from = new Date(mo.year, mo.month - 1, 1).toISOString();
     const to   = new Date(mo.year, mo.month, 0, 23, 59, 59).toISOString();
     setLoadingCal(true);
+    let mounted = true;
     window.apiGet(`/api/admin/detailed-analytics?period=custom&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&tzOffset=180`)
       .then(d => {
+        if (!mounted) return;
         setDailyBreakdown(d?.dailyBreakdown || {});
         setRanking(d?.itemPerformance?.products || []);
       })
       .catch(() => {})
-      .finally(() => setLoadingCal(false));
+      .finally(() => { if (mounted) setLoadingCal(false); });
+    return () => { mounted = false; };
   }, []);
 
   useEffX(() => { fetchMonthDetail(selMonth); }, [selMonth]);
@@ -548,13 +555,16 @@ function AlertasPage() {
   const [loading, setLoading] = useStX(true);
 
   useEffX(() => {
+    let mounted = true;
     Promise.all([
       window.apiGet('/api/admin/payments-health'),
       window.apiGet('/api/admin/metrics'),
     ]).then(([h, m]) => {
+      if (!mounted) return;
       setHealth(h);
       setMetrics(m);
-    }).catch(() => {}).finally(() => setLoading(false));
+    }).catch(() => {}).finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
   }, []);
 
   const alerts = [];
@@ -627,10 +637,12 @@ function FunilPage() {
   const [loading, setLoading] = useStX(true);
 
   useEffX(() => {
+    let mounted = true;
     window.apiGet('/api/admin/metrics')
-      .then(d => setData(d))
+      .then(d => { if (mounted) setData(d); })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
   }, []);
 
   const funnel = data?.funnel || { visitors: 0, add_to_cart: 0, checkout: 0, success: 0 };
@@ -744,13 +756,16 @@ function PagtoPainelPage() {
   const [loading, setLoading] = useStX(true);
 
   useEffX(() => {
+    let mounted = true;
     Promise.all([
       window.apiGet('/api/admin/payments-health'),
       window.apiGet('/api/admin/metrics'),
     ]).then(([h, m]) => {
+      if (!mounted) return;
       setHealth(h);
       setMetrics(m);
-    }).catch(() => {}).finally(() => setLoading(false));
+    }).catch(() => {}).finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
   }, []);
 
   const pay = metrics?.payments || { total: 0, success: 0, failed: 0, pending: 0, approval_rate: 0 };

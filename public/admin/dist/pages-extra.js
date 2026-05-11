@@ -501,8 +501,9 @@ function generate12Months() {
   }
   return months;
 }
+const MONTHS_12 = generate12Months();
 function InteligenciaPage() {
-  const MONTHS = generate12Months();
+  const MONTHS = MONTHS_12;
   const currentMonth = MONTHS[MONTHS.length - 1];
   const [historical, setHistorical] = useStX([]);
   const [selMonth, setSelMonth] = useStX(currentMonth.value);
@@ -511,17 +512,32 @@ function InteligenciaPage() {
   const [loadingChart, setLoadingChart] = useStX(true);
   const [loadingCal, setLoadingCal] = useStX(true);
   useEffX(() => {
-    window.apiGet('/api/admin/historical-monthly-metrics').then(d => setHistorical(d || [])).catch(() => {}).finally(() => setLoadingChart(false));
+    let mounted = true;
+    window.apiGet('/api/admin/historical-monthly-metrics').then(d => {
+      if (mounted) setHistorical(d || []);
+    }).catch(() => {}).finally(() => {
+      if (mounted) setLoadingChart(false);
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
   const fetchMonthDetail = useCbX(value => {
     const mo = MONTHS.find(m => m.value === value) || currentMonth;
     const from = new Date(mo.year, mo.month - 1, 1).toISOString();
     const to = new Date(mo.year, mo.month, 0, 23, 59, 59).toISOString();
     setLoadingCal(true);
+    let mounted = true;
     window.apiGet(`/api/admin/detailed-analytics?period=custom&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&tzOffset=180`).then(d => {
+      if (!mounted) return;
       setDailyBreakdown(d?.dailyBreakdown || {});
       setRanking(d?.itemPerformance?.products || []);
-    }).catch(() => {}).finally(() => setLoadingCal(false));
+    }).catch(() => {}).finally(() => {
+      if (mounted) setLoadingCal(false);
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
   useEffX(() => {
     fetchMonthDetail(selMonth);
@@ -745,10 +761,17 @@ function AlertasPage() {
   const [metrics, setMetrics] = useStX(null);
   const [loading, setLoading] = useStX(true);
   useEffX(() => {
+    let mounted = true;
     Promise.all([window.apiGet('/api/admin/payments-health'), window.apiGet('/api/admin/metrics')]).then(([h, m]) => {
+      if (!mounted) return;
       setHealth(h);
       setMetrics(m);
-    }).catch(() => {}).finally(() => setLoading(false));
+    }).catch(() => {}).finally(() => {
+      if (mounted) setLoading(false);
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
   const alerts = [];
   if (!loading && health && metrics) {
@@ -872,7 +895,15 @@ function FunilPage() {
   const [data, setData] = useStX(null);
   const [loading, setLoading] = useStX(true);
   useEffX(() => {
-    window.apiGet('/api/admin/metrics').then(d => setData(d)).catch(() => {}).finally(() => setLoading(false));
+    let mounted = true;
+    window.apiGet('/api/admin/metrics').then(d => {
+      if (mounted) setData(d);
+    }).catch(() => {}).finally(() => {
+      if (mounted) setLoading(false);
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
   const funnel = data?.funnel || {
     visitors: 0,
@@ -1052,10 +1083,17 @@ function PagtoPainelPage() {
   const [metrics, setMetrics] = useStX(null);
   const [loading, setLoading] = useStX(true);
   useEffX(() => {
+    let mounted = true;
     Promise.all([window.apiGet('/api/admin/payments-health'), window.apiGet('/api/admin/metrics')]).then(([h, m]) => {
+      if (!mounted) return;
       setHealth(h);
       setMetrics(m);
-    }).catch(() => {}).finally(() => setLoading(false));
+    }).catch(() => {}).finally(() => {
+      if (mounted) setLoading(false);
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
   const pay = metrics?.payments || {
     total: 0,
