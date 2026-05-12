@@ -528,7 +528,6 @@
         items = cat.items;
         headerHTML = '<div class="products-header">' +
           '<div class="products-title-row">' +
-            '<span class="products-cat-icon" aria-hidden="true">' + cat.icon + '</span>' +
             '<h3 class="products-cat-name">' + escHtml(state.activeCategory) + '</h3>' +
           '</div>' +
           '<p class="products-cat-desc">' + escHtml(cat.desc) + '</p>' +
