@@ -1087,24 +1087,18 @@ function FunilPage() {
 
 /* ========== PAINEL DE PAGAMENTOS ========== */
 function PagtoPainelPage() {
-  const [health, setHealth] = useStX(null);
   const [analytics, setAnalytics] = useStX(null);
   const [loading, setLoading] = useStX(true);
   useEffX(() => {
     let mounted = true;
-    const _freshAnalytics = () => {
-      const tok = localStorage.getItem('tocha_admin_token');
-      return fetch('/api/admin/payment-analytics?days=30&ts=' + Date.now(), {
-        cache: 'no-store',
-        headers: tok ? {
-          'Authorization': 'Bearer ' + tok
-        } : {}
-      }).then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)));
-    };
-    Promise.all([window.apiGet('/api/admin/payments-health'), _freshAnalytics()]).then(([h, a]) => {
+    const tok = localStorage.getItem('tocha_admin_token');
+    fetch('/api/admin/payment-analytics?days=30&ts=' + Date.now(), {
+      cache: 'no-store',
+      headers: tok ? {
+        'Authorization': 'Bearer ' + tok
+      } : {}
+    }).then(r => r.ok ? r.json() : Promise.reject()).then(a => {
       if (!mounted) return;
-      console.log('[ANALYTICS PAYLOAD]', a);
-      setHealth(h);
       setAnalytics(a);
     }).catch(() => {}).finally(() => {
       if (mounted) setLoading(false);
@@ -1113,9 +1107,6 @@ function PagtoPainelPage() {
       mounted = false;
     };
   }, []);
-
-  // Acessores seguros — nunca quebram mesmo se API retornar nulo/vazio
-  const h = health ?? {};
   const approved = analytics?.approved ?? {
     count: 0,
     rate: 0,
@@ -1127,19 +1118,14 @@ function PagtoPainelPage() {
   };
   const rejected = analytics?.rejected ?? {
     count: 0,
-    rate: 0,
-    top_reason: 'Sem dados'
+    rate: 0
   };
   const refunds = analytics?.refunds ?? {
     count: 0,
-    rate: 0,
     amount_total: 0
   };
-  const chargebacks_d = analytics?.chargebacks ?? {
-    count: 0,
-    rate: 0
-  };
   const total = analytics?.total ?? 0;
+  const motivos = analytics?.rejection_reasons ?? [];
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement(PH, {
@@ -1158,43 +1144,89 @@ function PagtoPainelPage() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "pay-stat k-up"
-  }, /*#__PURE__*/React.createElement("small", null, "APROVADOS"), /*#__PURE__*/React.createElement("b", null, h.paid ?? approved.count ?? 0), /*#__PURE__*/React.createElement("span", null, approved.rate ?? 0, "% do total", (approved.revenue ?? 0) > 0 ? ` — ${brl(approved.revenue ?? 0)}` : '')), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "APROVADOS"), /*#__PURE__*/React.createElement("b", null, approved.count), /*#__PURE__*/React.createElement("span", null, approved.rate, "% do total", approved.revenue > 0 ? ` — ${brl(approved.revenue)}` : '')), /*#__PURE__*/React.createElement("div", {
     className: "pay-stat k-warn"
-  }, /*#__PURE__*/React.createElement("small", null, "PENDENTES"), /*#__PURE__*/React.createElement("b", null, h.pending ?? pending.count ?? 0), /*#__PURE__*/React.createElement("span", null, (pending.revenue ?? 0) > 0 ? brl(pending.revenue ?? 0) : 'Aguardando confirmação')), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "PENDENTES"), /*#__PURE__*/React.createElement("b", null, pending.count), /*#__PURE__*/React.createElement("span", null, pending.revenue > 0 ? brl(pending.revenue) : 'Aguardando confirmação')), /*#__PURE__*/React.createElement("div", {
     className: "pay-stat k-down"
-  }, /*#__PURE__*/React.createElement("small", null, "REJEITADOS"), /*#__PURE__*/React.createElement("b", null, h.failed ?? rejected.count ?? 0), /*#__PURE__*/React.createElement("span", null, rejected.rate ?? 0, "% do total", (rejected.top_reason ?? 'Sem dados') !== 'Sem dados' ? ` — ${rejected.top_reason ?? 'Sem dados'}` : ''))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "REJEITADOS"), /*#__PURE__*/React.createElement("b", null, rejected.count), /*#__PURE__*/React.createElement("span", null, rejected.rate, "% do total"))), /*#__PURE__*/React.createElement("div", {
     className: "grid row-2 mt"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "card"
+    className: "card",
+    style: {
+      padding: '18px 20px'
+    }
   }, /*#__PURE__*/React.createElement("small", {
     className: "kv-l"
   }, "TOTAL DE TRANSA\xC7\xD5ES"), /*#__PURE__*/React.createElement("b", {
     style: {
       fontFamily: 'var(--display)',
       fontWeight: 400,
-      fontSize: 38,
-      color: 'var(--ink)'
+      fontSize: 72,
+      lineHeight: 1.05,
+      color: 'var(--ink)',
+      display: 'block',
+      marginTop: 8
     }
   }, total)), /*#__PURE__*/React.createElement("div", {
-    className: "card pay-stat k-c1",
+    className: "pay-stat",
     style: {
-      background: 'transparent',
-      border: '1px solid var(--line-2)'
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("small", null, "ESTORNADOS"), /*#__PURE__*/React.createElement("b", null, refunds.count), /*#__PURE__*/React.createElement("span", null, refunds.amount_total > 0 ? brl(refunds.amount_total) : '—'))), motivos.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "card mt",
+    style: {
+      padding: '20px 24px'
     }
   }, /*#__PURE__*/React.createElement("small", {
-    className: "kv-l"
-  }, "ESTORNADOS"), /*#__PURE__*/React.createElement("b", {
+    className: "kv-l",
     style: {
-      fontFamily: 'var(--display)',
-      fontWeight: 400,
-      fontSize: 38,
-      color: 'var(--ink)'
+      display: 'block',
+      marginBottom: 16
     }
-  }, h.refunded ?? (refunds.count ?? 0) + (chargebacks_d.count ?? 0)), /*#__PURE__*/React.createElement("span", {
+  }, "MOTIVOS DE REJEI\xC7\xC3O"), /*#__PURE__*/React.createElement("div", {
     style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 14
+    }
+  }, motivos.map((m, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      minWidth: 170,
+      fontSize: 12,
+      color: 'var(--ink-2)'
+    }
+  }, m.label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      background: 'var(--line-2)',
+      borderRadius: 3,
+      height: 7,
+      overflow: 'hidden'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: m.pct + '%',
+      background: 'var(--down)',
+      height: '100%',
+      borderRadius: 3
+    }
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      minWidth: 72,
+      textAlign: 'right',
+      fontSize: 12,
       color: 'var(--ink-3)'
     }
-  }, (refunds.amount_total ?? 0) > 0 ? brl(refunds.amount_total ?? 0) : 'Reembolsos + chargebacks')))));
+  }, m.count, " / ", m.pct, "%")))))));
 }
 
 /* ========== CARDÁPIO ========== */

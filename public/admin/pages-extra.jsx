@@ -759,39 +759,29 @@ function FunilPage() {
 
 /* ========== PAINEL DE PAGAMENTOS ========== */
 function PagtoPainelPage() {
-  const [health,    setHealth]    = useStX(null);
   const [analytics, setAnalytics] = useStX(null);
   const [loading,   setLoading]   = useStX(true);
 
   useEffX(() => {
     let mounted = true;
-    const _freshAnalytics = () => {
-      const tok = localStorage.getItem('tocha_admin_token');
-      return fetch('/api/admin/payment-analytics?days=30&ts=' + Date.now(), {
-        cache: 'no-store',
-        headers: tok ? { 'Authorization': 'Bearer ' + tok } : {}
-      }).then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)));
-    };
-    Promise.all([
-      window.apiGet('/api/admin/payments-health'),
-      _freshAnalytics(),
-    ]).then(([h, a]) => {
-      if (!mounted) return;
-      console.log('[ANALYTICS PAYLOAD]', a);
-      setHealth(h);
-      setAnalytics(a);
-    }).catch(() => {}).finally(() => { if (mounted) setLoading(false); });
+    const tok = localStorage.getItem('tocha_admin_token');
+    fetch('/api/admin/payment-analytics?days=30&ts=' + Date.now(), {
+      cache: 'no-store',
+      headers: tok ? { 'Authorization': 'Bearer ' + tok } : {}
+    })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(a => { if (!mounted) return; setAnalytics(a); })
+      .catch(() => {})
+      .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, []);
 
-  // Acessores seguros — nunca quebram mesmo se API retornar nulo/vazio
-  const h             = health    ?? {};
-  const approved      = analytics?.approved    ?? { count: 0, rate: 0, revenue: 0 };
-  const pending       = analytics?.pending     ?? { count: 0, revenue: 0 };
-  const rejected      = analytics?.rejected    ?? { count: 0, rate: 0, top_reason: 'Sem dados' };
-  const refunds       = analytics?.refunds     ?? { count: 0, rate: 0, amount_total: 0 };
-  const chargebacks_d = analytics?.chargebacks ?? { count: 0, rate: 0 };
-  const total         = analytics?.total       ?? 0;
+  const approved = analytics?.approved    ?? { count: 0, rate: 0, revenue: 0 };
+  const pending  = analytics?.pending     ?? { count: 0, revenue: 0 };
+  const rejected = analytics?.rejected    ?? { count: 0, rate: 0 };
+  const refunds  = analytics?.refunds     ?? { count: 0, amount_total: 0 };
+  const total    = analytics?.total       ?? 0;
+  const motivos  = analytics?.rejection_reasons ?? [];
 
   return (
     <div className="page">
@@ -803,33 +793,49 @@ function PagtoPainelPage() {
           <div className="grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
             <div className="pay-stat k-up">
               <small>APROVADOS</small>
-              <b>{h.paid ?? (approved.count ?? 0)}</b>
-              <span>{(approved.rate ?? 0)}% do total{(approved.revenue ?? 0) > 0 ? ` — ${brl(approved.revenue ?? 0)}` : ''}</span>
+              <b>{approved.count}</b>
+              <span>{approved.rate}% do total{approved.revenue > 0 ? ` — ${brl(approved.revenue)}` : ''}</span>
             </div>
             <div className="pay-stat k-warn">
               <small>PENDENTES</small>
-              <b>{h.pending ?? (pending.count ?? 0)}</b>
-              <span>{(pending.revenue ?? 0) > 0 ? brl(pending.revenue ?? 0) : 'Aguardando confirmação'}</span>
+              <b>{pending.count}</b>
+              <span>{pending.revenue > 0 ? brl(pending.revenue) : 'Aguardando confirmação'}</span>
             </div>
             <div className="pay-stat k-down">
               <small>REJEITADOS</small>
-              <b>{h.failed ?? (rejected.count ?? 0)}</b>
-              <span>{(rejected.rate ?? 0)}% do total{(rejected.top_reason ?? 'Sem dados') !== 'Sem dados' ? ` — ${rejected.top_reason ?? 'Sem dados'}` : ''}</span>
+              <b>{rejected.count}</b>
+              <span>{rejected.rate}% do total</span>
             </div>
           </div>
 
           <div className="grid row-2 mt">
-            <div className="card">
+            <div className="card" style={{ padding: '18px 20px' }}>
               <small className="kv-l">TOTAL DE TRANSAÇÕES</small>
-              <b style={{ fontFamily: 'var(--display)', fontWeight: 400, fontSize: 38, color: 'var(--ink)' }}>{total}</b>
+              <b style={{ fontFamily: 'var(--display)', fontWeight: 400, fontSize: 72, lineHeight: 1.05, color: 'var(--ink)', display: 'block', marginTop: 8 }}>{total}</b>
             </div>
-            <div className="card pay-stat k-c1" style={{ background: 'transparent', border: '1px solid var(--line-2)' }}>
-              <small className="kv-l">ESTORNADOS</small>
-              <b style={{ fontFamily: 'var(--display)', fontWeight: 400, fontSize: 38, color: 'var(--ink)' }}>{h.refunded ?? ((refunds.count ?? 0) + (chargebacks_d.count ?? 0))}</b>
-              <span style={{ color: 'var(--ink-3)' }}>{(refunds.amount_total ?? 0) > 0 ? brl(refunds.amount_total ?? 0) : 'Reembolsos + chargebacks'}</span>
+            <div className="pay-stat" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <small>ESTORNADOS</small>
+              <b>{refunds.count}</b>
+              <span>{refunds.amount_total > 0 ? brl(refunds.amount_total) : '—'}</span>
             </div>
           </div>
 
+          {motivos.length > 0 && (
+            <div className="card mt" style={{ padding: '20px 24px' }}>
+              <small className="kv-l" style={{ display: 'block', marginBottom: 16 }}>MOTIVOS DE REJEIÇÃO</small>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {motivos.map((m, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ minWidth: 170, fontSize: 12, color: 'var(--ink-2)' }}>{m.label}</span>
+                    <div style={{ flex: 1, background: 'var(--line-2)', borderRadius: 3, height: 7, overflow: 'hidden' }}>
+                      <div style={{ width: m.pct + '%', background: 'var(--down)', height: '100%', borderRadius: 3 }}/>
+                    </div>
+                    <span style={{ minWidth: 72, textAlign: 'right', fontSize: 12, color: 'var(--ink-3)' }}>{m.count} / {m.pct}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
