@@ -1133,8 +1133,11 @@ function PagtoPainelPage() {
   const refunds = analytics?.refunds ?? {
     count: 0,
     rate: 0,
-    amount_total: 0,
-    chargebacks: 0
+    amount_total: 0
+  };
+  const chargebacks_d = analytics?.chargebacks ?? {
+    count: 0,
+    rate: 0
   };
   const total = analytics?.total ?? 0;
   const motivos = analytics?.rejection_reasons ?? [];
@@ -1156,11 +1159,11 @@ function PagtoPainelPage() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "pay-stat k-up"
-  }, /*#__PURE__*/React.createElement("small", null, "APROVADOS"), /*#__PURE__*/React.createElement("b", null, h.paid ?? approved.count), /*#__PURE__*/React.createElement("span", null, approved.rate, "% do total", approved.revenue > 0 ? ` — ${brl(approved.revenue)}` : '')), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "APROVADOS"), /*#__PURE__*/React.createElement("b", null, h.paid ?? approved.count ?? 0), /*#__PURE__*/React.createElement("span", null, approved.rate ?? 0, "% do total", (approved.revenue ?? 0) > 0 ? ` — ${brl(approved.revenue ?? 0)}` : '')), /*#__PURE__*/React.createElement("div", {
     className: "pay-stat k-warn"
-  }, /*#__PURE__*/React.createElement("small", null, "PENDENTES"), /*#__PURE__*/React.createElement("b", null, h.pending ?? pending.count), /*#__PURE__*/React.createElement("span", null, pending.revenue > 0 ? brl(pending.revenue) : 'Aguardando confirmação')), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "PENDENTES"), /*#__PURE__*/React.createElement("b", null, h.pending ?? pending.count ?? 0), /*#__PURE__*/React.createElement("span", null, (pending.revenue ?? 0) > 0 ? brl(pending.revenue ?? 0) : 'Aguardando confirmação')), /*#__PURE__*/React.createElement("div", {
     className: "pay-stat k-down"
-  }, /*#__PURE__*/React.createElement("small", null, "REJEITADOS"), /*#__PURE__*/React.createElement("b", null, h.failed ?? rejected.count), /*#__PURE__*/React.createElement("span", null, rejected.rate, "% do total", rejected.top_reason !== 'Sem dados' ? ` — ${rejected.top_reason}` : ''))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "REJEITADOS"), /*#__PURE__*/React.createElement("b", null, h.failed ?? rejected.count ?? 0), /*#__PURE__*/React.createElement("span", null, rejected.rate ?? 0, "% do total", (rejected.top_reason ?? 'Sem dados') !== 'Sem dados' ? ` — ${rejected.top_reason ?? 'Sem dados'}` : ''))), /*#__PURE__*/React.createElement("div", {
     className: "grid row-2 mt"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card"
@@ -1188,15 +1191,15 @@ function PagtoPainelPage() {
       fontSize: 38,
       color: 'var(--ink)'
     }
-  }, h.refunded ?? refunds.count), /*#__PURE__*/React.createElement("span", {
+  }, h.refunded ?? (refunds.count ?? 0) + (chargebacks_d.count ?? 0)), /*#__PURE__*/React.createElement("span", {
     style: {
       color: 'var(--ink-3)'
     }
-  }, refunds.amount_total > 0 ? brl(refunds.amount_total) : 'Reembolsos + chargebacks'))), motivos.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }, (refunds.amount_total ?? 0) > 0 ? brl(refunds.amount_total ?? 0) : 'Reembolsos + chargebacks'))), (motivos?.length ?? 0) > 0 && /*#__PURE__*/React.createElement("div", {
     className: "card mt"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-title"
-  }, "MOTIVOS DE REJEI\xC7\xC3O"), motivos.map((m, i) => /*#__PURE__*/React.createElement("div", {
+  }, "MOTIVOS DE REJEI\xC7\xC3O"), (motivos ?? []).map((m, i) => /*#__PURE__*/React.createElement("div", {
     className: "origin-row",
     key: i
   }, /*#__PURE__*/React.createElement("span", {

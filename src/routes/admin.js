@@ -1295,10 +1295,11 @@ module.exports = function (supabase) {
     function _emptyAnalytics(days) {
         return {
             period_days: days, total: 0,
-            approved: { count: 0, rate: 0,    revenue: 0 },
-            pending:  { count: 0, revenue: 0 },
-            rejected: { count: 0, rate: 0,    top_reason: 'Sem dados' },
-            refunds:  { count: 0, rate: 0,    amount_total: 0, chargebacks: 0 },
+            approved:    { count: 0, rate: 0, revenue: 0 },
+            pending:     { count: 0, revenue: 0 },
+            rejected:    { count: 0, rate: 0, top_reason: 'Sem dados' },
+            refunds:     { count: 0, rate: 0, amount_total: 0 },
+            chargebacks: { count: 0, rate: 0 },
             rejection_reasons: [],
             method_split: [],
             timestamp: new Date().toISOString()
@@ -1335,9 +1336,10 @@ module.exports = function (supabase) {
             const pendingRevenue = _sum(orders.filter(o => o.status === 'pending'), o => o.total_amount);
             const refundTotal    = _sum(orders.filter(o => o.refund_amount),        o => o.refund_amount);
 
-            const approvalRate = total > 0 ? Math.round((paid    / total) * 1000) / 10 : 0;
-            const failureRate  = total > 0 ? Math.round((failed  / total) * 1000) / 10 : 0;
-            const refundRate   = paid  > 0 ? Math.round(((refunded + chargebacks) / paid) * 1000) / 10 : 0;
+            const approvalRate   = total > 0 ? Math.round((paid       / total) * 1000) / 10 : 0;
+            const failureRate    = total > 0 ? Math.round((failed     / total) * 1000) / 10 : 0;
+            const refundRate     = paid  > 0 ? Math.round((refunded   / paid)  * 1000) / 10 : 0;
+            const chargebackRate = paid  > 0 ? Math.round((chargebacks / paid) * 1000) / 10 : 0;
 
             // Motivos de rejeição — sort determinístico: count DESC, reason ASC
             const { getCategoryLabel } = require('../utils/paymentNormalizer');
@@ -1374,10 +1376,11 @@ module.exports = function (supabase) {
             const result = {
                 period_days: days,
                 total,
-                approved: { count: paid,    rate: approvalRate, revenue: paidRevenue },
-                pending:  { count: pending, revenue: pendingRevenue },
-                rejected: { count: failed,  rate: failureRate,  top_reason: topReason },
-                refunds:  { count: refunded + chargebacks, rate: refundRate, amount_total: refundTotal, chargebacks },
+                approved:    { count: paid,        rate: approvalRate,   revenue: paidRevenue },
+                pending:     { count: pending,      revenue: pendingRevenue },
+                rejected:    { count: failed,       rate: failureRate,    top_reason: topReason },
+                refunds:     { count: refunded,     rate: refundRate,     amount_total: refundTotal },
+                chargebacks: { count: chargebacks,  rate: chargebackRate },
                 rejection_reasons: rejectionReasons,
                 method_split: methodSplit,
                 timestamp: new Date().toISOString()

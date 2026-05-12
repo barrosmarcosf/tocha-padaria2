@@ -785,13 +785,14 @@ function PagtoPainelPage() {
   }, []);
 
   // Acessores seguros — nunca quebram mesmo se API retornar nulo/vazio
-  const h        = health    ?? {};
-  const approved = analytics?.approved ?? { count: 0, rate: 0, revenue: 0 };
-  const pending  = analytics?.pending  ?? { count: 0, revenue: 0 };
-  const rejected = analytics?.rejected ?? { count: 0, rate: 0, top_reason: 'Sem dados' };
-  const refunds  = analytics?.refunds  ?? { count: 0, rate: 0, amount_total: 0, chargebacks: 0 };
-  const total    = analytics?.total    ?? 0;
-  const motivos  = analytics?.rejection_reasons ?? [];
+  const h             = health    ?? {};
+  const approved      = analytics?.approved    ?? { count: 0, rate: 0, revenue: 0 };
+  const pending       = analytics?.pending     ?? { count: 0, revenue: 0 };
+  const rejected      = analytics?.rejected    ?? { count: 0, rate: 0, top_reason: 'Sem dados' };
+  const refunds       = analytics?.refunds     ?? { count: 0, rate: 0, amount_total: 0 };
+  const chargebacks_d = analytics?.chargebacks ?? { count: 0, rate: 0 };
+  const total         = analytics?.total       ?? 0;
+  const motivos       = analytics?.rejection_reasons ?? [];
 
   return (
     <div className="page">
@@ -803,18 +804,18 @@ function PagtoPainelPage() {
           <div className="grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
             <div className="pay-stat k-up">
               <small>APROVADOS</small>
-              <b>{h.paid ?? approved.count}</b>
-              <span>{approved.rate}% do total{approved.revenue > 0 ? ` — ${brl(approved.revenue)}` : ''}</span>
+              <b>{h.paid ?? (approved.count ?? 0)}</b>
+              <span>{(approved.rate ?? 0)}% do total{(approved.revenue ?? 0) > 0 ? ` — ${brl(approved.revenue ?? 0)}` : ''}</span>
             </div>
             <div className="pay-stat k-warn">
               <small>PENDENTES</small>
-              <b>{h.pending ?? pending.count}</b>
-              <span>{pending.revenue > 0 ? brl(pending.revenue) : 'Aguardando confirmação'}</span>
+              <b>{h.pending ?? (pending.count ?? 0)}</b>
+              <span>{(pending.revenue ?? 0) > 0 ? brl(pending.revenue ?? 0) : 'Aguardando confirmação'}</span>
             </div>
             <div className="pay-stat k-down">
               <small>REJEITADOS</small>
-              <b>{h.failed ?? rejected.count}</b>
-              <span>{rejected.rate}% do total{rejected.top_reason !== 'Sem dados' ? ` — ${rejected.top_reason}` : ''}</span>
+              <b>{h.failed ?? (rejected.count ?? 0)}</b>
+              <span>{(rejected.rate ?? 0)}% do total{(rejected.top_reason ?? 'Sem dados') !== 'Sem dados' ? ` — ${rejected.top_reason ?? 'Sem dados'}` : ''}</span>
             </div>
           </div>
 
@@ -825,15 +826,15 @@ function PagtoPainelPage() {
             </div>
             <div className="card pay-stat k-c1" style={{ background: 'transparent', border: '1px solid var(--line-2)' }}>
               <small className="kv-l">ESTORNADOS</small>
-              <b style={{ fontFamily: 'var(--display)', fontWeight: 400, fontSize: 38, color: 'var(--ink)' }}>{h.refunded ?? refunds.count}</b>
-              <span style={{ color: 'var(--ink-3)' }}>{refunds.amount_total > 0 ? brl(refunds.amount_total) : 'Reembolsos + chargebacks'}</span>
+              <b style={{ fontFamily: 'var(--display)', fontWeight: 400, fontSize: 38, color: 'var(--ink)' }}>{h.refunded ?? ((refunds.count ?? 0) + (chargebacks_d.count ?? 0))}</b>
+              <span style={{ color: 'var(--ink-3)' }}>{(refunds.amount_total ?? 0) > 0 ? brl(refunds.amount_total ?? 0) : 'Reembolsos + chargebacks'}</span>
             </div>
           </div>
 
-          {motivos.length > 0 && (
+          {(motivos?.length ?? 0) > 0 && (
             <div className="card mt">
               <div className="section-title">MOTIVOS DE REJEIÇÃO</div>
-              {motivos.map((m, i) => (
+              {(motivos ?? []).map((m, i) => (
                 <div className="origin-row" key={i}>
                   <span className="origin-lbl" style={{ color: 'var(--down)' }}>{m?.label ?? '—'}</span>
                   <div className="origin-bar"><div className="origin-fill" style={{ width: `${m?.pct ?? 0}%`, background: 'var(--down)' }}/></div>
