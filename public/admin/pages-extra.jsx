@@ -837,28 +837,28 @@ function FunilPage() {
         <React.Fragment>
 
           {/* 1. FUNNEL STEPS */}
-          <div className="card" style={{ marginBottom:14, padding:'18px 16px', position:'relative' }}>
+          <div className="card" style={{ marginBottom:14, padding:'20px 16px 16px', position:'relative' }}>
             {isMock && <div className="fv-mock-badge">DADOS DEMONSTRATIVOS</div>}
             <div className="fv-funnel-row">
               {steps.map((step, i) => (
                 <React.Fragment key={step.key}>
                   <div className="fv-step-wrap">
                     <div className="fv-step-card" style={{ borderColor: FV_STEP_COLORS[i] + '50' }}>
-                      <div className="fv-step-icon-wrap" style={{ background: FV_STEP_COLORS[i] + '22' }}>
+                      <div className="fv-step-icon-wrap" style={{ background: FV_STEP_COLORS[i] + '1a' }}>
                         {_fvStepIcon(step.key, FV_STEP_COLORS[i])}
                       </div>
-                      <div className="fv-step-lbl">{step.label}</div>
+                      <div className="fv-step-lbl" style={{ color: FV_STEP_COLORS[i] }}>{step.label}</div>
                       <div className="fv-step-num">{(step.count||0).toLocaleString('pt-BR')}</div>
-                      <div className="fv-step-pct-lbl">{i===0?'100%':(step.pct_total||0).toFixed(1)+'%'}</div>
+                      <div className="fv-step-pct-lbl">{i===0 ? '100% do total' : `${(step.pct_total||0).toFixed(1)}% dos visitantes`}</div>
                     </div>
                   </div>
                   {i < steps.length-1 && (
                     <div className="fv-arrow-wrap">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="9 18 15 12 9 6"/>
                       </svg>
                       <div className="fv-adv-pill" style={{ background:FV_PILL_BG[i], color:FV_ADV_COLORS[i] }}>
-                        {advPct(advRates[i])}%
+                        {typeof advRates[i]==='object' ? advRates[i].label : 'Taxa de avanço'} {advPct(advRates[i])}%
                       </div>
                     </div>
                   )}
@@ -870,137 +870,161 @@ function FunilPage() {
           {/* 2. KPIs */}
           <div className="fv-kpi-grid">
             <div className="fv-kpi-card">
-              <div className="fv-kpi-lbl">TAXA DE CONVERSÃO</div>
+              <div className="fv-kpi-lbl">TAXA DE CONVERSÃO GERAL</div>
               <div className="fv-kpi-val">{(kpis.conv_rate||0).toFixed(1)}%</div>
               <div className="fv-kpi-meta">{kpis.conv_orders||0} pedidos / {(kpis.conv_visits||0).toLocaleString('pt-BR')} visitas</div>
+              {kpis.avg_ticket_delta != null && <span className={'fv-delta-chip '+(kpis.avg_ticket_delta>=0?'up':'dn')}>{kpis.avg_ticket_delta>=0?'↑':'↓'} {Math.abs(kpis.avg_ticket_delta)}% vs período anterior</span>}
             </div>
             <div className="fv-kpi-card">
               <div className="fv-kpi-lbl">TICKET MÉDIO</div>
               <div className="fv-kpi-val" style={{ fontSize:20 }}>{fBrl(kpis.avg_ticket)}</div>
               <div className="fv-kpi-meta">por pedido</div>
+              {kpis.avg_ticket_delta != null && <span className={'fv-delta-chip '+(kpis.avg_ticket_delta>=0?'up':'dn')}>{kpis.avg_ticket_delta>=0?'↑':'↓'} {Math.abs(kpis.avg_ticket_delta)}% vs período anterior</span>}
             </div>
             <div className="fv-kpi-card">
-              <div className="fv-kpi-lbl">RECEITA TOTAL</div>
+              <div className="fv-kpi-lbl">FATURAMENTO</div>
               <div className="fv-kpi-val" style={{ fontSize:20 }}>{fBrl(kpis.total_revenue)}</div>
               <div className="fv-kpi-meta">no período</div>
+              {kpis.total_revenue_delta != null && <span className={'fv-delta-chip '+(kpis.total_revenue_delta>=0?'up':'dn')}>{kpis.total_revenue_delta>=0?'↑':'↓'} {Math.abs(kpis.total_revenue_delta)}% vs período anterior</span>}
             </div>
             <div className="fv-kpi-card">
-              <div className="fv-kpi-lbl">TEMPO MÉDIO NO FUNIL</div>
+              <div className="fv-kpi-lbl">TEMPO MÉDIO DO FUNIL</div>
               <div className="fv-kpi-val" style={{ fontSize:22 }}>{kpis.avg_funnel_time || '—'}</div>
               <div className="fv-kpi-meta">do acesso ao pagamento</div>
+              {kpis.avg_funnel_time_delta != null && <span className={'fv-delta-chip '+(kpis.avg_funnel_time_delta<=0?'up':'dn')}>{kpis.avg_funnel_time_delta<=0?'↓':'↑'} {Math.abs(kpis.avg_funnel_time_delta)}% vs período anterior</span>}
             </div>
             <div className="fv-kpi-card">
-              <div className="fv-kpi-lbl">TAXA DE APROVAÇÃO</div>
+              <div className="fv-kpi-lbl">TAXA DE APROVAÇÃO (PAGAMENTO)</div>
               <div className="fv-kpi-val">{(kpis.approval_rate||0).toFixed(1)}%</div>
               <div className="fv-kpi-meta">tentativas aprovadas</div>
+              {kpis.approval_rate_delta != null && <span className={'fv-delta-chip '+(kpis.approval_rate_delta>=0?'up':'dn')}>{kpis.approval_rate_delta>=0?'↑':'↓'} {Math.abs(kpis.approval_rate_delta)}% vs período anterior</span>}
             </div>
           </div>
 
           {/* 3. ANALYSIS GRID */}
           <div className="fv-analysis-grid">
-            {/* Origem de Tráfego */}
+            {/* 3a: Origem do Tráfego */}
             <div className="fv-analysis-card">
-              <div className="fv-analysis-hdr">ORIGEM DE TRÁFEGO</div>
-              <div className="fv-donut-legend-row">
-                <FunilDonut segments={mkSegs(src)} size={88} stroke={11}
-                  label={src.find(r=>!r.isTotal)?.pct+'%'}
-                  sub={src.find(r=>!r.isTotal)?.label?.split(' ')[0]}/>
-                <div className="fv-legend-list">
-                  <div className="fv-legend-item" style={{ gridTemplateColumns:'1fr 34px 28px 34px 34px', borderBottom:'1px solid rgba(255,255,255,.08)', paddingBottom:3, marginBottom:1 }}>
-                    <span className="fv-legend-hdr-cell" style={{ textAlign:'left' }}>Origem</span>
-                    <span className="fv-legend-hdr-cell">Vis.</span>
-                    <span className="fv-legend-hdr-cell">%</span>
-                    <span className="fv-legend-hdr-cell" style={{ color:'#22c55e' }}>Conv</span>
-                    <span className="fv-legend-hdr-cell" style={{ color:'#ef4444' }}>Abd</span>
-                  </div>
+              <div className="fv-analysis-hdr">ORIGEM DO TRÁFEGO</div>
+              <div className="fv-donut-legend-row" style={{ marginBottom:10 }}>
+                <FunilDonut segments={mkSegs(src)} size={100} stroke={13} label={src.find(r=>!r.isTotal)?.pct+'%'} sub={src.find(r=>!r.isTotal)?.label?.split(' ')[0]}/>
+                <div style={{ flex:1, minWidth:0 }}>
                   {src.filter(r=>!r.isTotal).map((row,i) => (
-                    <div key={i} className="fv-legend-item" style={{ gridTemplateColumns:'1fr 34px 28px 34px 34px' }}>
-                      <span style={{ display:'flex', alignItems:'center', gap:5 }}><span className="fv-legend-sq" style={{ background:row.color }}/><span className="fv-legend-lbl">{row.label}</span></span>
-                      <span className="fv-legend-val">{row.count}</span>
-                      <span className="fv-legend-pct">{row.pct}%</span>
-                      <span className="fv-legend-conv">{row.conv_rate!=null?row.conv_rate+'%':'—'}</span>
-                      <span className="fv-legend-bad">{row.abandon_rate!=null?row.abandon_rate+'%':'—'}</span>
+                    <div key={i} style={{ display:'flex', alignItems:'center', gap:6, padding:'3px 0', borderBottom:'1px solid rgba(255,255,255,.04)' }}>
+                      <span style={{ width:8, height:8, borderRadius:2, background:row.color, flexShrink:0, display:'inline-block' }}/>
+                      <span style={{ flex:1, fontSize:12, color:'var(--ink-3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{row.label}</span>
+                      <span style={{ fontSize:12, color:'var(--ink)', fontFamily:'var(--mono)', flexShrink:0 }}>{row.count}</span>
+                      <span style={{ fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', flexShrink:0 }}>({row.pct}%)</span>
                     </div>
                   ))}
-                  {src.find(r=>r.isTotal) && (()=>{ const t=src.find(r=>r.isTotal); return (
-                    <div className="fv-analysis-total" style={{ gridTemplateColumns:'1fr 34px 28px 34px 34px' }}>
-                      <span>Total</span><span style={{ textAlign:'right',fontFamily:'var(--mono)' }}>{t.count}</span>
-                      <span style={{ textAlign:'right',fontFamily:'var(--mono)' }}>100%</span>
-                      <span className="fv-legend-conv">{t.conv_rate!=null?t.conv_rate+'%':'—'}</span>
-                      <span className="fv-legend-bad">{t.abandon_rate!=null?t.abandon_rate+'%':'—'}</span>
-                    </div>
-                  ); })()}
+                  <div style={{ fontSize:10, color:'var(--ink-4)', marginTop:6 }}>Total de visitas: {src.find(r=>r.isTotal)?.count||0}</div>
                 </div>
               </div>
+              <div style={{ height:1, background:'rgba(255,255,255,.07)', margin:'0 0 8px' }}/>
+              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                <thead><tr>
+                  {['ORIGEM','VISITAS','CONVERSÃO','ABANDONO'].map((h,i)=><th key={i} style={{ fontSize:8, letterSpacing:'.1em', color:'var(--ink-4)', textAlign:i===0?'left':'right', padding:'2px 0 5px', fontWeight:400, textTransform:'uppercase', fontFamily:'var(--mono)' }}>{h}</th>)}
+                </tr></thead>
+                <tbody>
+                  {src.filter(r=>!r.isTotal).map((row,ri) => (
+                    <tr key={ri}>
+                      <td style={{ padding:'4px 0', color:'var(--ink-3)', borderTop:'1px solid rgba(255,255,255,.04)', display:'flex', alignItems:'center', gap:4 }}><span style={{ width:7,height:7,borderRadius:1,background:row.color,flexShrink:0,display:'inline-block' }}/>{row.label}</td>
+                      <td style={{ padding:'4px 0', color:'var(--ink-3)', borderTop:'1px solid rgba(255,255,255,.04)', textAlign:'right', fontFamily:'var(--mono)' }}>{row.count}</td>
+                      <td style={{ padding:'4px 0', borderTop:'1px solid rgba(255,255,255,.04)', textAlign:'right' }}><span style={{ display:'inline-flex', alignItems:'center', gap:3, justifyContent:'flex-end' }}><span style={{ height:3, width:Math.round((row.conv_rate||0)/100*32), background:'#22c55e', borderRadius:999, display:'inline-block' }}/><span style={{ color:'#22c55e', fontFamily:'var(--mono)' }}>{row.conv_rate!=null?row.conv_rate+'%':'—'}</span></span></td>
+                      <td style={{ padding:'4px 0', borderTop:'1px solid rgba(255,255,255,.04)', textAlign:'right' }}><span style={{ display:'inline-flex', alignItems:'center', gap:3, justifyContent:'flex-end' }}><span style={{ height:3, width:Math.round((row.abandon_rate||0)/100*32), background:'#ef4444', borderRadius:999, display:'inline-block' }}/><span style={{ color:'#ef4444', fontFamily:'var(--mono)' }}>{row.abandon_rate!=null?row.abandon_rate+'%':'—'}</span></span></td>
+                    </tr>
+                  ))}
+                  {src.find(r=>r.isTotal) && (()=>{const t=src.find(r=>r.isTotal); return (<tr>
+                    <td style={{ padding:'5px 0 2px', fontWeight:600, color:'var(--ink)', borderTop:'1px solid rgba(255,255,255,.12)', display:'flex', alignItems:'center', gap:4 }}>Total</td>
+                    <td style={{ padding:'5px 0 2px', fontWeight:600, color:'var(--ink)', borderTop:'1px solid rgba(255,255,255,.12)', textAlign:'right', fontFamily:'var(--mono)' }}>{t.count}</td>
+                    <td style={{ padding:'5px 0 2px', fontWeight:600, color:'#22c55e', borderTop:'1px solid rgba(255,255,255,.12)', textAlign:'right', fontFamily:'var(--mono)' }}>{t.conv_rate!=null?t.conv_rate+'%':'—'}</td>
+                    <td style={{ padding:'5px 0 2px', fontWeight:600, color:'#ef4444', borderTop:'1px solid rgba(255,255,255,.12)', textAlign:'right', fontFamily:'var(--mono)' }}>{t.abandon_rate!=null?t.abandon_rate+'%':'—'}</td>
+                  </tr>); })()}
+                </tbody>
+              </table>
             </div>
 
-            {/* Dispositivos */}
+            {/* 3b: Desempenho por Dispositivo */}
             <div className="fv-analysis-card">
-              <div className="fv-analysis-hdr">DISPOSITIVOS</div>
-              <div className="fv-donut-legend-row">
-                <FunilDonut segments={mkSegs(devs)} size={88} stroke={11}
-                  label={devs.find(r=>!r.isTotal)?.pct+'%'}
-                  sub={devs.find(r=>!r.isTotal)?.label}/>
-                <div className="fv-legend-list">
-                  <div className="fv-legend-item" style={{ gridTemplateColumns:'1fr 34px 28px 34px 34px', borderBottom:'1px solid rgba(255,255,255,.08)', paddingBottom:3, marginBottom:1 }}>
-                    <span className="fv-legend-hdr-cell" style={{ textAlign:'left' }}>Disp.</span>
-                    <span className="fv-legend-hdr-cell">Vis.</span>
-                    <span className="fv-legend-hdr-cell">%</span>
-                    <span className="fv-legend-hdr-cell" style={{ color:'#22c55e' }}>Conv</span>
-                    <span className="fv-legend-hdr-cell" style={{ color:'#ef4444' }}>Abd</span>
-                  </div>
+              <div className="fv-analysis-hdr">DESEMPENHO POR DISPOSITIVO</div>
+              <div className="fv-donut-legend-row" style={{ marginBottom:10 }}>
+                <FunilDonut segments={mkSegs(devs)} size={100} stroke={13} label={devs.find(r=>!r.isTotal)?.pct+'%'} sub={devs.find(r=>!r.isTotal)?.label}/>
+                <div style={{ flex:1, minWidth:0 }}>
                   {devs.filter(r=>!r.isTotal).map((row,i) => (
-                    <div key={i} className="fv-legend-item" style={{ gridTemplateColumns:'1fr 34px 28px 34px 34px' }}>
-                      <span style={{ display:'flex', alignItems:'center', gap:5 }}><span className="fv-legend-sq" style={{ background:row.color }}/><span className="fv-legend-lbl">{row.label}</span></span>
-                      <span className="fv-legend-val">{row.count}</span>
-                      <span className="fv-legend-pct">{row.pct}%</span>
-                      <span className="fv-legend-conv">{row.conv_rate!=null?row.conv_rate+'%':'—'}</span>
-                      <span className="fv-legend-bad">{row.abandon_rate!=null?row.abandon_rate+'%':'—'}</span>
+                    <div key={i} style={{ display:'flex', alignItems:'center', gap:6, padding:'3px 0', borderBottom:'1px solid rgba(255,255,255,.04)' }}>
+                      <span style={{ width:8, height:8, borderRadius:2, background:row.color, flexShrink:0, display:'inline-block' }}/>
+                      <span style={{ flex:1, fontSize:12, color:'var(--ink-3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{row.label}</span>
+                      <span style={{ fontSize:12, color:'var(--ink)', fontFamily:'var(--mono)', flexShrink:0 }}>{row.count}</span>
+                      <span style={{ fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', flexShrink:0 }}>({row.pct}%)</span>
                     </div>
                   ))}
-                  {devs.find(r=>r.isTotal) && (()=>{ const t=devs.find(r=>r.isTotal); return (
-                    <div className="fv-analysis-total" style={{ gridTemplateColumns:'1fr 34px 28px 34px 34px' }}>
-                      <span>Total</span><span style={{ textAlign:'right',fontFamily:'var(--mono)' }}>{t.count}</span>
-                      <span style={{ textAlign:'right',fontFamily:'var(--mono)' }}>100%</span>
-                      <span className="fv-legend-conv">{t.conv_rate!=null?t.conv_rate+'%':'—'}</span>
-                      <span className="fv-legend-bad">{t.abandon_rate!=null?t.abandon_rate+'%':'—'}</span>
-                    </div>
-                  ); })()}
+                  <div style={{ fontSize:10, color:'var(--ink-4)', marginTop:6 }}>Total de visitas: {devs.find(r=>r.isTotal)?.count||0}</div>
                 </div>
               </div>
+              <div style={{ height:1, background:'rgba(255,255,255,.07)', margin:'0 0 8px' }}/>
+              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                <thead><tr>
+                  {['DISPOSITIVO','VISITAS','CONVERSÃO','ABANDONO'].map((h,i)=><th key={i} style={{ fontSize:8, letterSpacing:'.1em', color:'var(--ink-4)', textAlign:i===0?'left':'right', padding:'2px 0 5px', fontWeight:400, textTransform:'uppercase', fontFamily:'var(--mono)' }}>{h}</th>)}
+                </tr></thead>
+                <tbody>
+                  {devs.filter(r=>!r.isTotal).map((row,ri) => (
+                    <tr key={ri}>
+                      <td style={{ padding:'4px 0', color:'var(--ink-3)', borderTop:'1px solid rgba(255,255,255,.04)', display:'flex', alignItems:'center', gap:4 }}><span style={{ width:7,height:7,borderRadius:1,background:row.color,flexShrink:0,display:'inline-block' }}/>{row.label}</td>
+                      <td style={{ padding:'4px 0', color:'var(--ink-3)', borderTop:'1px solid rgba(255,255,255,.04)', textAlign:'right', fontFamily:'var(--mono)' }}>{row.count}</td>
+                      <td style={{ padding:'4px 0', borderTop:'1px solid rgba(255,255,255,.04)', textAlign:'right' }}><span style={{ display:'inline-flex', alignItems:'center', gap:3, justifyContent:'flex-end' }}><span style={{ height:3, width:Math.round((row.conv_rate||0)/100*32), background:'#22c55e', borderRadius:999, display:'inline-block' }}/><span style={{ color:'#22c55e', fontFamily:'var(--mono)' }}>{row.conv_rate!=null?row.conv_rate+'%':'—'}</span></span></td>
+                      <td style={{ padding:'4px 0', borderTop:'1px solid rgba(255,255,255,.04)', textAlign:'right' }}><span style={{ display:'inline-flex', alignItems:'center', gap:3, justifyContent:'flex-end' }}><span style={{ height:3, width:Math.round((row.abandon_rate||0)/100*32), background:'#ef4444', borderRadius:999, display:'inline-block' }}/><span style={{ color:'#ef4444', fontFamily:'var(--mono)' }}>{row.abandon_rate!=null?row.abandon_rate+'%':'—'}</span></span></td>
+                    </tr>
+                  ))}
+                  {devs.find(r=>r.isTotal) && (()=>{const t=devs.find(r=>r.isTotal); return (<tr>
+                    <td style={{ padding:'5px 0 2px', fontWeight:600, color:'var(--ink)', borderTop:'1px solid rgba(255,255,255,.12)', display:'flex', alignItems:'center', gap:4 }}>Total</td>
+                    <td style={{ padding:'5px 0 2px', fontWeight:600, color:'var(--ink)', borderTop:'1px solid rgba(255,255,255,.12)', textAlign:'right', fontFamily:'var(--mono)' }}>{t.count}</td>
+                    <td style={{ padding:'5px 0 2px', fontWeight:600, color:'#22c55e', borderTop:'1px solid rgba(255,255,255,.12)', textAlign:'right', fontFamily:'var(--mono)' }}>{t.conv_rate!=null?t.conv_rate+'%':'—'}</td>
+                    <td style={{ padding:'5px 0 2px', fontWeight:600, color:'#ef4444', borderTop:'1px solid rgba(255,255,255,.12)', textAlign:'right', fontFamily:'var(--mono)' }}>{t.abandon_rate!=null?t.abandon_rate+'%':'—'}</td>
+                  </tr>); })()}
+                </tbody>
+              </table>
             </div>
 
-            {/* Métodos de Pagamento */}
+            {/* 3c: Formas de Pagamento */}
             <div className="fv-analysis-card">
-              <div className="fv-analysis-hdr">MÉTODOS DE PAGAMENTO</div>
-              <div className="fv-donut-legend-row">
-                <FunilDonut segments={mkSegs(pms)} size={88} stroke={11}
-                  label={pms.find(r=>!r.isTotal)?.pct+'%'}
-                  sub={pms.find(r=>!r.isTotal)?.label}/>
-                <div className="fv-legend-list">
-                  <div className="fv-legend-item" style={{ gridTemplateColumns:'1fr 32px 28px 40px', borderBottom:'1px solid rgba(255,255,255,.08)', paddingBottom:3, marginBottom:1 }}>
-                    <span className="fv-legend-hdr-cell" style={{ textAlign:'left' }}>Método</span>
-                    <span className="fv-legend-hdr-cell">Tent.</span>
-                    <span className="fv-legend-hdr-cell">%</span>
-                    <span className="fv-legend-hdr-cell" style={{ color:'#22c55e' }}>Aprov.</span>
-                  </div>
+              <div className="fv-analysis-hdr">FORMAS DE PAGAMENTO</div>
+              <div className="fv-donut-legend-row" style={{ marginBottom:10 }}>
+                <FunilDonut segments={mkSegs(pms)} size={100} stroke={13} label={pms.find(r=>!r.isTotal)?.pct+'%'} sub={pms.find(r=>!r.isTotal)?.label}/>
+                <div style={{ flex:1, minWidth:0 }}>
                   {pms.filter(r=>!r.isTotal).map((row,i) => (
-                    <div key={i} className="fv-legend-item" style={{ gridTemplateColumns:'1fr 32px 28px 40px' }}>
-                      <span style={{ display:'flex', alignItems:'center', gap:5 }}><span className="fv-legend-sq" style={{ background:row.color }}/><span className="fv-legend-lbl">{row.label}</span></span>
-                      <span className="fv-legend-val">{row.attempts??row.count??0}</span>
-                      <span className="fv-legend-pct">{row.pct}%</span>
-                      <span className="fv-legend-conv">{row.approval_rate!=null?row.approval_rate+'%':'—'}</span>
+                    <div key={i} style={{ display:'flex', alignItems:'center', gap:6, padding:'3px 0', borderBottom:'1px solid rgba(255,255,255,.04)' }}>
+                      <span style={{ width:8, height:8, borderRadius:2, background:row.color, flexShrink:0, display:'inline-block' }}/>
+                      <span style={{ flex:1, fontSize:12, color:'var(--ink-3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{row.label}</span>
+                      <span style={{ fontSize:12, color:'var(--ink)', fontFamily:'var(--mono)', flexShrink:0 }}>{row.attempts??0}</span>
+                      <span style={{ fontSize:11, color:'var(--ink-4)', fontFamily:'var(--mono)', flexShrink:0 }}>({row.pct}%)</span>
                     </div>
                   ))}
-                  {pms.find(r=>r.isTotal) && (()=>{ const t=pms.find(r=>r.isTotal); return (
-                    <div className="fv-analysis-total" style={{ gridTemplateColumns:'1fr 32px 28px 40px' }}>
-                      <span>Total</span><span style={{ textAlign:'right',fontFamily:'var(--mono)' }}>{t.attempts??t.count??0}</span>
-                      <span style={{ textAlign:'right',fontFamily:'var(--mono)' }}>100%</span>
-                      <span className="fv-legend-conv">{t.approval_rate!=null?t.approval_rate+'%':'—'}</span>
-                    </div>
-                  ); })()}
+                  <div style={{ fontSize:10, color:'var(--ink-4)', marginTop:6 }}>Total de pagamentos: {pms.find(r=>r.isTotal)?.attempts||0}*</div>
                 </div>
               </div>
+              <div style={{ height:1, background:'rgba(255,255,255,.07)', margin:'0 0 8px' }}/>
+              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                <thead><tr>
+                  {['MÉTODO','TENTATIVAS','APROVAÇÃO','APROVADO'].map((h,i)=><th key={i} style={{ fontSize:8, letterSpacing:'.1em', color:'var(--ink-4)', textAlign:i===0?'left':'right', padding:'2px 0 5px', fontWeight:400, textTransform:'uppercase', fontFamily:'var(--mono)' }}>{h}</th>)}
+                </tr></thead>
+                <tbody>
+                  {pms.filter(r=>!r.isTotal).map((row,ri) => (
+                    <tr key={ri}>
+                      <td style={{ padding:'4px 0', color:'var(--ink-3)', borderTop:'1px solid rgba(255,255,255,.04)', display:'flex', alignItems:'center', gap:4 }}><span style={{ width:7,height:7,borderRadius:1,background:row.color,flexShrink:0,display:'inline-block' }}/>{row.label}</td>
+                      <td style={{ padding:'4px 0', color:'var(--ink-3)', borderTop:'1px solid rgba(255,255,255,.04)', textAlign:'right', fontFamily:'var(--mono)' }}>{row.attempts??0}</td>
+                      <td style={{ padding:'4px 0', color:'#22c55e', borderTop:'1px solid rgba(255,255,255,.04)', textAlign:'right', fontFamily:'var(--mono)' }}>{row.approval_rate!=null?row.approval_rate+'%':'—'}</td>
+                      <td style={{ padding:'4px 0', color:'var(--ink-3)', borderTop:'1px solid rgba(255,255,255,.04)', textAlign:'right', fontFamily:'var(--mono)' }}>{row.approved??0}</td>
+                    </tr>
+                  ))}
+                  {pms.find(r=>r.isTotal) && (()=>{const t=pms.find(r=>r.isTotal); return (<tr>
+                    <td style={{ padding:'5px 0 2px', fontWeight:600, color:'var(--ink)', borderTop:'1px solid rgba(255,255,255,.12)', display:'flex', alignItems:'center', gap:4 }}>Total</td>
+                    <td style={{ padding:'5px 0 2px', fontWeight:600, color:'var(--ink)', borderTop:'1px solid rgba(255,255,255,.12)', textAlign:'right', fontFamily:'var(--mono)' }}>{t.attempts??0}</td>
+                    <td style={{ padding:'5px 0 2px', fontWeight:600, color:'#22c55e', borderTop:'1px solid rgba(255,255,255,.12)', textAlign:'right', fontFamily:'var(--mono)' }}>{t.approval_rate!=null?t.approval_rate+'%':'—'}</td>
+                    <td style={{ padding:'5px 0 2px', fontWeight:600, color:'var(--ink)', borderTop:'1px solid rgba(255,255,255,.12)', textAlign:'right', fontFamily:'var(--mono)' }}>{t.approved??0}</td>
+                  </tr>); })()}
+                </tbody>
+              </table>
+              <div style={{ fontSize:10, color:'var(--ink-4)', marginTop:4 }}>*Inclui tentativas.</div>
             </div>
           </div>
 
@@ -1008,90 +1032,104 @@ function FunilPage() {
           <div className="fv-abd-rec-grid">
             <div className="fv-abd-card">
               <div className="fv-abd-hdr">ABANDONO</div>
-              <div className="fv-stat-line">
-                <div className="fv-stat-left">
-                  <div className="fv-stat-num">{abd.cart_count||0}</div>
-                  <div>
-                    <div className="fv-stat-lbl" style={{ fontSize:10, marginBottom:2 }}>Carrinho</div>
-                    <span className="fv-stat-badge bad">{abd.cart_rate||0}%</span>
-                  </div>
+              <div className="fv-abd-row">
+                <div>
+                  <div style={{ fontSize:11, color:'var(--ink-4)', marginBottom:4 }}>Carrinhos abandonados</div>
+                  <div style={{ fontFamily:'var(--display)', fontSize:32, color:'var(--ink)', fontWeight:400, lineHeight:1.1 }}>{abd.cart_count||0}</div>
                 </div>
-                <div className="fv-stat-left">
-                  <div className="fv-stat-num">{abd.checkout_count||0}</div>
-                  <div>
-                    <div className="fv-stat-lbl" style={{ fontSize:10, marginBottom:2 }}>Checkout</div>
-                    <span className="fv-stat-badge bad">{abd.checkout_rate||0}%</span>
-                  </div>
+                <div style={{ textAlign:'right' }}>
+                  <div style={{ fontFamily:'var(--display)', fontSize:24, color:'#ef4444', fontWeight:400, lineHeight:1.1 }}>{abd.cart_rate||0}%</div>
+                  <div style={{ fontSize:10, color:'var(--ink-4)', marginTop:3 }}>dos carrinhos</div>
                 </div>
               </div>
-              <hr className="fv-sep"/>
-              <div className="fv-val-row">
-                <span className="fv-val-lbl">Total abandonado</span>
-                <span className="fv-val-num">{abd.total||0} sessões</span>
+              <div className="fv-abd-row">
+                <div>
+                  <div style={{ fontSize:11, color:'var(--ink-4)', marginBottom:4 }}>Checkouts abandonados</div>
+                  <div style={{ fontFamily:'var(--display)', fontSize:32, color:'var(--ink)', fontWeight:400, lineHeight:1.1 }}>{abd.checkout_count||0}</div>
+                </div>
+                <div style={{ textAlign:'right' }}>
+                  <div style={{ fontFamily:'var(--display)', fontSize:24, color:'#ef4444', fontWeight:400, lineHeight:1.1 }}>{abd.checkout_rate||0}%</div>
+                  <div style={{ fontSize:10, color:'var(--ink-4)', marginTop:3 }}>dos checkouts iniciados</div>
+                </div>
               </div>
-              <div className="fv-val-row" style={{ marginBottom:0 }}>
-                <span className="fv-val-lbl">Valor perdido estimado</span>
-                <span className="fv-val-num bad">{fBrl(abd.lost_value)}</span>
+              <div style={{ padding:'12px 0 8px' }}>
+                <div style={{ fontSize:9, letterSpacing:'.14em', color:'#ef4444', textTransform:'uppercase', fontWeight:700, marginBottom:4 }}>VALOR POTENCIAL PERDIDO</div>
+                <div style={{ fontFamily:'var(--display)', fontSize:26, color:'var(--ink)', fontWeight:400 }}>{fBrl(abd.lost_value)}</div>
               </div>
               {abd.reasons?.length > 0 && (
                 <React.Fragment>
-                  <div className="fv-motivos-hdr">MOTIVOS PRINCIPAIS</div>
+                  <div style={{ height:1, background:'rgba(255,255,255,.07)', marginBottom:10 }}/>
+                  <div className="fv-motivos-hdr">PRINCIPAIS MOTIVOS DE ABANDONO</div>
                   {abd.reasons.map((r,i) => (
                     <div key={i} className="fv-motivo-row">
                       <div className="fv-motivo-lbl">{r.label}</div>
                       <div className="fv-motivo-bar-bg"><div className="fv-motivo-bar-fill" style={{ width:r.pct+'%' }}/></div>
-                      <div className="fv-motivo-pct">{r.pct}%</div>
+                      <div className="fv-motivo-pct">{r.count ? `${r.count} (${r.pct}%)` : `${r.pct}%`}</div>
                     </div>
                   ))}
+                  <div style={{ fontSize:10, color:'var(--ink-4)', marginTop:8, display:'flex', alignItems:'flex-start', gap:4 }}>
+                    <span style={{ flexShrink:0 }}>ℹ</span> Os motivos acima são identificados com base no comportamento do cliente.
+                  </div>
                 </React.Fragment>
               )}
             </div>
 
             <div className="fv-abd-card">
-              <div className="fv-rec-hdr">RECUPERAÇÃO</div>
+              <div className="fv-rec-hdr">RECUPERAÇÃO (VIA WHATSAPP)</div>
+              <div className="fv-abd-row">
+                <div>
+                  <div style={{ fontSize:11, color:'var(--ink-4)', marginBottom:4 }}>Carrinhos recuperados</div>
+                  <div style={{ fontFamily:'var(--display)', fontSize:32, color:'var(--ink)', fontWeight:400, lineHeight:1.1 }}>{rec.cart_recovered||0}</div>
+                </div>
+                <div style={{ textAlign:'right' }}>
+                  <div style={{ fontFamily:'var(--display)', fontSize:24, color:'#22c55e', fontWeight:400, lineHeight:1.1 }}>{rec.cart_recovery_rate||0}%</div>
+                  <div style={{ fontSize:10, color:'var(--ink-4)', marginTop:3 }}>taxa de recuperação</div>
+                </div>
+              </div>
+              <div className="fv-abd-row">
+                <div>
+                  <div style={{ fontSize:11, color:'var(--ink-4)', marginBottom:4 }}>Checkouts recuperados</div>
+                  <div style={{ fontFamily:'var(--display)', fontSize:32, color:'var(--ink)', fontWeight:400, lineHeight:1.1 }}>{rec.checkout_recovered||0}</div>
+                </div>
+                <div style={{ textAlign:'right' }}>
+                  <div style={{ fontFamily:'var(--display)', fontSize:24, color:'#22c55e', fontWeight:400, lineHeight:1.1 }}>{rec.checkout_recovery_rate||0}%</div>
+                  <div style={{ fontSize:10, color:'var(--ink-4)', marginTop:3 }}>taxa de recuperação</div>
+                </div>
+              </div>
+              <div style={{ padding:'12px 0 8px' }}>
+                <div style={{ fontSize:9, letterSpacing:'.14em', color:'#22c55e', textTransform:'uppercase', fontWeight:700, marginBottom:4 }}>VALOR RECUPERADO</div>
+                <div style={{ fontFamily:'var(--display)', fontSize:26, color:'var(--ink)', fontWeight:400 }}>{fBrl(rec.recovered_value)}</div>
+              </div>
+              <div style={{ height:1, background:'rgba(255,255,255,.07)', marginBottom:12 }}/>
               <div className="fv-mini-stats">
                 <div className="fv-mini-stat">
-                  <div className="fv-mini-lbl">Canal</div>
-                  <div className="fv-mini-val" style={{ fontSize:12 }}>{rec.channel||'—'}</div>
+                  <div className="fv-mini-lbl">CANAL PRINCIPAL</div>
+                  <div className="fv-mini-val" style={{ fontSize:12, color:'#22c55e' }}>{rec.channel||'—'}</div>
                 </div>
                 <div className="fv-mini-stat">
-                  <div className="fv-mini-lbl">Tempo médio</div>
+                  <div className="fv-mini-lbl">TEMPO MÉDIO DE RESPOSTA</div>
                   <div className="fv-mini-val" style={{ fontSize:12 }}>{rec.avg_response_time||'—'}</div>
                 </div>
                 <div className="fv-mini-stat">
-                  <div className="fv-mini-lbl">Conv. pós-contato</div>
+                  <div className="fv-mini-lbl">TAXA DE CONVERSÃO PÓS CONTATO</div>
                   <div className="fv-mini-val">{rec.post_contact_conv_rate!=null?rec.post_contact_conv_rate+'%':'—'}</div>
                 </div>
               </div>
-              <div className="fv-stat-line">
-                <div className="fv-stat-left">
-                  <div className="fv-stat-num">{rec.cart_recovered||0}</div>
-                  <div>
-                    <div className="fv-stat-lbl" style={{ fontSize:10, marginBottom:2 }}>Carrinho</div>
-                    <span className="fv-stat-badge ok">{rec.cart_recovery_rate||0}%</span>
-                  </div>
-                </div>
-                <div className="fv-stat-left">
-                  <div className="fv-stat-num">{rec.checkout_recovered||0}</div>
-                  <div>
-                    <div className="fv-stat-lbl" style={{ fontSize:10, marginBottom:2 }}>Checkout</div>
-                    <span className="fv-stat-badge ok">{rec.checkout_recovery_rate||0}%</span>
-                  </div>
-                </div>
-              </div>
-              <hr className="fv-sep"/>
-              <div className="fv-rec-note">
-                <b>{fBrl(rec.recovered_value)}</b> recuperados em {rec.count||0} sessões via {rec.channel||'contato direto'}.
+              <div style={{ fontSize:10, color:'var(--ink-4)', marginTop:8, display:'flex', alignItems:'flex-start', gap:4 }}>
+                <span style={{ flexShrink:0 }}>ℹ</span> A recuperação é feita automaticamente via WhatsApp.
               </div>
             </div>
           </div>
 
           {/* 5. PRODUCTS */}
+          <div style={{ marginBottom:10 }}>
+            <div style={{ fontSize:11, letterSpacing:'.14em', color:'var(--ink-3)', textTransform:'uppercase', fontWeight:700 }}>PERFORMANCE DE PRODUTOS</div>
+          </div>
           <div className="fv-prod-grid">
             <div className="fv-prod-card">
               <div className="fv-prod-col-hdr amber">MAIS ADICIONADOS AO CARRINHO</div>
               <table className="fv-table">
-                <thead><tr><th>Produto</th><th>Adições</th><th>Conv%</th><th>Abd%</th></tr></thead>
+                <thead><tr><th>PRODUTO</th><th>ADDS</th><th>CONVERSÃO</th><th>ABANDONO</th></tr></thead>
                 <tbody>
                   {(prods.most_added||[]).map((p,i) => (
                     <tr key={i}>
@@ -1103,11 +1141,12 @@ function FunilPage() {
                   ))}
                 </tbody>
               </table>
+              <div style={{ fontSize:11, color:'var(--ink-4)', marginTop:10, cursor:'pointer' }}>Ver todos os produtos →</div>
             </div>
             <div className="fv-prod-card">
-              <div className="fv-prod-col-hdr red">PIOR CONVERSÃO</div>
+              <div className="fv-prod-col-hdr red">PRODUTOS COM PIOR CONVERSÃO</div>
               <table className="fv-table">
-                <thead><tr><th>Produto</th><th>Adições</th><th>Compras</th><th>Conv%</th></tr></thead>
+                <thead><tr><th>PRODUTO</th><th>ADDS</th><th>COMPRAS</th><th>CONVERSÃO</th></tr></thead>
                 <tbody>
                   {(prods.worst_conversion||[]).map((p,i) => (
                     <tr key={i}>
@@ -1119,11 +1158,12 @@ function FunilPage() {
                   ))}
                 </tbody>
               </table>
+              <div style={{ fontSize:11, color:'var(--ink-4)', marginTop:10, cursor:'pointer' }}>Ver todos os produtos →</div>
             </div>
             <div className="fv-prod-card">
               <div className="fv-prod-col-hdr teal">MAIS VISUALIZADOS</div>
               <table className="fv-table">
-                <thead><tr><th>Produto</th><th>Views</th><th>CTR%</th></tr></thead>
+                <thead><tr><th>PRODUTO</th><th>VISUALIZAÇÕES</th><th>CTR (VIEW → ADD)</th></tr></thead>
                 <tbody>
                   {(prods.most_viewed||[]).map((p,i) => (
                     <tr key={i}>
@@ -1134,10 +1174,14 @@ function FunilPage() {
                   ))}
                 </tbody>
               </table>
+              <div style={{ fontSize:11, color:'var(--ink-4)', marginTop:10, cursor:'pointer' }}>Ver todos os produtos →</div>
             </div>
           </div>
 
           {/* 6. INSIGHTS */}
+          <div style={{ marginBottom:10 }}>
+            <div style={{ fontSize:11, letterSpacing:'.14em', color:'var(--ink-3)', textTransform:'uppercase', fontWeight:700 }}>INSIGHTS DO PERÍODO</div>
+          </div>
           <div className="fv-insights-grid">
             {insights.map((ins,i) => (
               <div key={i} className={'fv-ins-card '+(ins.type||'bottleneck')}>
@@ -1147,6 +1191,7 @@ function FunilPage() {
               </div>
             ))}
           </div>
+          <div style={{ fontSize:11, color:'var(--ink-4)', textAlign:'center', paddingTop:4, paddingBottom:8 }}>Os dados são atualizados em tempo real.</div>
 
         </React.Fragment>
       )}

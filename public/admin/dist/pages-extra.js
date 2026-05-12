@@ -1429,7 +1429,7 @@ function FunilPage() {
     className: "card",
     style: {
       marginBottom: 14,
-      padding: '18px 16px',
+      padding: '20px 16px 16px',
       position: 'relative'
     }
   }, isMock && /*#__PURE__*/React.createElement("div", {
@@ -1448,23 +1448,26 @@ function FunilPage() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-step-icon-wrap",
     style: {
-      background: FV_STEP_COLORS[i] + '22'
+      background: FV_STEP_COLORS[i] + '1a'
     }
   }, _fvStepIcon(step.key, FV_STEP_COLORS[i])), /*#__PURE__*/React.createElement("div", {
-    className: "fv-step-lbl"
+    className: "fv-step-lbl",
+    style: {
+      color: FV_STEP_COLORS[i]
+    }
   }, step.label), /*#__PURE__*/React.createElement("div", {
     className: "fv-step-num"
   }, (step.count || 0).toLocaleString('pt-BR')), /*#__PURE__*/React.createElement("div", {
     className: "fv-step-pct-lbl"
-  }, i === 0 ? '100%' : (step.pct_total || 0).toFixed(1) + '%'))), i < steps.length - 1 && /*#__PURE__*/React.createElement("div", {
+  }, i === 0 ? '100% do total' : `${(step.pct_total || 0).toFixed(1)}% dos visitantes`))), i < steps.length - 1 && /*#__PURE__*/React.createElement("div", {
     className: "fv-arrow-wrap"
   }, /*#__PURE__*/React.createElement("svg", {
-    width: "14",
-    height: "14",
+    width: "16",
+    height: "16",
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: "var(--ink-4)",
-    strokeWidth: "2.5",
+    stroke: "rgba(255,255,255,.2)",
+    strokeWidth: "2",
     strokeLinecap: "round",
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("polyline", {
@@ -1475,17 +1478,19 @@ function FunilPage() {
       background: FV_PILL_BG[i],
       color: FV_ADV_COLORS[i]
     }
-  }, advPct(advRates[i]), "%")))))), /*#__PURE__*/React.createElement("div", {
+  }, typeof advRates[i] === 'object' ? advRates[i].label : 'Taxa de avanço', " ", advPct(advRates[i]), "%")))))), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-grid"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-lbl"
-  }, "TAXA DE CONVERS\xC3O"), /*#__PURE__*/React.createElement("div", {
+  }, "TAXA DE CONVERS\xC3O GERAL"), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-val"
   }, (kpis.conv_rate || 0).toFixed(1), "%"), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-meta"
-  }, kpis.conv_orders || 0, " pedidos / ", (kpis.conv_visits || 0).toLocaleString('pt-BR'), " visitas")), /*#__PURE__*/React.createElement("div", {
+  }, kpis.conv_orders || 0, " pedidos / ", (kpis.conv_visits || 0).toLocaleString('pt-BR'), " visitas"), kpis.avg_ticket_delta != null && /*#__PURE__*/React.createElement("span", {
+    className: 'fv-delta-chip ' + (kpis.avg_ticket_delta >= 0 ? 'up' : 'dn')
+  }, kpis.avg_ticket_delta >= 0 ? '↑' : '↓', " ", Math.abs(kpis.avg_ticket_delta), "% vs per\xEDodo anterior")), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-lbl"
@@ -1496,351 +1501,752 @@ function FunilPage() {
     }
   }, fBrl(kpis.avg_ticket)), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-meta"
-  }, "por pedido")), /*#__PURE__*/React.createElement("div", {
+  }, "por pedido"), kpis.avg_ticket_delta != null && /*#__PURE__*/React.createElement("span", {
+    className: 'fv-delta-chip ' + (kpis.avg_ticket_delta >= 0 ? 'up' : 'dn')
+  }, kpis.avg_ticket_delta >= 0 ? '↑' : '↓', " ", Math.abs(kpis.avg_ticket_delta), "% vs per\xEDodo anterior")), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-lbl"
-  }, "RECEITA TOTAL"), /*#__PURE__*/React.createElement("div", {
+  }, "FATURAMENTO"), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-val",
     style: {
       fontSize: 20
     }
   }, fBrl(kpis.total_revenue)), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-meta"
-  }, "no per\xEDodo")), /*#__PURE__*/React.createElement("div", {
+  }, "no per\xEDodo"), kpis.total_revenue_delta != null && /*#__PURE__*/React.createElement("span", {
+    className: 'fv-delta-chip ' + (kpis.total_revenue_delta >= 0 ? 'up' : 'dn')
+  }, kpis.total_revenue_delta >= 0 ? '↑' : '↓', " ", Math.abs(kpis.total_revenue_delta), "% vs per\xEDodo anterior")), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-lbl"
-  }, "TEMPO M\xC9DIO NO FUNIL"), /*#__PURE__*/React.createElement("div", {
+  }, "TEMPO M\xC9DIO DO FUNIL"), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-val",
     style: {
       fontSize: 22
     }
   }, kpis.avg_funnel_time || '—'), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-meta"
-  }, "do acesso ao pagamento")), /*#__PURE__*/React.createElement("div", {
+  }, "do acesso ao pagamento"), kpis.avg_funnel_time_delta != null && /*#__PURE__*/React.createElement("span", {
+    className: 'fv-delta-chip ' + (kpis.avg_funnel_time_delta <= 0 ? 'up' : 'dn')
+  }, kpis.avg_funnel_time_delta <= 0 ? '↓' : '↑', " ", Math.abs(kpis.avg_funnel_time_delta), "% vs per\xEDodo anterior")), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-lbl"
-  }, "TAXA DE APROVA\xC7\xC3O"), /*#__PURE__*/React.createElement("div", {
+  }, "TAXA DE APROVA\xC7\xC3O (PAGAMENTO)"), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-val"
   }, (kpis.approval_rate || 0).toFixed(1), "%"), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-meta"
-  }, "tentativas aprovadas"))), /*#__PURE__*/React.createElement("div", {
+  }, "tentativas aprovadas"), kpis.approval_rate_delta != null && /*#__PURE__*/React.createElement("span", {
+    className: 'fv-delta-chip ' + (kpis.approval_rate_delta >= 0 ? 'up' : 'dn')
+  }, kpis.approval_rate_delta >= 0 ? '↑' : '↓', " ", Math.abs(kpis.approval_rate_delta), "% vs per\xEDodo anterior"))), /*#__PURE__*/React.createElement("div", {
     className: "fv-analysis-grid"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-analysis-card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-analysis-hdr"
-  }, "ORIGEM DE TR\xC1FEGO"), /*#__PURE__*/React.createElement("div", {
-    className: "fv-donut-legend-row"
+  }, "ORIGEM DO TR\xC1FEGO"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-donut-legend-row",
+    style: {
+      marginBottom: 10
+    }
   }, /*#__PURE__*/React.createElement(FunilDonut, {
     segments: mkSegs(src),
-    size: 88,
-    stroke: 11,
+    size: 100,
+    stroke: 13,
     label: src.find(r => !r.isTotal)?.pct + '%',
     sub: src.find(r => !r.isTotal)?.label?.split(' ')[0]
   }), /*#__PURE__*/React.createElement("div", {
-    className: "fv-legend-list"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "fv-legend-item",
     style: {
-      gridTemplateColumns: '1fr 34px 28px 34px 34px',
-      borderBottom: '1px solid rgba(255,255,255,.08)',
-      paddingBottom: 3,
-      marginBottom: 1
+      flex: 1,
+      minWidth: 0
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-hdr-cell",
-    style: {
-      textAlign: 'left'
-    }
-  }, "Origem"), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-hdr-cell"
-  }, "Vis."), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-hdr-cell"
-  }, "%"), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-hdr-cell",
-    style: {
-      color: '#22c55e'
-    }
-  }, "Conv"), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-hdr-cell",
-    style: {
-      color: '#ef4444'
-    }
-  }, "Abd")), src.filter(r => !r.isTotal).map((row, i) => /*#__PURE__*/React.createElement("div", {
+  }, src.filter(r => !r.isTotal).map((row, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
-    className: "fv-legend-item",
-    style: {
-      gridTemplateColumns: '1fr 34px 28px 34px 34px'
-    }
-  }, /*#__PURE__*/React.createElement("span", {
     style: {
       display: 'flex',
       alignItems: 'center',
-      gap: 5
+      gap: 6,
+      padding: '3px 0',
+      borderBottom: '1px solid rgba(255,255,255,.04)'
     }
   }, /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-sq",
     style: {
-      background: row.color
+      width: 8,
+      height: 8,
+      borderRadius: 2,
+      background: row.color,
+      flexShrink: 0,
+      display: 'inline-block'
     }
   }), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-lbl"
-  }, row.label)), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-val"
+    style: {
+      flex: 1,
+      fontSize: 12,
+      color: 'var(--ink-3)',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    }
+  }, row.label), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: 'var(--ink)',
+      fontFamily: 'var(--mono)',
+      flexShrink: 0
+    }
   }, row.count), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-pct"
-  }, row.pct, "%"), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-conv"
-  }, row.conv_rate != null ? row.conv_rate + '%' : '—'), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-bad"
-  }, row.abandon_rate != null ? row.abandon_rate + '%' : '—'))), src.find(r => r.isTotal) && (() => {
+    style: {
+      fontSize: 11,
+      color: 'var(--ink-4)',
+      fontFamily: 'var(--mono)',
+      flexShrink: 0
+    }
+  }, "(", row.pct, "%)"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: 'var(--ink-4)',
+      marginTop: 6
+    }
+  }, "Total de visitas: ", src.find(r => r.isTotal)?.count || 0))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: 'rgba(255,255,255,.07)',
+      margin: '0 0 8px'
+    }
+  }), /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: '100%',
+      borderCollapse: 'collapse',
+      fontSize: 11
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, ['ORIGEM', 'VISITAS', 'CONVERSÃO', 'ABANDONO'].map((h, i) => /*#__PURE__*/React.createElement("th", {
+    key: i,
+    style: {
+      fontSize: 8,
+      letterSpacing: '.1em',
+      color: 'var(--ink-4)',
+      textAlign: i === 0 ? 'left' : 'right',
+      padding: '2px 0 5px',
+      fontWeight: 400,
+      textTransform: 'uppercase',
+      fontFamily: 'var(--mono)'
+    }
+  }, h)))), /*#__PURE__*/React.createElement("tbody", null, src.filter(r => !r.isTotal).map((row, ri) => /*#__PURE__*/React.createElement("tr", {
+    key: ri
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: '4px 0',
+      color: 'var(--ink-3)',
+      borderTop: '1px solid rgba(255,255,255,.04)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 7,
+      height: 7,
+      borderRadius: 1,
+      background: row.color,
+      flexShrink: 0,
+      display: 'inline-block'
+    }
+  }), row.label), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: '4px 0',
+      color: 'var(--ink-3)',
+      borderTop: '1px solid rgba(255,255,255,.04)',
+      textAlign: 'right',
+      fontFamily: 'var(--mono)'
+    }
+  }, row.count), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: '4px 0',
+      borderTop: '1px solid rgba(255,255,255,.04)',
+      textAlign: 'right'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 3,
+      justifyContent: 'flex-end'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      height: 3,
+      width: Math.round((row.conv_rate || 0) / 100 * 32),
+      background: '#22c55e',
+      borderRadius: 999,
+      display: 'inline-block'
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: '#22c55e',
+      fontFamily: 'var(--mono)'
+    }
+  }, row.conv_rate != null ? row.conv_rate + '%' : '—'))), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: '4px 0',
+      borderTop: '1px solid rgba(255,255,255,.04)',
+      textAlign: 'right'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 3,
+      justifyContent: 'flex-end'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      height: 3,
+      width: Math.round((row.abandon_rate || 0) / 100 * 32),
+      background: '#ef4444',
+      borderRadius: 999,
+      display: 'inline-block'
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: '#ef4444',
+      fontFamily: 'var(--mono)'
+    }
+  }, row.abandon_rate != null ? row.abandon_rate + '%' : '—'))))), src.find(r => r.isTotal) && (() => {
     const t = src.find(r => r.isTotal);
-    return /*#__PURE__*/React.createElement("div", {
-      className: "fv-analysis-total",
+    return /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
       style: {
-        gridTemplateColumns: '1fr 34px 28px 34px 34px'
+        padding: '5px 0 2px',
+        fontWeight: 600,
+        color: 'var(--ink)',
+        borderTop: '1px solid rgba(255,255,255,.12)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4
       }
-    }, /*#__PURE__*/React.createElement("span", null, "Total"), /*#__PURE__*/React.createElement("span", {
+    }, "Total"), /*#__PURE__*/React.createElement("td", {
       style: {
+        padding: '5px 0 2px',
+        fontWeight: 600,
+        color: 'var(--ink)',
+        borderTop: '1px solid rgba(255,255,255,.12)',
         textAlign: 'right',
         fontFamily: 'var(--mono)'
       }
-    }, t.count), /*#__PURE__*/React.createElement("span", {
+    }, t.count), /*#__PURE__*/React.createElement("td", {
       style: {
+        padding: '5px 0 2px',
+        fontWeight: 600,
+        color: '#22c55e',
+        borderTop: '1px solid rgba(255,255,255,.12)',
         textAlign: 'right',
         fontFamily: 'var(--mono)'
       }
-    }, "100%"), /*#__PURE__*/React.createElement("span", {
-      className: "fv-legend-conv"
-    }, t.conv_rate != null ? t.conv_rate + '%' : '—'), /*#__PURE__*/React.createElement("span", {
-      className: "fv-legend-bad"
+    }, t.conv_rate != null ? t.conv_rate + '%' : '—'), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: '5px 0 2px',
+        fontWeight: 600,
+        color: '#ef4444',
+        borderTop: '1px solid rgba(255,255,255,.12)',
+        textAlign: 'right',
+        fontFamily: 'var(--mono)'
+      }
     }, t.abandon_rate != null ? t.abandon_rate + '%' : '—'));
   })()))), /*#__PURE__*/React.createElement("div", {
     className: "fv-analysis-card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-analysis-hdr"
-  }, "DISPOSITIVOS"), /*#__PURE__*/React.createElement("div", {
-    className: "fv-donut-legend-row"
+  }, "DESEMPENHO POR DISPOSITIVO"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-donut-legend-row",
+    style: {
+      marginBottom: 10
+    }
   }, /*#__PURE__*/React.createElement(FunilDonut, {
     segments: mkSegs(devs),
-    size: 88,
-    stroke: 11,
+    size: 100,
+    stroke: 13,
     label: devs.find(r => !r.isTotal)?.pct + '%',
     sub: devs.find(r => !r.isTotal)?.label
   }), /*#__PURE__*/React.createElement("div", {
-    className: "fv-legend-list"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "fv-legend-item",
     style: {
-      gridTemplateColumns: '1fr 34px 28px 34px 34px',
-      borderBottom: '1px solid rgba(255,255,255,.08)',
-      paddingBottom: 3,
-      marginBottom: 1
+      flex: 1,
+      minWidth: 0
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-hdr-cell",
-    style: {
-      textAlign: 'left'
-    }
-  }, "Disp."), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-hdr-cell"
-  }, "Vis."), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-hdr-cell"
-  }, "%"), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-hdr-cell",
-    style: {
-      color: '#22c55e'
-    }
-  }, "Conv"), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-hdr-cell",
-    style: {
-      color: '#ef4444'
-    }
-  }, "Abd")), devs.filter(r => !r.isTotal).map((row, i) => /*#__PURE__*/React.createElement("div", {
+  }, devs.filter(r => !r.isTotal).map((row, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
-    className: "fv-legend-item",
-    style: {
-      gridTemplateColumns: '1fr 34px 28px 34px 34px'
-    }
-  }, /*#__PURE__*/React.createElement("span", {
     style: {
       display: 'flex',
       alignItems: 'center',
-      gap: 5
+      gap: 6,
+      padding: '3px 0',
+      borderBottom: '1px solid rgba(255,255,255,.04)'
     }
   }, /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-sq",
     style: {
-      background: row.color
+      width: 8,
+      height: 8,
+      borderRadius: 2,
+      background: row.color,
+      flexShrink: 0,
+      display: 'inline-block'
     }
   }), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-lbl"
-  }, row.label)), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-val"
+    style: {
+      flex: 1,
+      fontSize: 12,
+      color: 'var(--ink-3)',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    }
+  }, row.label), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: 'var(--ink)',
+      fontFamily: 'var(--mono)',
+      flexShrink: 0
+    }
   }, row.count), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-pct"
-  }, row.pct, "%"), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-conv"
-  }, row.conv_rate != null ? row.conv_rate + '%' : '—'), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-bad"
-  }, row.abandon_rate != null ? row.abandon_rate + '%' : '—'))), devs.find(r => r.isTotal) && (() => {
+    style: {
+      fontSize: 11,
+      color: 'var(--ink-4)',
+      fontFamily: 'var(--mono)',
+      flexShrink: 0
+    }
+  }, "(", row.pct, "%)"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: 'var(--ink-4)',
+      marginTop: 6
+    }
+  }, "Total de visitas: ", devs.find(r => r.isTotal)?.count || 0))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: 'rgba(255,255,255,.07)',
+      margin: '0 0 8px'
+    }
+  }), /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: '100%',
+      borderCollapse: 'collapse',
+      fontSize: 11
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, ['DISPOSITIVO', 'VISITAS', 'CONVERSÃO', 'ABANDONO'].map((h, i) => /*#__PURE__*/React.createElement("th", {
+    key: i,
+    style: {
+      fontSize: 8,
+      letterSpacing: '.1em',
+      color: 'var(--ink-4)',
+      textAlign: i === 0 ? 'left' : 'right',
+      padding: '2px 0 5px',
+      fontWeight: 400,
+      textTransform: 'uppercase',
+      fontFamily: 'var(--mono)'
+    }
+  }, h)))), /*#__PURE__*/React.createElement("tbody", null, devs.filter(r => !r.isTotal).map((row, ri) => /*#__PURE__*/React.createElement("tr", {
+    key: ri
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: '4px 0',
+      color: 'var(--ink-3)',
+      borderTop: '1px solid rgba(255,255,255,.04)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 7,
+      height: 7,
+      borderRadius: 1,
+      background: row.color,
+      flexShrink: 0,
+      display: 'inline-block'
+    }
+  }), row.label), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: '4px 0',
+      color: 'var(--ink-3)',
+      borderTop: '1px solid rgba(255,255,255,.04)',
+      textAlign: 'right',
+      fontFamily: 'var(--mono)'
+    }
+  }, row.count), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: '4px 0',
+      borderTop: '1px solid rgba(255,255,255,.04)',
+      textAlign: 'right'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 3,
+      justifyContent: 'flex-end'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      height: 3,
+      width: Math.round((row.conv_rate || 0) / 100 * 32),
+      background: '#22c55e',
+      borderRadius: 999,
+      display: 'inline-block'
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: '#22c55e',
+      fontFamily: 'var(--mono)'
+    }
+  }, row.conv_rate != null ? row.conv_rate + '%' : '—'))), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: '4px 0',
+      borderTop: '1px solid rgba(255,255,255,.04)',
+      textAlign: 'right'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 3,
+      justifyContent: 'flex-end'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      height: 3,
+      width: Math.round((row.abandon_rate || 0) / 100 * 32),
+      background: '#ef4444',
+      borderRadius: 999,
+      display: 'inline-block'
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: '#ef4444',
+      fontFamily: 'var(--mono)'
+    }
+  }, row.abandon_rate != null ? row.abandon_rate + '%' : '—'))))), devs.find(r => r.isTotal) && (() => {
     const t = devs.find(r => r.isTotal);
-    return /*#__PURE__*/React.createElement("div", {
-      className: "fv-analysis-total",
+    return /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
       style: {
-        gridTemplateColumns: '1fr 34px 28px 34px 34px'
+        padding: '5px 0 2px',
+        fontWeight: 600,
+        color: 'var(--ink)',
+        borderTop: '1px solid rgba(255,255,255,.12)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4
       }
-    }, /*#__PURE__*/React.createElement("span", null, "Total"), /*#__PURE__*/React.createElement("span", {
+    }, "Total"), /*#__PURE__*/React.createElement("td", {
       style: {
+        padding: '5px 0 2px',
+        fontWeight: 600,
+        color: 'var(--ink)',
+        borderTop: '1px solid rgba(255,255,255,.12)',
         textAlign: 'right',
         fontFamily: 'var(--mono)'
       }
-    }, t.count), /*#__PURE__*/React.createElement("span", {
+    }, t.count), /*#__PURE__*/React.createElement("td", {
       style: {
+        padding: '5px 0 2px',
+        fontWeight: 600,
+        color: '#22c55e',
+        borderTop: '1px solid rgba(255,255,255,.12)',
         textAlign: 'right',
         fontFamily: 'var(--mono)'
       }
-    }, "100%"), /*#__PURE__*/React.createElement("span", {
-      className: "fv-legend-conv"
-    }, t.conv_rate != null ? t.conv_rate + '%' : '—'), /*#__PURE__*/React.createElement("span", {
-      className: "fv-legend-bad"
+    }, t.conv_rate != null ? t.conv_rate + '%' : '—'), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: '5px 0 2px',
+        fontWeight: 600,
+        color: '#ef4444',
+        borderTop: '1px solid rgba(255,255,255,.12)',
+        textAlign: 'right',
+        fontFamily: 'var(--mono)'
+      }
     }, t.abandon_rate != null ? t.abandon_rate + '%' : '—'));
   })()))), /*#__PURE__*/React.createElement("div", {
     className: "fv-analysis-card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-analysis-hdr"
-  }, "M\xC9TODOS DE PAGAMENTO"), /*#__PURE__*/React.createElement("div", {
-    className: "fv-donut-legend-row"
+  }, "FORMAS DE PAGAMENTO"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-donut-legend-row",
+    style: {
+      marginBottom: 10
+    }
   }, /*#__PURE__*/React.createElement(FunilDonut, {
     segments: mkSegs(pms),
-    size: 88,
-    stroke: 11,
+    size: 100,
+    stroke: 13,
     label: pms.find(r => !r.isTotal)?.pct + '%',
     sub: pms.find(r => !r.isTotal)?.label
   }), /*#__PURE__*/React.createElement("div", {
-    className: "fv-legend-list"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "fv-legend-item",
     style: {
-      gridTemplateColumns: '1fr 32px 28px 40px',
-      borderBottom: '1px solid rgba(255,255,255,.08)',
-      paddingBottom: 3,
-      marginBottom: 1
+      flex: 1,
+      minWidth: 0
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-hdr-cell",
-    style: {
-      textAlign: 'left'
-    }
-  }, "M\xE9todo"), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-hdr-cell"
-  }, "Tent."), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-hdr-cell"
-  }, "%"), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-hdr-cell",
-    style: {
-      color: '#22c55e'
-    }
-  }, "Aprov.")), pms.filter(r => !r.isTotal).map((row, i) => /*#__PURE__*/React.createElement("div", {
+  }, pms.filter(r => !r.isTotal).map((row, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
-    className: "fv-legend-item",
-    style: {
-      gridTemplateColumns: '1fr 32px 28px 40px'
-    }
-  }, /*#__PURE__*/React.createElement("span", {
     style: {
       display: 'flex',
       alignItems: 'center',
-      gap: 5
+      gap: 6,
+      padding: '3px 0',
+      borderBottom: '1px solid rgba(255,255,255,.04)'
     }
   }, /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-sq",
     style: {
-      background: row.color
+      width: 8,
+      height: 8,
+      borderRadius: 2,
+      background: row.color,
+      flexShrink: 0,
+      display: 'inline-block'
     }
   }), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-lbl"
-  }, row.label)), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-val"
-  }, row.attempts ?? row.count ?? 0), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-pct"
-  }, row.pct, "%"), /*#__PURE__*/React.createElement("span", {
-    className: "fv-legend-conv"
-  }, row.approval_rate != null ? row.approval_rate + '%' : '—'))), pms.find(r => r.isTotal) && (() => {
+    style: {
+      flex: 1,
+      fontSize: 12,
+      color: 'var(--ink-3)',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    }
+  }, row.label), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: 'var(--ink)',
+      fontFamily: 'var(--mono)',
+      flexShrink: 0
+    }
+  }, row.attempts ?? 0), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: 'var(--ink-4)',
+      fontFamily: 'var(--mono)',
+      flexShrink: 0
+    }
+  }, "(", row.pct, "%)"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: 'var(--ink-4)',
+      marginTop: 6
+    }
+  }, "Total de pagamentos: ", pms.find(r => r.isTotal)?.attempts || 0, "*"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: 'rgba(255,255,255,.07)',
+      margin: '0 0 8px'
+    }
+  }), /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: '100%',
+      borderCollapse: 'collapse',
+      fontSize: 11
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, ['MÉTODO', 'TENTATIVAS', 'APROVAÇÃO', 'APROVADO'].map((h, i) => /*#__PURE__*/React.createElement("th", {
+    key: i,
+    style: {
+      fontSize: 8,
+      letterSpacing: '.1em',
+      color: 'var(--ink-4)',
+      textAlign: i === 0 ? 'left' : 'right',
+      padding: '2px 0 5px',
+      fontWeight: 400,
+      textTransform: 'uppercase',
+      fontFamily: 'var(--mono)'
+    }
+  }, h)))), /*#__PURE__*/React.createElement("tbody", null, pms.filter(r => !r.isTotal).map((row, ri) => /*#__PURE__*/React.createElement("tr", {
+    key: ri
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: '4px 0',
+      color: 'var(--ink-3)',
+      borderTop: '1px solid rgba(255,255,255,.04)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 7,
+      height: 7,
+      borderRadius: 1,
+      background: row.color,
+      flexShrink: 0,
+      display: 'inline-block'
+    }
+  }), row.label), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: '4px 0',
+      color: 'var(--ink-3)',
+      borderTop: '1px solid rgba(255,255,255,.04)',
+      textAlign: 'right',
+      fontFamily: 'var(--mono)'
+    }
+  }, row.attempts ?? 0), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: '4px 0',
+      color: '#22c55e',
+      borderTop: '1px solid rgba(255,255,255,.04)',
+      textAlign: 'right',
+      fontFamily: 'var(--mono)'
+    }
+  }, row.approval_rate != null ? row.approval_rate + '%' : '—'), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: '4px 0',
+      color: 'var(--ink-3)',
+      borderTop: '1px solid rgba(255,255,255,.04)',
+      textAlign: 'right',
+      fontFamily: 'var(--mono)'
+    }
+  }, row.approved ?? 0))), pms.find(r => r.isTotal) && (() => {
     const t = pms.find(r => r.isTotal);
-    return /*#__PURE__*/React.createElement("div", {
-      className: "fv-analysis-total",
+    return /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
       style: {
-        gridTemplateColumns: '1fr 32px 28px 40px'
+        padding: '5px 0 2px',
+        fontWeight: 600,
+        color: 'var(--ink)',
+        borderTop: '1px solid rgba(255,255,255,.12)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4
       }
-    }, /*#__PURE__*/React.createElement("span", null, "Total"), /*#__PURE__*/React.createElement("span", {
+    }, "Total"), /*#__PURE__*/React.createElement("td", {
       style: {
+        padding: '5px 0 2px',
+        fontWeight: 600,
+        color: 'var(--ink)',
+        borderTop: '1px solid rgba(255,255,255,.12)',
         textAlign: 'right',
         fontFamily: 'var(--mono)'
       }
-    }, t.attempts ?? t.count ?? 0), /*#__PURE__*/React.createElement("span", {
+    }, t.attempts ?? 0), /*#__PURE__*/React.createElement("td", {
       style: {
+        padding: '5px 0 2px',
+        fontWeight: 600,
+        color: '#22c55e',
+        borderTop: '1px solid rgba(255,255,255,.12)',
         textAlign: 'right',
         fontFamily: 'var(--mono)'
       }
-    }, "100%"), /*#__PURE__*/React.createElement("span", {
-      className: "fv-legend-conv"
-    }, t.approval_rate != null ? t.approval_rate + '%' : '—'));
-  })())))), /*#__PURE__*/React.createElement("div", {
+    }, t.approval_rate != null ? t.approval_rate + '%' : '—'), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: '5px 0 2px',
+        fontWeight: 600,
+        color: 'var(--ink)',
+        borderTop: '1px solid rgba(255,255,255,.12)',
+        textAlign: 'right',
+        fontFamily: 'var(--mono)'
+      }
+    }, t.approved ?? 0));
+  })())), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: 'var(--ink-4)',
+      marginTop: 4
+    }
+  }, "*Inclui tentativas."))), /*#__PURE__*/React.createElement("div", {
     className: "fv-abd-rec-grid"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-abd-card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-abd-hdr"
   }, "ABANDONO"), /*#__PURE__*/React.createElement("div", {
-    className: "fv-stat-line"
+    className: "fv-abd-row"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--ink-4)',
+      marginBottom: 4
+    }
+  }, "Carrinhos abandonados"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'var(--display)',
+      fontSize: 32,
+      color: 'var(--ink)',
+      fontWeight: 400,
+      lineHeight: 1.1
+    }
+  }, abd.cart_count || 0)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'right'
+    }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "fv-stat-left"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "fv-stat-num"
-  }, abd.cart_count || 0), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "fv-stat-lbl",
+    style: {
+      fontFamily: 'var(--display)',
+      fontSize: 24,
+      color: '#ef4444',
+      fontWeight: 400,
+      lineHeight: 1.1
+    }
+  }, abd.cart_rate || 0, "%"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 10,
-      marginBottom: 2
+      color: 'var(--ink-4)',
+      marginTop: 3
     }
-  }, "Carrinho"), /*#__PURE__*/React.createElement("span", {
-    className: "fv-stat-badge bad"
-  }, abd.cart_rate || 0, "%"))), /*#__PURE__*/React.createElement("div", {
-    className: "fv-stat-left"
+  }, "dos carrinhos"))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-abd-row"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--ink-4)',
+      marginBottom: 4
+    }
+  }, "Checkouts abandonados"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'var(--display)',
+      fontSize: 32,
+      color: 'var(--ink)',
+      fontWeight: 400,
+      lineHeight: 1.1
+    }
+  }, abd.checkout_count || 0)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'right'
+    }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "fv-stat-num"
-  }, abd.checkout_count || 0), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "fv-stat-lbl",
+    style: {
+      fontFamily: 'var(--display)',
+      fontSize: 24,
+      color: '#ef4444',
+      fontWeight: 400,
+      lineHeight: 1.1
+    }
+  }, abd.checkout_rate || 0, "%"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 10,
-      marginBottom: 2
+      color: 'var(--ink-4)',
+      marginTop: 3
     }
-  }, "Checkout"), /*#__PURE__*/React.createElement("span", {
-    className: "fv-stat-badge bad"
-  }, abd.checkout_rate || 0, "%")))), /*#__PURE__*/React.createElement("hr", {
-    className: "fv-sep"
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "fv-val-row"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "fv-val-lbl"
-  }, "Total abandonado"), /*#__PURE__*/React.createElement("span", {
-    className: "fv-val-num"
-  }, abd.total || 0, " sess\xF5es")), /*#__PURE__*/React.createElement("div", {
-    className: "fv-val-row",
+  }, "dos checkouts iniciados"))), /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 0
+      padding: '12px 0 8px'
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "fv-val-lbl"
-  }, "Valor perdido estimado"), /*#__PURE__*/React.createElement("span", {
-    className: "fv-val-num bad"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: '.14em',
+      color: '#ef4444',
+      textTransform: 'uppercase',
+      fontWeight: 700,
+      marginBottom: 4
+    }
+  }, "VALOR POTENCIAL PERDIDO"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'var(--display)',
+      fontSize: 26,
+      color: 'var(--ink)',
+      fontWeight: 400
+    }
   }, fBrl(abd.lost_value))), abd.reasons?.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: 'rgba(255,255,255,.07)',
+      marginBottom: 10
+    }
+  }), /*#__PURE__*/React.createElement("div", {
     className: "fv-motivos-hdr"
-  }, "MOTIVOS PRINCIPAIS"), abd.reasons.map((r, i) => /*#__PURE__*/React.createElement("div", {
+  }, "PRINCIPAIS MOTIVOS DE ABANDONO"), abd.reasons.map((r, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     className: "fv-motivo-row"
   }, /*#__PURE__*/React.createElement("div", {
@@ -1854,26 +2260,134 @@ function FunilPage() {
     }
   })), /*#__PURE__*/React.createElement("div", {
     className: "fv-motivo-pct"
-  }, r.pct, "%"))))), /*#__PURE__*/React.createElement("div", {
+  }, r.count ? `${r.count} (${r.pct}%)` : `${r.pct}%`))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: 'var(--ink-4)',
+      marginTop: 8,
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flexShrink: 0
+    }
+  }, "\u2139"), " Os motivos acima s\xE3o identificados com base no comportamento do cliente."))), /*#__PURE__*/React.createElement("div", {
     className: "fv-abd-card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-rec-hdr"
-  }, "RECUPERA\xC7\xC3O"), /*#__PURE__*/React.createElement("div", {
+  }, "RECUPERA\xC7\xC3O (VIA WHATSAPP)"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-abd-row"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--ink-4)',
+      marginBottom: 4
+    }
+  }, "Carrinhos recuperados"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'var(--display)',
+      fontSize: 32,
+      color: 'var(--ink)',
+      fontWeight: 400,
+      lineHeight: 1.1
+    }
+  }, rec.cart_recovered || 0)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'right'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'var(--display)',
+      fontSize: 24,
+      color: '#22c55e',
+      fontWeight: 400,
+      lineHeight: 1.1
+    }
+  }, rec.cart_recovery_rate || 0, "%"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: 'var(--ink-4)',
+      marginTop: 3
+    }
+  }, "taxa de recupera\xE7\xE3o"))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-abd-row"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--ink-4)',
+      marginBottom: 4
+    }
+  }, "Checkouts recuperados"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'var(--display)',
+      fontSize: 32,
+      color: 'var(--ink)',
+      fontWeight: 400,
+      lineHeight: 1.1
+    }
+  }, rec.checkout_recovered || 0)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'right'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'var(--display)',
+      fontSize: 24,
+      color: '#22c55e',
+      fontWeight: 400,
+      lineHeight: 1.1
+    }
+  }, rec.checkout_recovery_rate || 0, "%"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: 'var(--ink-4)',
+      marginTop: 3
+    }
+  }, "taxa de recupera\xE7\xE3o"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '12px 0 8px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: '.14em',
+      color: '#22c55e',
+      textTransform: 'uppercase',
+      fontWeight: 700,
+      marginBottom: 4
+    }
+  }, "VALOR RECUPERADO"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'var(--display)',
+      fontSize: 26,
+      color: 'var(--ink)',
+      fontWeight: 400
+    }
+  }, fBrl(rec.recovered_value))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: 'rgba(255,255,255,.07)',
+      marginBottom: 12
+    }
+  }), /*#__PURE__*/React.createElement("div", {
     className: "fv-mini-stats"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-mini-stat"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-mini-lbl"
-  }, "Canal"), /*#__PURE__*/React.createElement("div", {
+  }, "CANAL PRINCIPAL"), /*#__PURE__*/React.createElement("div", {
     className: "fv-mini-val",
     style: {
-      fontSize: 12
+      fontSize: 12,
+      color: '#22c55e'
     }
   }, rec.channel || '—')), /*#__PURE__*/React.createElement("div", {
     className: "fv-mini-stat"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-mini-lbl"
-  }, "Tempo m\xE9dio"), /*#__PURE__*/React.createElement("div", {
+  }, "TEMPO M\xC9DIO DE RESPOSTA"), /*#__PURE__*/React.createElement("div", {
     className: "fv-mini-val",
     style: {
       fontSize: 12
@@ -1882,39 +2396,34 @@ function FunilPage() {
     className: "fv-mini-stat"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-mini-lbl"
-  }, "Conv. p\xF3s-contato"), /*#__PURE__*/React.createElement("div", {
+  }, "TAXA DE CONVERS\xC3O P\xD3S CONTATO"), /*#__PURE__*/React.createElement("div", {
     className: "fv-mini-val"
   }, rec.post_contact_conv_rate != null ? rec.post_contact_conv_rate + '%' : '—'))), /*#__PURE__*/React.createElement("div", {
-    className: "fv-stat-line"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "fv-stat-left"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "fv-stat-num"
-  }, rec.cart_recovered || 0), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "fv-stat-lbl",
     style: {
       fontSize: 10,
-      marginBottom: 2
+      color: 'var(--ink-4)',
+      marginTop: 8,
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: 4
     }
-  }, "Carrinho"), /*#__PURE__*/React.createElement("span", {
-    className: "fv-stat-badge ok"
-  }, rec.cart_recovery_rate || 0, "%"))), /*#__PURE__*/React.createElement("div", {
-    className: "fv-stat-left"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "fv-stat-num"
-  }, rec.checkout_recovered || 0), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "fv-stat-lbl",
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 10,
-      marginBottom: 2
+      flexShrink: 0
     }
-  }, "Checkout"), /*#__PURE__*/React.createElement("span", {
-    className: "fv-stat-badge ok"
-  }, rec.checkout_recovery_rate || 0, "%")))), /*#__PURE__*/React.createElement("hr", {
-    className: "fv-sep"
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "fv-rec-note"
-  }, /*#__PURE__*/React.createElement("b", null, fBrl(rec.recovered_value)), " recuperados em ", rec.count || 0, " sess\xF5es via ", rec.channel || 'contato direto', "."))), /*#__PURE__*/React.createElement("div", {
+  }, "\u2139"), " A recupera\xE7\xE3o \xE9 feita automaticamente via WhatsApp."))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      letterSpacing: '.14em',
+      color: 'var(--ink-3)',
+      textTransform: 'uppercase',
+      fontWeight: 700
+    }
+  }, "PERFORMANCE DE PRODUTOS")), /*#__PURE__*/React.createElement("div", {
     className: "fv-prod-grid"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-prod-card"
@@ -1922,7 +2431,7 @@ function FunilPage() {
     className: "fv-prod-col-hdr amber"
   }, "MAIS ADICIONADOS AO CARRINHO"), /*#__PURE__*/React.createElement("table", {
     className: "fv-table"
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Produto"), /*#__PURE__*/React.createElement("th", null, "Adi\xE7\xF5es"), /*#__PURE__*/React.createElement("th", null, "Conv%"), /*#__PURE__*/React.createElement("th", null, "Abd%"))), /*#__PURE__*/React.createElement("tbody", null, (prods.most_added || []).map((p, i) => /*#__PURE__*/React.createElement("tr", {
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "PRODUTO"), /*#__PURE__*/React.createElement("th", null, "ADDS"), /*#__PURE__*/React.createElement("th", null, "CONVERS\xC3O"), /*#__PURE__*/React.createElement("th", null, "ABANDONO"))), /*#__PURE__*/React.createElement("tbody", null, (prods.most_added || []).map((p, i) => /*#__PURE__*/React.createElement("tr", {
     key: i
   }, /*#__PURE__*/React.createElement("td", null, p.name), /*#__PURE__*/React.createElement("td", {
     className: "fv-num-val"
@@ -1930,13 +2439,20 @@ function FunilPage() {
     className: "fv-conv-val"
   }, p.conv, "%"), /*#__PURE__*/React.createElement("td", {
     className: "fv-bad-val"
-  }, p.abandon, "%")))))), /*#__PURE__*/React.createElement("div", {
+  }, p.abandon, "%"))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--ink-4)',
+      marginTop: 10,
+      cursor: 'pointer'
+    }
+  }, "Ver todos os produtos \u2192")), /*#__PURE__*/React.createElement("div", {
     className: "fv-prod-card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-prod-col-hdr red"
-  }, "PIOR CONVERS\xC3O"), /*#__PURE__*/React.createElement("table", {
+  }, "PRODUTOS COM PIOR CONVERS\xC3O"), /*#__PURE__*/React.createElement("table", {
     className: "fv-table"
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Produto"), /*#__PURE__*/React.createElement("th", null, "Adi\xE7\xF5es"), /*#__PURE__*/React.createElement("th", null, "Compras"), /*#__PURE__*/React.createElement("th", null, "Conv%"))), /*#__PURE__*/React.createElement("tbody", null, (prods.worst_conversion || []).map((p, i) => /*#__PURE__*/React.createElement("tr", {
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "PRODUTO"), /*#__PURE__*/React.createElement("th", null, "ADDS"), /*#__PURE__*/React.createElement("th", null, "COMPRAS"), /*#__PURE__*/React.createElement("th", null, "CONVERS\xC3O"))), /*#__PURE__*/React.createElement("tbody", null, (prods.worst_conversion || []).map((p, i) => /*#__PURE__*/React.createElement("tr", {
     key: i
   }, /*#__PURE__*/React.createElement("td", null, p.name), /*#__PURE__*/React.createElement("td", {
     className: "fv-num-val"
@@ -1944,19 +2460,45 @@ function FunilPage() {
     className: "fv-num-val"
   }, p.purchases), /*#__PURE__*/React.createElement("td", {
     className: "fv-bad-val"
-  }, p.conv, "%")))))), /*#__PURE__*/React.createElement("div", {
+  }, p.conv, "%"))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--ink-4)',
+      marginTop: 10,
+      cursor: 'pointer'
+    }
+  }, "Ver todos os produtos \u2192")), /*#__PURE__*/React.createElement("div", {
     className: "fv-prod-card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-prod-col-hdr teal"
   }, "MAIS VISUALIZADOS"), /*#__PURE__*/React.createElement("table", {
     className: "fv-table"
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Produto"), /*#__PURE__*/React.createElement("th", null, "Views"), /*#__PURE__*/React.createElement("th", null, "CTR%"))), /*#__PURE__*/React.createElement("tbody", null, (prods.most_viewed || []).map((p, i) => /*#__PURE__*/React.createElement("tr", {
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "PRODUTO"), /*#__PURE__*/React.createElement("th", null, "VISUALIZA\xC7\xD5ES"), /*#__PURE__*/React.createElement("th", null, "CTR (VIEW \u2192 ADD)"))), /*#__PURE__*/React.createElement("tbody", null, (prods.most_viewed || []).map((p, i) => /*#__PURE__*/React.createElement("tr", {
     key: i
   }, /*#__PURE__*/React.createElement("td", null, p.name), /*#__PURE__*/React.createElement("td", {
     className: "fv-num-val"
   }, p.views), /*#__PURE__*/React.createElement("td", {
     className: "fv-conv-val"
-  }, p.ctr, "%"))))))), /*#__PURE__*/React.createElement("div", {
+  }, p.ctr, "%"))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--ink-4)',
+      marginTop: 10,
+      cursor: 'pointer'
+    }
+  }, "Ver todos os produtos \u2192"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      letterSpacing: '.14em',
+      color: 'var(--ink-3)',
+      textTransform: 'uppercase',
+      fontWeight: 700
+    }
+  }, "INSIGHTS DO PER\xCDODO")), /*#__PURE__*/React.createElement("div", {
     className: "fv-insights-grid"
   }, insights.map((ins, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
@@ -1967,7 +2509,15 @@ function FunilPage() {
     className: "fv-ins-heading"
   }, ins.heading || ins.title), /*#__PURE__*/React.createElement("div", {
     className: "fv-ins-body"
-  }, ins.body))))));
+  }, ins.body)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--ink-4)',
+      textAlign: 'center',
+      paddingTop: 4,
+      paddingBottom: 8
+    }
+  }, "Os dados s\xE3o atualizados em tempo real.")));
 }
 
 /* ========== PAINEL DE PAGAMENTOS ========== */
