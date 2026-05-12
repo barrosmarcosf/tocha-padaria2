@@ -102,6 +102,22 @@ const NEXT_LABEL_MAP = {
   preparo: 'Pronto',
   retirada: 'Concluído'
 };
+const PREV_STATUS_MAP = {
+  preparo: 'aceito'
+};
+const PREV_LABEL_MAP = {
+  preparo: '← Voltar'
+};
+const BULK_NEXT_MAP = {
+  aceitos: 'preparo',
+  preparo: 'retirada',
+  retirada: 'concluido'
+};
+const BULK_NEXT_LABEL = {
+  aceitos: 'Preparar selecionados',
+  preparo: 'Marcar prontos',
+  retirada: 'Concluir selecionados'
+};
 function PageHead({
   title,
   badge,
@@ -770,7 +786,9 @@ function FilaPage() {
   const [orders, setOrders] = useStP([]);
   const [loading, setLoading] = useStP(true);
   const [config, setConfig] = useStP(null);
+  const [selected, setSelected] = useStP(new Set());
   const advancing = React.useRef(new Set());
+  const bulking = React.useRef(false);
   const load = useCbP(() => {
     setLoading(true);
     Promise.all([window.apiGet('/api/admin/pedidos?tzOffset=180'), window.apiGet('/api/admin/config')]).then(([ords, cfg]) => {
@@ -781,6 +799,9 @@ function FilaPage() {
   useEffP(() => {
     load();
   }, [load]);
+  useEffP(() => {
+    setSelected(new Set());
+  }, [tab]);
   const currentBakeDate = config?.currentBatch?.bakeDate;
   const badgeLabel = currentBakeDate ? `FORNADA ${fmtDate(currentBakeDate + 'T12:00:00')}` : 'FORNADA';
   const grouped = {
@@ -813,7 +834,51 @@ function FilaPage() {
       status: nextStatus
     }).then(() => handleStatusChange(o.id, nextStatus)).catch(err => alert('Erro: ' + err.message)).finally(() => advancing.current.delete(o.id));
   };
+  const revert = (e, o) => {
+    e.stopPropagation();
+    if (advancing.current.has(o.id)) return;
+    const g = STATUS_GROUP_MAP[(o.status || '').toLowerCase()];
+    const prevStatus = PREV_STATUS_MAP[g];
+    if (!prevStatus) return;
+    advancing.current.add(o.id);
+    window.apiPost('/api/admin/update-order-status', {
+      id: o.id,
+      status: prevStatus
+    }).then(() => handleStatusChange(o.id, prevStatus)).catch(err => alert('Erro: ' + err.message)).finally(() => advancing.current.delete(o.id));
+  };
+  const toggleSelect = id => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);else next.add(id);
+      return next;
+    });
+  };
   const currentOrders = grouped[tab] || [];
+  const selectAll = () => {
+    setSelected(prev => prev.size === currentOrders.length ? new Set() : new Set(currentOrders.map(o => o.id)));
+  };
+  const handleBulkAdvance = () => {
+    if (bulking.current || selected.size === 0) return;
+    const nextStatus = BULK_NEXT_MAP[tab];
+    if (!nextStatus) return;
+    const count = selected.size;
+    if (!confirm(`Mover ${count} pedido${count !== 1 ? 's' : ''} para "${NEXT_LABEL_MAP[tab]}"?`)) return;
+    bulking.current = true;
+    const ids = [...selected];
+    window.apiPost('/api/admin/bulk-update-status', {
+      ids,
+      status: nextStatus
+    }).then(() => {
+      setOrders(prev => prev.map(o => ids.includes(o.id) ? {
+        ...o,
+        status: nextStatus
+      } : o));
+      setSelected(new Set());
+    }).catch(err => alert('Erro: ' + err.message)).finally(() => {
+      bulking.current = false;
+    });
+  };
+  const hasBulk = !!BULK_NEXT_MAP[tab];
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement(PageHead, {
@@ -828,6 +893,12 @@ function FilaPage() {
       marginBottom: 18
     }
   }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     className: "tabs"
   }, tabs.map(([k, l, count]) => /*#__PURE__*/React.createElement("button", {
     key: k,
@@ -835,12 +906,35 @@ function FilaPage() {
     onClick: () => setTab(k)
   }, l, " ", count > 0 && /*#__PURE__*/React.createElement("span", {
     className: "tab-count"
-  }, count)))), /*#__PURE__*/React.createElement("div", {
+  }, count)))), hasBulk && currentOrders.length > 0 && /*#__PURE__*/React.createElement("label", {
     style: {
       display: 'flex',
-      gap: 8
+      alignItems: 'center',
+      gap: 6,
+      cursor: 'pointer',
+      fontSize: 13,
+      color: 'var(--ink-3)',
+      userSelect: 'none'
     }
-  }, /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: selected.size > 0 && selected.size === currentOrders.length,
+    onChange: selectAll,
+    onClick: e => e.stopPropagation()
+  }), selected.size > 0 ? `${selected.size} selecionado${selected.size !== 1 ? 's' : ''}` : 'Selecionar todos')), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      alignItems: 'center'
+    }
+  }, hasBulk && selected.size > 0 && /*#__PURE__*/React.createElement("button", {
+    className: "btn-primary",
+    style: {
+      padding: '6px 12px',
+      fontSize: 12
+    },
+    onClick: handleBulkAdvance
+  }, BULK_NEXT_LABEL[tab], " (", selected.size, ")"), /*#__PURE__*/React.createElement("button", {
     className: "btn-ghost",
     style: {
       padding: '6px 12px',
@@ -865,6 +959,7 @@ function FilaPage() {
     const timeStr = dt ? `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}` : '—';
     const dateStr = dt ? fmtDate(o.created_at) : '—';
     const hasNext = !!NEXT_STATUS_MAP[tab];
+    const hasPrev = !!PREV_STATUS_MAP[tab];
     return /*#__PURE__*/React.createElement("div", {
       key: o.id || i,
       className: "order-card",
@@ -879,8 +974,10 @@ function FilaPage() {
         alignItems: 'center',
         gap: 8
       }
-    }, /*#__PURE__*/React.createElement("input", {
+    }, hasBulk && /*#__PURE__*/React.createElement("input", {
       type: "checkbox",
+      checked: selected.has(o.id),
+      onChange: () => toggleSelect(o.id),
       onClick: e => e.stopPropagation()
     }), /*#__PURE__*/React.createElement("span", {
       className: "tag"
@@ -912,14 +1009,26 @@ function FilaPage() {
         fontWeight: 500,
         fontSize: 16
       }
-    }, brl(total))), hasNext && /*#__PURE__*/React.createElement("button", {
+    }, brl(total))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 6
+      }
+    }, hasPrev && /*#__PURE__*/React.createElement("button", {
+      className: "btn-secondary",
+      style: {
+        padding: '6px 10px',
+        fontSize: 11
+      },
+      onClick: e => revert(e, o)
+    }, PREV_LABEL_MAP[tab]), hasNext && /*#__PURE__*/React.createElement("button", {
       className: "btn-primary",
       style: {
         padding: '6px 12px',
         fontSize: 12
       },
       onClick: e => advance(e, o)
-    }, NEXT_LABEL_MAP[tab])));
+    }, NEXT_LABEL_MAP[tab]))));
   })), open && /*#__PURE__*/React.createElement(OrderModal, {
     order: open,
     variant: "fila",

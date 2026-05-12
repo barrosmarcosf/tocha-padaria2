@@ -86,6 +86,10 @@ const STATUS_GROUP_MAP = {
 
 const NEXT_STATUS_MAP = { aceitos: 'preparo', preparo: 'retirada', retirada: 'concluido' };
 const NEXT_LABEL_MAP  = { aceitos: 'Preparar', preparo: 'Pronto', retirada: 'Concluído' };
+const PREV_STATUS_MAP = { preparo: 'aceito' };
+const PREV_LABEL_MAP  = { preparo: '← Voltar' };
+const BULK_NEXT_MAP   = { aceitos: 'preparo', preparo: 'retirada', retirada: 'concluido' };
+const BULK_NEXT_LABEL = { aceitos: 'Preparar selecionados', preparo: 'Marcar prontos', retirada: 'Concluir selecionados' };
 
 function PageHead({ title, badge, subtitle, right }) {
   return (
@@ -496,7 +500,9 @@ function FilaPage() {
   const [orders, setOrders] = useStP([]);
   const [loading, setLoading] = useStP(true);
   const [config, setConfig] = useStP(null);
+  const [selected, setSelected] = useStP(new Set());
   const advancing = React.useRef(new Set());
+  const bulking = React.useRef(false);
 
   const load = useCbP(() => {
     setLoading(true);
@@ -510,6 +516,7 @@ function FilaPage() {
   }, []);
 
   useEffP(() => { load(); }, [load]);
+  useEffP(() => { setSelected(new Set()); }, [tab]);
 
   const currentBakeDate = config?.currentBatch?.bakeDate;
   const badgeLabel = currentBakeDate ? `FORNADA ${fmtDate(currentBakeDate + 'T12:00:00')}` : 'FORNADA';
@@ -545,7 +552,51 @@ function FilaPage() {
       .finally(() => advancing.current.delete(o.id));
   };
 
+  const revert = (e, o) => {
+    e.stopPropagation();
+    if (advancing.current.has(o.id)) return;
+    const g = STATUS_GROUP_MAP[(o.status || '').toLowerCase()];
+    const prevStatus = PREV_STATUS_MAP[g];
+    if (!prevStatus) return;
+    advancing.current.add(o.id);
+    window.apiPost('/api/admin/update-order-status', { id: o.id, status: prevStatus })
+      .then(() => handleStatusChange(o.id, prevStatus))
+      .catch(err => alert('Erro: ' + err.message))
+      .finally(() => advancing.current.delete(o.id));
+  };
+
+  const toggleSelect = (id) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   const currentOrders = grouped[tab] || [];
+
+  const selectAll = () => {
+    setSelected(prev => prev.size === currentOrders.length ? new Set() : new Set(currentOrders.map(o => o.id)));
+  };
+
+  const handleBulkAdvance = () => {
+    if (bulking.current || selected.size === 0) return;
+    const nextStatus = BULK_NEXT_MAP[tab];
+    if (!nextStatus) return;
+    const count = selected.size;
+    if (!confirm(`Mover ${count} pedido${count !== 1 ? 's' : ''} para "${NEXT_LABEL_MAP[tab]}"?`)) return;
+    bulking.current = true;
+    const ids = [...selected];
+    window.apiPost('/api/admin/bulk-update-status', { ids, status: nextStatus })
+      .then(() => {
+        setOrders(prev => prev.map(o => ids.includes(o.id) ? { ...o, status: nextStatus } : o));
+        setSelected(new Set());
+      })
+      .catch(err => alert('Erro: ' + err.message))
+      .finally(() => { bulking.current = false; });
+  };
+
+  const hasBulk = !!BULK_NEXT_MAP[tab];
 
   return (
     <div className="page">
@@ -556,14 +607,32 @@ function FilaPage() {
       />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-        <div className="tabs">
-          {tabs.map(([k, l, count]) => (
-            <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
-              {l} {count > 0 && <span className="tab-count">{count}</span>}
-            </button>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div className="tabs">
+            {tabs.map(([k, l, count]) => (
+              <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
+                {l} {count > 0 && <span className="tab-count">{count}</span>}
+              </button>
+            ))}
+          </div>
+          {hasBulk && currentOrders.length > 0 && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13, color: 'var(--ink-3)', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={selected.size > 0 && selected.size === currentOrders.length}
+                onChange={selectAll}
+                onClick={e => e.stopPropagation()}
+              />
+              {selected.size > 0 ? `${selected.size} selecionado${selected.size !== 1 ? 's' : ''}` : 'Selecionar todos'}
+            </label>
+          )}
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {hasBulk && selected.size > 0 && (
+            <button className="btn-primary" style={{ padding: '6px 12px', fontSize: 12 }} onClick={handleBulkAdvance}>
+              {BULK_NEXT_LABEL[tab]} ({selected.size})
+            </button>
+          )}
           <button className="btn-ghost" style={{ padding: '6px 12px', fontSize: 12 }} onClick={load}>↻ Atualizar</button>
         </div>
       </div>
@@ -582,12 +651,20 @@ function FilaPage() {
             const timeStr = dt ? `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}` : '—';
             const dateStr = dt ? fmtDate(o.created_at) : '—';
             const hasNext = !!NEXT_STATUS_MAP[tab];
+            const hasPrev = !!PREV_STATUS_MAP[tab];
             return (
               <div key={o.id || i} className="order-card" onClick={() => setOpen(o)}>
                 <div className="order-card-strip"/>
                 <div className="order-card-head">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input type="checkbox" onClick={e => e.stopPropagation()}/>
+                    {hasBulk && (
+                      <input
+                        type="checkbox"
+                        checked={selected.has(o.id)}
+                        onChange={() => toggleSelect(o.id)}
+                        onClick={e => e.stopPropagation()}
+                      />
+                    )}
                     <span className="tag">{orderId(o)}</span>
                   </div>
                   <span className="tag up">{tagLabel}</span>
@@ -604,15 +681,26 @@ function FilaPage() {
                     <small style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ink-4)' }}>Total gasto</small>
                     <b style={{ display: 'block', color: 'var(--gold)', fontWeight: 500, fontSize: 16 }}>{brl(total)}</b>
                   </div>
-                  {hasNext && (
-                    <button
-                      className="btn-primary"
-                      style={{ padding: '6px 12px', fontSize: 12 }}
-                      onClick={e => advance(e, o)}
-                    >
-                      {NEXT_LABEL_MAP[tab]}
-                    </button>
-                  )}
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {hasPrev && (
+                      <button
+                        className="btn-secondary"
+                        style={{ padding: '6px 10px', fontSize: 11 }}
+                        onClick={e => revert(e, o)}
+                      >
+                        {PREV_LABEL_MAP[tab]}
+                      </button>
+                    )}
+                    {hasNext && (
+                      <button
+                        className="btn-primary"
+                        style={{ padding: '6px 12px', fontSize: 12 }}
+                        onClick={e => advance(e, o)}
+                      >
+                        {NEXT_LABEL_MAP[tab]}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );

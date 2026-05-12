@@ -811,15 +811,21 @@ module.exports = function (supabase) {
             const now = new Date();
             const localNow = new Date(now.getTime() - offsetMs);
             const opStart = new Date(localNow);
-            if (localNow.getHours() < 5) opStart.setDate(localNow.getDate() - 1);
+            // Use < 8 so concluídos from the previous cycle remain visible until 08:00 Brazil
+            if (localNow.getHours() < 8) opStart.setDate(localNow.getDate() - 1);
             opStart.setHours(5, 0, 0, 0);
-            
+
             const utcOpStart = new Date(opStart.getTime() + offsetMs).toISOString();
+
+            const FILA_STATUSES = ['paid', 'pago', 'aceito', 'preparo', 'retirada', 'pronto',
+                'concluido', 'concluído', 'finalizado', 'entregue', 'delivered', 'completed',
+                'cancelado', 'cancelled', 'payment_failed', 'error'];
 
             const { data, error } = await supabase
                 .from('pedidos')
                 .select('*, clientes(*)')
                 .gte('created_at', utcOpStart)
+                .in('status', FILA_STATUSES)
                 .order('created_at', { ascending: false });
             if (error) throw error;
             const normalized = normalizeOrderCustomers(data);
@@ -861,6 +867,53 @@ module.exports = function (supabase) {
             const { error } = await supabase.from('pedidos').update({ status }).eq('id', id);
             if (error) throw error;
             res.json({ success: true });
+            // Async WA notification when order moves to "retirada" (pronto p/ retirada)
+            if (status === 'retirada') {
+                (async () => {
+                    try {
+                        const { data: order } = await supabase.from('pedidos').select('*, clientes(*)').eq('id', id).single();
+                        if (!order?.clientes?.whatsapp) return;
+                        const name = order.clientes.name || 'Cliente';
+                        const phone = String(order.clientes.whatsapp).replace(/\D/g, '');
+                        const msg = `🍞 *${name}, seu pedido está pronto!*\n\nSeu pedido já está pronto para retirada.\n\n📍 *Retirada*\nAv. Presidente Kennedy, 627 — Vila Jurandir\n(Em frente à Tetraforma)\n\nObrigado por escolher a Padaria! 🤍`;
+                        await sendWhatsAppMessage(phone, msg);
+                    } catch (e) {
+                        console.warn('[WA-PRONTO] Falha ao notificar cliente:', e.message);
+                    }
+                })();
+            }
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    router.post('/bulk-update-status', adminAuth, async (req, res) => {
+        try {
+            const { ids, status } = req.body;
+            if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'ids obrigatório' });
+            if (!status) return res.status(400).json({ error: 'status obrigatório' });
+            const { error } = await supabase.from('pedidos').update({ status }).in('id', ids);
+            if (error) throw error;
+            res.json({ success: true, updated: ids.length });
+            // Async WA notifications for all orders moving to "retirada"
+            if (status === 'retirada') {
+                (async () => {
+                    try {
+                        const { data: orders } = await supabase.from('pedidos').select('*, clientes(*)').in('id', ids);
+                        for (const order of (orders || [])) {
+                            if (!order?.clientes?.whatsapp) continue;
+                            try {
+                                const name = order.clientes.name || 'Cliente';
+                                const phone = String(order.clientes.whatsapp).replace(/\D/g, '');
+                                const msg = `🍞 *${name}, seu pedido está pronto!*\n\nSeu pedido já está pronto para retirada.\n\n📍 *Retirada*\nAv. Presidente Kennedy, 627 — Vila Jurandir\n(Em frente à Tetraforma)\n\nObrigado por escolher a Padaria! 🤍`;
+                                await sendWhatsAppMessage(phone, msg);
+                            } catch (e) {
+                                console.warn('[WA-PRONTO-BULK] Falha ao notificar:', order.id, e.message);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[WA-PRONTO-BULK] Erro geral:', e.message);
+                    }
+                })();
+            }
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
