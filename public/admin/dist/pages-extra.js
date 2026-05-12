@@ -929,15 +929,21 @@ function FunilPage() {
     checkout: 0,
     success: 0
   };
-  const payments = data?.payments || {
-    total: 0,
-    success: 0,
-    failed: 0,
-    pending: 0,
-    approval_rate: 0
+  const recovery = data?.recovery || {
+    recovered_carts: 0,
+    recovered_checkouts: 0,
+    cart_abandoned: 0,
+    checkout_abandoned: 0
   };
-  const avgConvMin = data?.metrics?.avg_conversion_min ?? null;
+  const payOrigin = data?.pay_origin || [];
+  const avgConvMs = data?.metrics?.avg_conversion_ms ?? null;
   const pct = (v, base) => base > 0 ? (v / base * 100).toFixed(1) : '0.0';
+  const fmtTime = ms => {
+    if (ms === null) return 'Sem dados';
+    const m = Math.floor(ms / 60000);
+    const s = Math.round(ms % 60000 / 1000);
+    return `${m}m ${s.toString().padStart(2, '0')}s`;
+  };
   const FUNIL = [{
     label: 'VISITANTES',
     v: funnel.visitors,
@@ -959,13 +965,11 @@ function FunilPage() {
     pct: parseFloat(pct(funnel.success, funnel.visitors)),
     tone: 'c2'
   }];
-  const abandoned = Math.max(0, funnel.add_to_cart - funnel.success);
+  const abandoned = recovery.cart_abandoned;
   const abandonedPct = pct(abandoned, funnel.add_to_cart);
-  const checkAbandoned = Math.max(0, funnel.checkout - funnel.success);
+  const checkAbandoned = recovery.checkout_abandoned;
   const checkAbandonedPct = pct(checkAbandoned, funnel.checkout);
-  const pixRev = 0;
-  const creditRev = 0;
-  const debitRev = 0;
+  const maxOriginPct = payOrigin.length > 0 ? Math.max(...payOrigin.map(r => r.pct), 1) : 1;
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement(PH, {
@@ -1014,48 +1018,41 @@ function FunilPage() {
     className: "card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-title"
-  }, "PAGAMENTOS"), /*#__PURE__*/React.createElement("div", {
+  }, "RECUPERA\xC7\xC3O"), /*#__PURE__*/React.createElement("div", {
     className: "abandon-row up"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Aprovados"), /*#__PURE__*/React.createElement("small", null, payments.approval_rate, "% de aprova\xE7\xE3o")), /*#__PURE__*/React.createElement("b", {
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Carrinhos recuperados"), /*#__PURE__*/React.createElement("small", null, pct(recovery.recovered_carts, abandoned), "% dos abandonados")), /*#__PURE__*/React.createElement("b", {
     className: "abandon-v"
-  }, payments.success)), /*#__PURE__*/React.createElement("div", {
-    className: "abandon-row down"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Reprovados"), /*#__PURE__*/React.createElement("small", null, "Falhas de pagamento")), /*#__PURE__*/React.createElement("b", {
+  }, recovery.recovered_carts)), /*#__PURE__*/React.createElement("div", {
+    className: "abandon-row up"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Checkouts recuperados"), /*#__PURE__*/React.createElement("small", null, pct(recovery.recovered_checkouts, checkAbandoned), "% dos abandonados")), /*#__PURE__*/React.createElement("b", {
     className: "abandon-v"
-  }, payments.failed)), /*#__PURE__*/React.createElement("div", {
-    className: "abandon-row",
-    style: {
-      borderTop: '1px solid var(--border)',
-      marginTop: 10,
-      paddingTop: 10
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Tempo m\xE9dio de convers\xE3o"), /*#__PURE__*/React.createElement("small", null, "checkout \u2192 pagamento")), /*#__PURE__*/React.createElement("b", {
-    className: "abandon-v",
-    style: {
-      color: avgConvMin !== null ? 'var(--ink)' : 'var(--ink-4)'
-    }
-  }, avgConvMin !== null ? `${avgConvMin}m` : '—')))), /*#__PURE__*/React.createElement("div", {
+  }, recovery.recovered_checkouts)))), /*#__PURE__*/React.createElement("div", {
     className: "grid row-2 mt"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-title"
-  }, "EFICI\xCANCIA"), /*#__PURE__*/React.createElement("div", {
-    className: "abandon-row"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Convers\xE3o checkout\u2192pag."), /*#__PURE__*/React.createElement("small", null, "sess\xF5es que completaram")), /*#__PURE__*/React.createElement("b", {
-    className: "abandon-v"
-  }, pct(funnel.success, funnel.checkout), "%")), /*#__PURE__*/React.createElement("div", {
-    className: "abandon-row"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Convers\xE3o visita\u2192pag."), /*#__PURE__*/React.createElement("small", null, "visitantes que compraram")), /*#__PURE__*/React.createElement("b", {
-    className: "abandon-v"
-  }, pct(funnel.success, funnel.visitors), "%")), /*#__PURE__*/React.createElement("div", {
-    className: "abandon-row"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Tempo m\xE9dio"), /*#__PURE__*/React.createElement("small", null, "checkout \u2192 pagamento")), /*#__PURE__*/React.createElement("b", {
-    className: "abandon-v",
+  }, "ORIGEM DO PAGAMENTO"), payOrigin.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
-      color: avgConvMin !== null ? 'var(--ink)' : 'var(--ink-4)'
+      color: 'var(--ink-4)',
+      fontSize: 13,
+      padding: '12px 0'
     }
-  }, avgConvMin !== null ? `${avgConvMin}m` : 'Sem dados'))), /*#__PURE__*/React.createElement("div", {
+  }, "Sem dados de pagamento dispon\xEDveis.") : payOrigin.map((r, i) => /*#__PURE__*/React.createElement("div", {
+    className: "origin-row",
+    key: i
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "origin-lbl"
+  }, r.l), /*#__PURE__*/React.createElement("div", {
+    className: "origin-bar"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "origin-fill",
+    style: {
+      width: `${Math.round(r.pct / maxOriginPct * 100)}%`
+    }
+  })), /*#__PURE__*/React.createElement("span", {
+    className: "origin-v"
+  }, /*#__PURE__*/React.createElement("b", null, r.v), " pedidos ", /*#__PURE__*/React.createElement("span", null, r.pct, "%"))))), /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       display: 'flex',
@@ -1076,19 +1073,19 @@ function FunilPage() {
     style: {
       margin: 0
     }
-  }, "TAXA DE APROVA\xC7\xC3O"), /*#__PURE__*/React.createElement("b", {
+  }, "TEMPO M\xC9DIO DE CONVERS\xC3O"), /*#__PURE__*/React.createElement("b", {
     style: {
       fontFamily: 'var(--display)',
       fontSize: 40,
       fontWeight: 400,
-      color: 'var(--ink)',
+      color: avgConvMs !== null ? 'var(--ink)' : 'var(--ink-4)',
       margin: '8px 0'
     }
-  }, payments.approval_rate, "%"), /*#__PURE__*/React.createElement("small", {
+  }, fmtTime(avgConvMs)), /*#__PURE__*/React.createElement("small", {
     style: {
       color: 'var(--ink-4)'
     }
-  }, "total de ", payments.total, " transa\xE7\xF5es")))));
+  }, "do carrinho ao pagamento")))));
 }
 
 /* ========== PAINEL DE PAGAMENTOS ========== */
