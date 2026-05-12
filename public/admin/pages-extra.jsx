@@ -822,10 +822,15 @@ function FunilPage() {
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:20, gap:16, flexWrap:'wrap' }}>
         <PH title="Funil de Vendas" subtitle="Acompanhe todo o caminho do cliente até a conversão."/>
         <div style={{ display:'flex', alignItems:'center', gap:8, paddingTop:8 }}>
-          <div className="fv-period-row">
-            {[7,14,30,90].map(d2 => <button key={d2} className={'fv-period-btn'+(days===d2?' on':'')} onClick={()=>setDays(d2)}>{d2}d</button>)}
+          <div className="fv-datepicker-btn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#aaaaaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>01/05/2025 – 31/05/2025</span>
           </div>
-          <span className="fv-realtime">Tempo real</span>
+          <div className="fv-filter-btn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#aaaaaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            <span>Filtros</span>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#aaaaaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
         </div>
       </div>
 
@@ -855,6 +860,17 @@ function FunilPage() {
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaaaaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="9 18 15 12 9 6"/>
                       </svg>
+                    </div>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+            <div className="fv-pills-row">
+              {steps.map((step, i) => (
+                <React.Fragment key={'pill-'+step.key}>
+                  <div className="fv-pill-step-spacer"/>
+                  {i < steps.length-1 && (
+                    <div className="fv-pill-arrow-slot">
                       <div className="fv-adv-pill" style={{ background:FV_PILL_BG[i], color:FV_ADV_COLORS[i], border:'1px solid '+FV_ADV_COLORS[i] }}>
                         {typeof advRates[i]==='object' ? advRates[i].label : 'Taxa de avanço'} {(+advPct(advRates[i])).toFixed(1).replace('.',',')}%
                       </div>
@@ -867,11 +883,21 @@ function FunilPage() {
 
           {/* 2. KPIs */}
           <div className="fv-kpi-grid">
-            <div className="fv-kpi-card">
+            <div className="fv-kpi-card" style={{ position:'relative' }}>
               <div className="fv-kpi-lbl">TAXA DE CONVERSÃO GERAL</div>
               <div className="fv-kpi-val">{(+(kpis.conv_rate||0)).toFixed(1).replace('.',',')}%</div>
               <div className="fv-kpi-meta">{kpis.conv_orders||0} pedidos / {(kpis.conv_visits||0).toLocaleString('pt-BR')} visitas</div>
               {kpis.avg_ticket_delta != null && <span className={'fv-delta-chip '+(kpis.avg_ticket_delta>=0?'up':'dn')}>{kpis.avg_ticket_delta>=0?'↑':'↓'} {Math.abs(kpis.avg_ticket_delta).toFixed(1).replace('.',',')}% vs período anterior</span>}
+              <svg width="64" height="28" viewBox="0 0 64 28" fill="none" style={{ position:'absolute', top:16, right:16, opacity:.85 }}>
+                <defs>
+                  <linearGradient id="fv-spark-g" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#00c853" stopOpacity=".35"/>
+                    <stop offset="100%" stopColor="#00c853" stopOpacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path d="M0 22 C8 20 14 18 20 16 C26 14 32 10 40 7 C48 4 56 3 64 1 L64 28 L0 28 Z" fill="url(#fv-spark-g)"/>
+                <path d="M0 22 C8 20 14 18 20 16 C26 14 32 10 40 7 C48 4 56 3 64 1" stroke="#00c853" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
             <div className="fv-kpi-card">
               <div className="fv-kpi-lbl">TICKET MÉDIO</div>
@@ -1226,8 +1252,8 @@ function FunilPage() {
                     <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
                   </svg>
                 )}
-                {ins.type === 'product' && ins.image && (
-                  <img src={ins.image} alt="" style={{ position:'absolute', right:0, bottom:0, width:88, height:88, objectFit:'cover', borderRadius:'0 0 10px 0', opacity:.88 }}/>
+                {ins.type === 'product' && (
+                  <img src={ins.image||'/assets/foodservice1.png'} alt="" style={{ position:'absolute', right:0, bottom:0, width:88, height:88, objectFit:'cover', borderRadius:'0 0 10px 0', opacity:.88 }}/>
                 )}
                 {ins.type === 'opportunity' && (
                   <div style={{ position:'absolute', bottom:14, right:14, width:56, height:56, borderRadius:'50%', background:'#25D366', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 14px rgba(37,211,102,.4)' }}>

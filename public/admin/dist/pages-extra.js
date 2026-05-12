@@ -1414,14 +1414,72 @@ function FunilPage() {
       paddingTop: 8
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "fv-period-row"
-  }, [7, 14, 30, 90].map(d2 => /*#__PURE__*/React.createElement("button", {
-    key: d2,
-    className: 'fv-period-btn' + (days === d2 ? ' on' : ''),
-    onClick: () => setDays(d2)
-  }, d2, "d"))), /*#__PURE__*/React.createElement("span", {
-    className: "fv-realtime"
-  }, "Tempo real"))), loading ? /*#__PURE__*/React.createElement("div", {
+    className: "fv-datepicker-btn"
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "13",
+    height: "13",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#aaaaaa",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    style: {
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: "3",
+    y: "4",
+    width: "18",
+    height: "18",
+    rx: "2",
+    ry: "2"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "16",
+    y1: "2",
+    x2: "16",
+    y2: "6"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "8",
+    y1: "2",
+    x2: "8",
+    y2: "6"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "3",
+    y1: "10",
+    x2: "21",
+    y2: "10"
+  })), /*#__PURE__*/React.createElement("span", null, "01/05/2025 \u2013 31/05/2025")), /*#__PURE__*/React.createElement("div", {
+    className: "fv-filter-btn"
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "13",
+    height: "13",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#aaaaaa",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    style: {
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("polygon", {
+    points: "22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"
+  })), /*#__PURE__*/React.createElement("span", null, "Filtros"), /*#__PURE__*/React.createElement("svg", {
+    width: "11",
+    height: "11",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#aaaaaa",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    style: {
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: "6 9 12 15 18 9"
+  }))))), loading ? /*#__PURE__*/React.createElement("div", {
     className: "empty-state",
     style: {
       height: 200
@@ -1471,7 +1529,15 @@ function FunilPage() {
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("polyline", {
     points: "9 18 15 12 9 6"
-  })), /*#__PURE__*/React.createElement("div", {
+  })))))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-pills-row"
+  }, steps.map((step, i) => /*#__PURE__*/React.createElement(React.Fragment, {
+    key: 'pill-' + step.key
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-pill-step-spacer"
+  }), i < steps.length - 1 && /*#__PURE__*/React.createElement("div", {
+    className: "fv-pill-arrow-slot"
+  }, /*#__PURE__*/React.createElement("div", {
     className: "fv-adv-pill",
     style: {
       background: FV_PILL_BG[i],
@@ -1481,7 +1547,10 @@ function FunilPage() {
   }, typeof advRates[i] === 'object' ? advRates[i].label : 'Taxa de avanço', " ", (+advPct(advRates[i])).toFixed(1).replace('.', ','), "%")))))), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-grid"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "fv-kpi-card"
+    className: "fv-kpi-card",
+    style: {
+      position: 'relative'
+    }
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-lbl"
   }, "TAXA DE CONVERS\xC3O GERAL"), /*#__PURE__*/React.createElement("div", {
@@ -1490,7 +1559,41 @@ function FunilPage() {
     className: "fv-kpi-meta"
   }, kpis.conv_orders || 0, " pedidos / ", (kpis.conv_visits || 0).toLocaleString('pt-BR'), " visitas"), kpis.avg_ticket_delta != null && /*#__PURE__*/React.createElement("span", {
     className: 'fv-delta-chip ' + (kpis.avg_ticket_delta >= 0 ? 'up' : 'dn')
-  }, kpis.avg_ticket_delta >= 0 ? '↑' : '↓', " ", Math.abs(kpis.avg_ticket_delta).toFixed(1).replace('.', ','), "% vs per\xEDodo anterior")), /*#__PURE__*/React.createElement("div", {
+  }, kpis.avg_ticket_delta >= 0 ? '↑' : '↓', " ", Math.abs(kpis.avg_ticket_delta).toFixed(1).replace('.', ','), "% vs per\xEDodo anterior"), /*#__PURE__*/React.createElement("svg", {
+    width: "64",
+    height: "28",
+    viewBox: "0 0 64 28",
+    fill: "none",
+    style: {
+      position: 'absolute',
+      top: 16,
+      right: 16,
+      opacity: .85
+    }
+  }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+    id: "fv-spark-g",
+    x1: "0",
+    y1: "0",
+    x2: "0",
+    y2: "1"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0%",
+    stopColor: "#00c853",
+    stopOpacity: ".35"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "100%",
+    stopColor: "#00c853",
+    stopOpacity: "0"
+  }))), /*#__PURE__*/React.createElement("path", {
+    d: "M0 22 C8 20 14 18 20 16 C26 14 32 10 40 7 C48 4 56 3 64 1 L64 28 L0 28 Z",
+    fill: "url(#fv-spark-g)"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M0 22 C8 20 14 18 20 16 C26 14 32 10 40 7 C48 4 56 3 64 1",
+    stroke: "#00c853",
+    strokeWidth: "1.5",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }))), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-lbl"
@@ -2638,8 +2741,8 @@ function FunilPage() {
     y2: "12"
   }), /*#__PURE__*/React.createElement("polyline", {
     points: "12 5 19 12 12 19"
-  })), ins.type === 'product' && ins.image && /*#__PURE__*/React.createElement("img", {
-    src: ins.image,
+  })), ins.type === 'product' && /*#__PURE__*/React.createElement("img", {
+    src: ins.image || '/assets/foodservice1.png',
     alt: "",
     style: {
       position: 'absolute',
