@@ -217,7 +217,7 @@
   /* ═══════════════════════════════════════════
      HOW IT WORKS — 2-column grid, altura uniforme
      ═══════════════════════════════════════════ */
-  #como-funciona { padding: 48px 0 40px; }
+  #como-funciona { padding: 48px 0 40px; scroll-margin-top: 48px; }
   .how-header { margin-bottom: 24px; }
   .how-h2 { font-size: 28px; margin-bottom: 10px; }
   .how-desc { font-size: 13px; line-height: 1.55; }
@@ -276,7 +276,7 @@
   /* ═══════════════════════════════════════════
      MENU SECTION
      ═══════════════════════════════════════════ */
-  #menu { padding: 48px 0 56px; scroll-margin-top: 88px; }
+  #menu { padding: 48px 0 56px; scroll-margin-top: 48px; }
   .menu-header {
     margin-bottom: 20px;
     flex-direction: row;
@@ -411,7 +411,7 @@
   /* ═══════════════════════════════════════════
      FOODSERVICE
      ═══════════════════════════════════════════ */
-  #foodservice { padding: 48px 0; }
+  #foodservice { padding: 48px 0; scroll-margin-top: 48px; }
   .fs-img-grid { max-width: 100%; aspect-ratio: auto; }
   .fs-h2 { font-size: 28px; letter-spacing: 0; }
   .fs-desc { font-size: 13px; margin-bottom: 20px; line-height: 1.65; }
