@@ -1098,14 +1098,14 @@ function FunilPage() {
 /* ========== PAINEL DE PAGAMENTOS ========== */
 function PagtoPainelPage() {
   const [health, setHealth] = useStX(null);
-  const [metrics, setMetrics] = useStX(null);
+  const [analytics, setAnalytics] = useStX(null);
   const [loading, setLoading] = useStX(true);
   useEffX(() => {
     let mounted = true;
-    Promise.all([window.apiGet('/api/admin/payments-health'), window.apiGet('/api/admin/metrics')]).then(([h, m]) => {
+    Promise.all([window.apiGet('/api/admin/payments-health'), window.apiGet('/api/admin/payment-analytics?days=30')]).then(([h, a]) => {
       if (!mounted) return;
       setHealth(h);
-      setMetrics(m);
+      setAnalytics(a);
     }).catch(() => {}).finally(() => {
       if (mounted) setLoading(false);
     });
@@ -1113,46 +1113,38 @@ function PagtoPainelPage() {
       mounted = false;
     };
   }, []);
-  const pay = metrics?.payments || {
-    total: 0,
-    success: 0,
-    failed: 0,
-    pending: 0,
-    approval_rate: 0
-  };
   const h = health || {
     pending: 0,
     paid: 0,
     failed: 0,
+    refunded: 0,
     stale_locks: 0,
     fila_reprocessamento: 0
   };
-  const motivos = [{
-    l: 'Saldo insuficiente',
-    n: 0,
-    p: 0
-  }, {
-    l: 'Cartão expirado',
-    n: 0,
-    p: 0
-  }, {
-    l: 'Dados inválidos',
-    n: 0,
-    p: 0
-  }, {
-    l: 'Limite excedido',
-    n: 0,
-    p: 0
-  }, {
-    l: 'Outros',
-    n: pay.failed,
-    p: 100
-  }].filter(m => m.n > 0 || pay.failed > 0 && m.l === 'Outros');
+  const s = analytics?.summary || {
+    total: 0,
+    paid: 0,
+    pending: 0,
+    failed: 0,
+    refunded: 0,
+    chargebacks: 0,
+    recovered: 0,
+    approval_rate: 0,
+    refund_rate: 0
+  };
+  const motivos = analytics?.rejection_reasons || [];
+  const methods = analytics?.method_split || [];
+  const failures = analytics?.recent_failures || [];
+  const REFUND_LABEL = {
+    refunded: 'Reembolsado',
+    partially_refunded: 'Parcial',
+    chargeback: 'Chargeback'
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement(PH, {
     title: "Painel de Pagamentos",
-    subtitle: "Vis\xE3o geral de aprova\xE7\xF5es, rejei\xE7\xF5es e estornos."
+    subtitle: "Vis\xE3o consolidada de aprova\xE7\xF5es, rejei\xE7\xF5es, estornos e retentativas \u2014 PIX + Cr\xE9dito + D\xE9bito."
   }), loading ? /*#__PURE__*/React.createElement("div", {
     className: "empty-state",
     style: {
@@ -1166,43 +1158,100 @@ function PagtoPainelPage() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "pay-stat k-up"
-  }, /*#__PURE__*/React.createElement("small", null, "APROVADOS"), /*#__PURE__*/React.createElement("b", null, h.paid), /*#__PURE__*/React.createElement("span", null, pay.approval_rate, "% do total")), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "APROVADOS"), /*#__PURE__*/React.createElement("b", null, h.paid), /*#__PURE__*/React.createElement("span", null, s.approval_rate, "% do total")), /*#__PURE__*/React.createElement("div", {
     className: "pay-stat k-warn"
   }, /*#__PURE__*/React.createElement("small", null, "PENDENTES"), /*#__PURE__*/React.createElement("b", null, h.pending), /*#__PURE__*/React.createElement("span", null, "Aguardando confirma\xE7\xE3o")), /*#__PURE__*/React.createElement("div", {
     className: "pay-stat k-down"
-  }, /*#__PURE__*/React.createElement("small", null, "REJEITADOS"), /*#__PURE__*/React.createElement("b", null, h.failed), /*#__PURE__*/React.createElement("span", null, pay.total > 0 ? (h.failed / pay.total * 100).toFixed(1) : '0', "% do total"))), /*#__PURE__*/React.createElement("div", {
-    className: "grid row-2 mt"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "card"
-  }, /*#__PURE__*/React.createElement("small", {
-    className: "kv-l"
-  }, "TOTAL DE TRANSA\xC7\xD5ES"), /*#__PURE__*/React.createElement("b", {
+  }, /*#__PURE__*/React.createElement("small", null, "REJEITADOS"), /*#__PURE__*/React.createElement("b", null, h.failed), /*#__PURE__*/React.createElement("span", null, s.total > 0 ? (h.failed / s.total * 100).toFixed(1) : '0', "% do total"))), /*#__PURE__*/React.createElement("div", {
+    className: "grid",
     style: {
-      fontFamily: 'var(--display)',
-      fontWeight: 400,
-      fontSize: 38,
-      color: 'var(--ink)'
+      gridTemplateColumns: 'repeat(3,1fr)',
+      gap: 14,
+      marginTop: 14
     }
-  }, pay.total)), /*#__PURE__*/React.createElement("div", {
-    className: "card pay-stat k-c1",
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card pay-stat",
     style: {
       background: 'transparent',
       border: '1px solid var(--line-2)'
     }
   }, /*#__PURE__*/React.createElement("small", {
     className: "kv-l"
-  }, "LOCKS PRESOS"), /*#__PURE__*/React.createElement("b", {
+  }, "ESTORNADOS"), /*#__PURE__*/React.createElement("b", {
     style: {
       fontFamily: 'var(--display)',
       fontWeight: 400,
       fontSize: 38,
       color: 'var(--ink)'
     }
-  }, h.stale_locks), /*#__PURE__*/React.createElement("span", {
+  }, h.refunded), /*#__PURE__*/React.createElement("span", {
     style: {
       color: 'var(--ink-3)'
     }
-  }, "Fila de reprocessamento: ", h.fila_reprocessamento))), pay.failed > 0 && /*#__PURE__*/React.createElement("div", {
+  }, s.chargebacks > 0 ? `${s.chargebacks} chargeback${s.chargebacks > 1 ? 's' : ''}` : 'Reembolsos + chargebacks')), /*#__PURE__*/React.createElement("div", {
+    className: "card pay-stat",
+    style: {
+      background: 'transparent',
+      border: '1px solid var(--line-2)'
+    }
+  }, /*#__PURE__*/React.createElement("small", {
+    className: "kv-l"
+  }, "RECUPERADOS"), /*#__PURE__*/React.createElement("b", {
+    style: {
+      fontFamily: 'var(--display)',
+      fontWeight: 400,
+      fontSize: 38,
+      color: 'var(--ink)'
+    }
+  }, s.recovered), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--ink-3)'
+    }
+  }, "Aprovados ap\xF3s retentativa")), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      textAlign: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("small", {
+    className: "section-title",
+    style: {
+      margin: 0
+    }
+  }, "TAXA DE APROVA\xC7\xC3O"), /*#__PURE__*/React.createElement("b", {
+    style: {
+      fontFamily: 'var(--display)',
+      fontSize: 38,
+      fontWeight: 400,
+      color: 'var(--ink)',
+      margin: '8px 0'
+    }
+  }, s.approval_rate, "%"), /*#__PURE__*/React.createElement("small", {
+    style: {
+      color: 'var(--ink-4)'
+    }
+  }, s.total, " transa\xE7\xF5es \xB7 \xFAltimos 30 dias"))), methods.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "card mt"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "section-title"
+  }, "SPLIT PIX / CR\xC9DITO / D\xC9BITO"), methods.map((m, i) => /*#__PURE__*/React.createElement("div", {
+    className: "origin-row",
+    key: i
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "origin-lbl"
+  }, m.method), /*#__PURE__*/React.createElement("div", {
+    className: "origin-bar"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "origin-fill",
+    style: {
+      width: `${m.pct}%`
+    }
+  })), /*#__PURE__*/React.createElement("span", {
+    className: "origin-v"
+  }, /*#__PURE__*/React.createElement("b", null, m.count), " pedidos ", /*#__PURE__*/React.createElement("span", null, m.pct, "%"))))), motivos.length > 0 && /*#__PURE__*/React.createElement("div", {
     className: "card mt"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-title"
@@ -1214,21 +1263,109 @@ function PagtoPainelPage() {
     style: {
       color: 'var(--down)'
     }
-  }, m.l), /*#__PURE__*/React.createElement("div", {
+  }, m.label), /*#__PURE__*/React.createElement("div", {
     className: "origin-bar"
   }, /*#__PURE__*/React.createElement("div", {
     className: "origin-fill",
     style: {
-      width: `${m.p}%`,
+      width: `${m.pct}%`,
       background: 'var(--down)'
     }
   })), /*#__PURE__*/React.createElement("span", {
     className: "origin-v"
-  }, /*#__PURE__*/React.createElement("b", null, m.n), " ocorr\xEAncias ", /*#__PURE__*/React.createElement("em", {
+  }, /*#__PURE__*/React.createElement("b", null, m.count), " ocorr\xEAncias ", /*#__PURE__*/React.createElement("em", {
     style: {
       color: 'var(--down)'
     }
-  }, m.p, "%")))))));
+  }, m.pct, "%"))))), failures.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "card mt"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "section-title"
+  }, "\xDALTIMAS FALHAS"), /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: '100%',
+      borderCollapse: 'collapse',
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      color: 'var(--ink-3)',
+      borderBottom: '1px solid var(--line-2)'
+    }
+  }, /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: 'left',
+      padding: '6px 8px',
+      fontWeight: 500
+    }
+  }, "Cliente"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: 'left',
+      padding: '6px 8px',
+      fontWeight: 500
+    }
+  }, "M\xE9todo"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: 'left',
+      padding: '6px 8px',
+      fontWeight: 500
+    }
+  }, "Motivo"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: 'left',
+      padding: '6px 8px',
+      fontWeight: 500
+    }
+  }, "Tipo"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: 'right',
+      padding: '6px 8px',
+      fontWeight: 500
+    }
+  }, "Hor\xE1rio"))), /*#__PURE__*/React.createElement("tbody", null, failures.map((f, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i,
+    style: {
+      borderBottom: '1px solid var(--line-1)'
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: '6px 8px'
+    }
+  }, f.customer), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: '6px 8px',
+      color: 'var(--ink-3)'
+    }
+  }, f.method || '—'), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: '6px 8px',
+      color: 'var(--down)'
+    }
+  }, f.reason), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: '6px 8px'
+    }
+  }, f.refund_status ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--warn)',
+      fontWeight: 600
+    }
+  }, REFUND_LABEL[f.refund_status] || f.refund_status) : /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--down)'
+    }
+  }, "Recusado")), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: '6px 8px',
+      textAlign: 'right',
+      color: 'var(--ink-3)'
+    }
+  }, new Date(f.created_at).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })))))))));
 }
 
 /* ========== CARDÁPIO ========== */

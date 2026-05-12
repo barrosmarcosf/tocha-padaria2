@@ -39,6 +39,12 @@ async function handleMPWebhookPayload(req, payment, supabase) {
         console.log(`[MP FLOW] source=webhook payment_id=${mpId} status=${mpPayment.status} status_detail=${mpPayment.status_detail}`);
         if (mpPayment.status === 'approved' && mpPayment.status_detail !== 'rejected') {
             await processPaidMPOrder(supabase, String(mpId), mpPayment);
+        } else if (mpPayment.status === 'rejected') {
+            await processMPRejection(supabase, String(mpId), mpPayment);
+        } else if (mpPayment.status === 'refunded') {
+            await processMPRefund(supabase, String(mpId), mpPayment);
+        } else if (mpPayment.status === 'charged_back') {
+            await processMPChargeback(supabase, String(mpId), mpPayment);
         } else {
             console.log(`[MP Webhook] Pagamento ${mpId} ignorado. Status: ${mpPayment.status} / ${mpPayment.status_detail}`);
         }
@@ -901,13 +907,33 @@ module.exports = function (supabase) {
                 }
             } else {
                 console.warn(`[MP BACKEND REDIRECT BLOCK] create-card-payment status=${responseData.status} status_detail=${responseData.status_detail} payment_id=${mpId} order_id=${order_id}`);
-                if (responseData.status === 'rejected' || responseData.status === 'cancelled') {
-                    if (order_id) {
-                        await supabase.from('pedidos')
-                            .update({ status: 'payment_failed' })
-                            .eq('id', order_id)
-                            .in('status', ['pending', 'payment_failed']);
-                    }
+                if ((responseData.status === 'rejected' || responseData.status === 'cancelled') && order_id) {
+                    const { normalizePaymentFailure } = require('../utils/paymentNormalizer');
+                    const rawCode = responseData.status_detail || 'unknown';
+                    const normalized = normalizePaymentFailure('mercadopago', rawCode);
+                    const { data: existingOrder } = await supabase.from('pedidos')
+                        .select('payment_attempts')
+                        .eq('id', order_id)
+                        .maybeSingle();
+                    const attempts = Array.isArray(existingOrder?.payment_attempts) ? existingOrder.payment_attempts : [];
+                    attempts.push({
+                        status: 'rejected',
+                        provider: 'mercadopago',
+                        method: responseData.payment_type_id || 'credit_card',
+                        reason: normalized.category,
+                        raw_code: normalized.raw_code,
+                        created_at: new Date().toISOString()
+                    });
+                    await supabase.from('pedidos')
+                        .update({
+                            status: 'payment_failed',
+                            rejection_reason: normalized.category,
+                            rejection_raw_code: normalized.raw_code,
+                            payment_attempts: attempts
+                        })
+                        .eq('id', order_id)
+                        .in('status', ['pending', 'payment_failed'])
+                        .catch(e => console.warn('[MP Card] Falha ao persistir rejeição:', e.message));
                 }
             }
 
@@ -1050,6 +1076,93 @@ async function recalcularTotal(supabase, cart) {
         total += Number(product.price) * parseInt(item.qty);
     }
     return Math.round(total * 100) / 100;
+}
+
+// Persiste rejeição de pagamento MP e registra tentativa no histórico
+async function processMPRejection(supabase, mpId, mpPayment) {
+    const { normalizePaymentFailure } = require('../utils/paymentNormalizer');
+    const rawCode = mpPayment.status_detail || 'unknown';
+    const normalized = normalizePaymentFailure('mercadopago', rawCode);
+
+    const externalId = `mp_${mpId}`;
+    const { data: order } = await supabase.from('pedidos')
+        .select('id, payment_attempts')
+        .or(`mp_payment_id.eq.${mpId},stripe_session_id.eq.${externalId}`)
+        .maybeSingle();
+
+    if (!order) {
+        console.warn(`[MP Reject] Pedido não encontrado para mpId=${mpId}`);
+        return;
+    }
+
+    const attempts = Array.isArray(order.payment_attempts) ? order.payment_attempts : [];
+    attempts.push({
+        status: 'rejected',
+        provider: 'mercadopago',
+        method: mpPayment.payment_type_id || 'unknown',
+        reason: normalized.category,
+        raw_code: normalized.raw_code,
+        created_at: new Date().toISOString()
+    });
+
+    await supabase.from('pedidos').update({
+        status: 'payment_failed',
+        rejection_reason: normalized.category,
+        rejection_raw_code: normalized.raw_code,
+        payment_attempts: attempts
+    }).eq('id', order.id);
+
+    console.log(`[MP Reject] Pedido ${order.id} rejeitado: ${normalized.category} (${rawCode})`);
+}
+
+// Persiste estorno/reembolso via Mercado Pago
+async function processMPRefund(supabase, mpId, mpPayment) {
+    const externalId = `mp_${mpId}`;
+    const { data: order } = await supabase.from('pedidos')
+        .select('id')
+        .or(`mp_payment_id.eq.${mpId},stripe_session_id.eq.${externalId}`)
+        .maybeSingle();
+
+    if (!order) {
+        console.warn(`[MP Refund] Pedido não encontrado para mpId=${mpId}`);
+        return;
+    }
+
+    const refunds = mpPayment.refunds || [];
+    const totalRefunded = refunds.reduce((s, r) => s + (r.amount || 0), 0) || mpPayment.transaction_amount;
+    const isPartial = totalRefunded < mpPayment.transaction_amount;
+
+    await supabase.from('pedidos').update({
+        refund_status: isPartial ? 'partially_refunded' : 'refunded',
+        refund_amount: totalRefunded,
+        refund_reason: 'Reembolso aprovado via Mercado Pago',
+        refund_at: new Date().toISOString()
+    }).eq('id', order.id);
+
+    console.log(`[MP Refund] Pedido ${order.id} estornado. Valor: R$${totalRefunded}`);
+}
+
+// Persiste chargeback via Mercado Pago
+async function processMPChargeback(supabase, mpId, mpPayment) {
+    const externalId = `mp_${mpId}`;
+    const { data: order } = await supabase.from('pedidos')
+        .select('id')
+        .or(`mp_payment_id.eq.${mpId},stripe_session_id.eq.${externalId}`)
+        .maybeSingle();
+
+    if (!order) {
+        console.warn(`[MP Chargeback] Pedido não encontrado para mpId=${mpId}`);
+        return;
+    }
+
+    await supabase.from('pedidos').update({
+        refund_status: 'chargeback',
+        refund_amount: mpPayment.transaction_amount,
+        refund_reason: 'Chargeback iniciado pelo portador do cartão',
+        refund_at: new Date().toISOString()
+    }).eq('id', order.id);
+
+    console.log(`[MP Chargeback] Pedido ${order.id} com chargeback registrado.`);
 }
 
 // Processamento de pedido pago via Mercado Pago

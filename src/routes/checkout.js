@@ -449,6 +449,14 @@ module.exports = function (supabase, stripe) {
             processPaidSession(supabase, stripe, session).catch(err => {
                 console.error("❌ [FATAL] Erro em segundo plano no Webhook:", err.message);
             });
+        } else if (event.type === 'checkout.session.expired') {
+            processStripeSessionExpired(supabase, event.data.object).catch(() => {});
+        } else if (event.type === 'payment_intent.payment_failed') {
+            processStripePaymentFailed(supabase, event.data.object).catch(() => {});
+        } else if (event.type === 'charge.refunded') {
+            processStripeRefund(supabase, event.data.object).catch(() => {});
+        } else if (event.type === 'charge.dispute.created') {
+            processStripeChargeback(supabase, event.data.object).catch(() => {});
         }
     });
 
@@ -621,4 +629,110 @@ async function processPaidSession(supabase, stripe, session) {
     } catch (err) {
         console.error('💣 ERRO AO PROCESSAR SESSÃO PAGA:', err.message);
     }
+}
+
+// Stripe: sessão expirada sem pagamento (PIX timeout ou cartão abandonado)
+async function processStripeSessionExpired(supabase, session) {
+    const { data: order } = await supabase.from('pedidos')
+        .select('id, payment_attempts')
+        .eq('stripe_session_id', session.id)
+        .maybeSingle();
+    if (!order) return;
+
+    const { normalizePaymentFailure } = require('../utils/paymentNormalizer');
+    const normalized = normalizePaymentFailure('stripe', 'session_expired');
+    const attempts = Array.isArray(order.payment_attempts) ? order.payment_attempts : [];
+    const method = session.payment_method_types?.[0] === 'pix' ? 'pix' : 'card';
+    attempts.push({
+        status: 'rejected',
+        provider: 'stripe',
+        method,
+        reason: normalized.category,
+        raw_code: 'session_expired',
+        created_at: new Date().toISOString()
+    });
+
+    await supabase.from('pedidos').update({
+        rejection_reason: normalized.category,
+        rejection_raw_code: 'session_expired',
+        payment_attempts: attempts
+    }).eq('id', order.id)
+      .catch(e => console.warn('[Stripe] Falha ao persistir sessão expirada:', e.message));
+
+    console.log(`[Stripe] Sessão expirada: pedido ${order.id}`);
+}
+
+// Stripe: pagamento recusado (cartão)
+async function processStripePaymentFailed(supabase, paymentIntent) {
+    const { data: order } = await supabase.from('pedidos')
+        .select('id, payment_attempts')
+        .eq('stripe_payment_intent', paymentIntent.id)
+        .maybeSingle();
+    if (!order) return;
+
+    const { normalizePaymentFailure } = require('../utils/paymentNormalizer');
+    const rawCode = paymentIntent.last_payment_error?.decline_code ||
+                    paymentIntent.last_payment_error?.code || 'unknown';
+    const normalized = normalizePaymentFailure('stripe', rawCode);
+
+    const attempts = Array.isArray(order.payment_attempts) ? order.payment_attempts : [];
+    attempts.push({
+        status: 'rejected',
+        provider: 'stripe',
+        method: 'credit_card',
+        reason: normalized.category,
+        raw_code: normalized.raw_code,
+        created_at: new Date().toISOString()
+    });
+
+    await supabase.from('pedidos').update({
+        status: 'payment_failed',
+        rejection_reason: normalized.category,
+        rejection_raw_code: normalized.raw_code,
+        payment_attempts: attempts
+    }).eq('id', order.id)
+      .catch(e => console.warn('[Stripe] Falha ao persistir rejeição:', e.message));
+
+    console.log(`[Stripe] Pagamento recusado: pedido ${order.id} — ${normalized.category} (${rawCode})`);
+}
+
+// Stripe: reembolso emitido
+async function processStripeRefund(supabase, charge) {
+    const { data: order } = await supabase.from('pedidos')
+        .select('id')
+        .eq('stripe_payment_intent', charge.payment_intent)
+        .maybeSingle();
+    if (!order) return;
+
+    const refundAmount = charge.amount_refunded / 100;
+    const isPartial = charge.amount_refunded < charge.amount;
+
+    await supabase.from('pedidos').update({
+        refund_status: isPartial ? 'partially_refunded' : 'refunded',
+        refund_amount: refundAmount,
+        refund_reason: 'Reembolso aprovado via Stripe',
+        refund_at: new Date().toISOString()
+    }).eq('id', order.id)
+      .catch(e => console.warn('[Stripe] Falha ao persistir reembolso:', e.message));
+
+    console.log(`[Stripe] Reembolso: pedido ${order.id}, valor R$${refundAmount}`);
+}
+
+// Stripe: chargeback aberto
+async function processStripeChargeback(supabase, dispute) {
+    const { data: order } = await supabase.from('pedidos')
+        .select('id')
+        .eq('stripe_payment_intent', dispute.payment_intent)
+        .maybeSingle();
+    if (!order) return;
+
+    await supabase.from('pedidos').update({
+        refund_status: 'chargeback',
+        refund_amount: dispute.amount / 100,
+        refund_reason: `Chargeback Stripe: ${dispute.reason || 'não especificado'}`,
+        refund_at: new Date().toISOString()
+    }).eq('id', order.id)
+      .catch(e => console.warn('[Stripe] Falha ao persistir chargeback:', e.message));
+
+    console.log(`[Stripe] Chargeback: pedido ${order.id}, motivo: ${dispute.reason}`);
 }

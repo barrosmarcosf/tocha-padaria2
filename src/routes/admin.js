@@ -1261,19 +1261,118 @@ module.exports = function (supabase) {
     router.get('/payments-health', adminAuth, async (req, res) => {
         try {
             const cutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-            const [pendingRes, paidRes, failedRes, staleRes, dlqRes] = await Promise.all([
+            const [pendingRes, paidRes, failedRes, staleRes, dlqRes, refundedRes] = await Promise.all([
                 supabase.from('pedidos').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
                 supabase.from('pedidos').select('id', { count: 'exact', head: true }).eq('status', 'paid'),
                 supabase.from('pedidos').select('id', { count: 'exact', head: true }).in('status', ['payment_failed', 'error']),
                 supabase.from('pedidos').select('id', { count: 'exact', head: true }).eq('status', 'pending').eq('processing', true).lt('processing_at', cutoff),
-                supabase.from('failed_payments_queue').select('id', { count: 'exact', head: true }).lt('retries', 3)
+                supabase.from('failed_payments_queue').select('id', { count: 'exact', head: true }).lt('retries', 3),
+                supabase.from('pedidos').select('id', { count: 'exact', head: true }).not('refund_status', 'is', null)
             ]);
             res.json({
-                pending:             pendingRes.count ?? 0,
-                paid:                paidRes.count    ?? 0,
-                failed:              failedRes.count  ?? 0,
-                stale_locks:         staleRes.count   ?? 0,
-                fila_reprocessamento: dlqRes.count    ?? 0,
+                pending:              pendingRes.count  ?? 0,
+                paid:                 paidRes.count     ?? 0,
+                failed:               failedRes.count   ?? 0,
+                stale_locks:          staleRes.count    ?? 0,
+                fila_reprocessamento: dlqRes.count      ?? 0,
+                refunded:             refundedRes.count ?? 0,
+                timestamp: new Date().toISOString()
+            });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // Analytics consolidado de pagamentos (PIX + Crédito + Débito)
+    router.get('/payment-analytics', adminAuth, async (req, res) => {
+        try {
+            const days = Math.min(Math.max(parseInt(req.query.days || '30', 10), 1), 90);
+            const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+            const [summaryRes, recentFailuresRes] = await Promise.all([
+                supabase.from('pedidos')
+                    .select('id, status, items, refund_status, rejection_reason, rejection_raw_code, payment_attempts')
+                    .gte('created_at', since),
+                supabase.from('pedidos')
+                    .select('id, created_at, rejection_reason, rejection_raw_code, refund_status, items, clientes(name)')
+                    .or('status.in.(payment_failed,error),rejection_reason.not.is.null,refund_status.not.is.null')
+                    .gte('created_at', since)
+                    .order('created_at', { ascending: false })
+                    .limit(20)
+            ]);
+
+            const orders = summaryRes.data || [];
+
+            const paid       = orders.filter(o => o.status === 'paid').length;
+            const pending    = orders.filter(o => o.status === 'pending').length;
+            const failed     = orders.filter(o => ['payment_failed', 'error'].includes(o.status) || o.rejection_reason).length;
+            const refunded   = orders.filter(o => o.refund_status === 'refunded' || o.refund_status === 'partially_refunded').length;
+            const chargebacks= orders.filter(o => o.refund_status === 'chargeback').length;
+            const total      = orders.length;
+
+            // Pedidos que tiveram rejeição mas depois foram aprovados (retries bem-sucedidos)
+            const recovered = orders.filter(o => {
+                if (o.status !== 'paid') return false;
+                const attempts = Array.isArray(o.payment_attempts) ? o.payment_attempts : [];
+                return attempts.some(a => a.status === 'rejected');
+            }).length;
+
+            // Breakdown de motivos de rejeição
+            const rejectionMap = {};
+            orders.forEach(o => {
+                if (o.rejection_reason) {
+                    rejectionMap[o.rejection_reason] = (rejectionMap[o.rejection_reason] || 0) + 1;
+                }
+            });
+            const { getCategoryLabel } = require('../utils/paymentNormalizer');
+            const rejectionReasons = Object.entries(rejectionMap)
+                .map(([reason, count]) => ({
+                    reason,
+                    label: getCategoryLabel(reason),
+                    count,
+                    pct: failed > 0 ? Math.round((count / failed) * 100) : 0
+                }))
+                .sort((a, b) => b.count - a.count);
+
+            // Split por método de pagamento (pedidos aprovados)
+            const methodMap = {};
+            orders.filter(o => o.status === 'paid').forEach(o => {
+                let items = o.items;
+                try { if (typeof items === 'string') items = JSON.parse(items); } catch (_) { items = {}; }
+                const raw = items?.payment_method || '';
+                const method = raw.includes('Pix') ? 'PIX'
+                    : raw.includes('Crédito') ? 'Crédito'
+                    : raw.includes('Débito')  ? 'Débito'
+                    : raw.includes('Stripe')  ? 'Cartão'
+                    : 'Outros';
+                methodMap[method] = (methodMap[method] || 0) + 1;
+            });
+            const methodSplit = Object.entries(methodMap)
+                .map(([method, count]) => ({
+                    method, count,
+                    pct: paid > 0 ? Math.round((count / paid) * 100) : 0
+                }))
+                .sort((a, b) => b.count - a.count);
+
+            const approvalRate = total > 0 ? Math.round((paid / total) * 100) : 0;
+            const refundRate   = paid  > 0 ? Math.round(((refunded + chargebacks) / paid) * 100) : 0;
+
+            res.json({
+                period_days: days,
+                summary: { total, paid, pending, failed, refunded, chargebacks, recovered, approval_rate: approvalRate, refund_rate: refundRate },
+                rejection_reasons: rejectionReasons,
+                method_split: methodSplit,
+                recent_failures: (recentFailuresRes.data || []).map(o => {
+                    let items = o.items;
+                    try { if (typeof items === 'string') items = JSON.parse(items); } catch (_) { items = {}; }
+                    return {
+                        id: o.id,
+                        customer: o.clientes?.name || 'Cliente',
+                        method: items?.payment_method || '—',
+                        reason: o.rejection_reason ? getCategoryLabel(o.rejection_reason) : (o.refund_status ? `Estorno: ${o.refund_status}` : '—'),
+                        raw_code: o.rejection_raw_code || '—',
+                        refund_status: o.refund_status || null,
+                        created_at: o.created_at
+                    };
+                }),
                 timestamp: new Date().toISOString()
             });
         } catch (e) { res.status(500).json({ error: e.message }); }
