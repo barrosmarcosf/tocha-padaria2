@@ -128,7 +128,7 @@
       el.textContent = `${d}D ${String(h).padStart(2,'0')}H ${String(m).padStart(2,'0')}M`;
       const mobileEl = qs('#countdown-mobile');
       if (mobileEl) {
-        mobileEl.textContent = satLabel + ' · Encerra em ' + pad(h) + ':' + pad(m) + ':' + pad(s);
+        mobileEl.textContent = 'PEDIDOS FORNADA ' + satLabel + ' · ENCERRA EM ' + pad(h) + ':' + pad(m) + ':' + pad(s);
       }
       if (diff <= 0) clearInterval(id);
     }
@@ -221,10 +221,10 @@
   // ──────────────────────────────────────────────
   function initHowItWorks() {
     const HOW_STEPS = [
-      { n: '01', label: 'Peça',     icon: '🛒', title: 'Peça com antecedência',   desc: 'Pedidos abertos de dom a qui, até as 16h.',                  meta: 'Dom – Qui · até 16h'  },
-      { n: '02', label: 'Forno',    icon: '🍞', title: 'Fornada de sábado',       desc: 'Produzimos sob demanda. Cada pedido tem lugar no forno.',     meta: 'Sábado · sob demanda' },
-      { n: '03', label: 'Aviso',    icon: '📲', title: 'Aviso no WhatsApp',       desc: 'Quando pronto, você recebe mensagem com as instruções.',      meta: 'Notificação WhatsApp' },
-      { n: '04', label: 'Retirada', icon: '🏠', title: 'Retire a partir das 15h', desc: 'Presencial em São João de Meriti.',                           meta: 'Sábado · a partir 15h' },
+      { n: '01', label: 'Peça',     title: 'Peça com antecedência',   desc: 'Pedidos abertos de dom a qui, até as 16h.',                  meta: 'Dom – Qui · até 16h'  },
+      { n: '02', label: 'Forno',    title: 'Fornada de sábado',       desc: 'Produzimos sob demanda. Cada pedido tem lugar no forno.',     meta: 'Sábado · sob demanda' },
+      { n: '03', label: 'Aviso',    title: 'Aviso no WhatsApp',       desc: 'Quando pronto, você recebe mensagem com as instruções.',      meta: 'Notificação WhatsApp' },
+      { n: '04', label: 'Retirada', title: 'Retire a partir das 15h', desc: 'Presencial em São João de Meriti.',                           meta: 'Sábado · a partir 15h' },
     ];
 
     const grid = qs('#steps-grid');
