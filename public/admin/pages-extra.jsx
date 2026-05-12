@@ -683,12 +683,12 @@ function FunilDonut({ segments, size, stroke, label, sub }) {
 
 const _FV_MOCK = {
   steps: [
-    { key:'site_enter',        label:'Visitantes',             icon:'site_enter',        count:1248, pct_total:100  },
-    { key:'view_product',      label:'Visualização de Produto',icon:'view_product',       count:475,  pct_total:38.1 },
-    { key:'cart_created',      label:'Carrinho Criado',         icon:'cart_created',       count:149,  pct_total:11.9 },
-    { key:'checkout_started',  label:'Checkout',               icon:'checkout_started',   count:80,   pct_total:6.4  },
-    { key:'payment_attempted', label:'Pagamento Tentado',       icon:'payment_attempted',  count:48,   pct_total:3.8  },
-    { key:'payment_success',   label:'Pagamento Aprovado',      icon:'payment_success',    count:33,   pct_total:2.6  },
+    { key:'site_enter',        label:'Visitantes',              icon:'site_enter',        count:1248, pct_total:100  },
+    { key:'view_product',      label:'Visualização de Produto', icon:'view_product',       count:475,  pct_total:38.1 },
+    { key:'cart_created',      label:'Carrinho Criado',          icon:'cart_created',       count:149,  pct_total:11.9 },
+    { key:'checkout_started',  label:'Checkout Iniciado',        icon:'checkout_started',   count:80,   pct_total:6.4  },
+    { key:'payment_attempted', label:'Pagamento Tentado',        icon:'payment_attempted',  count:48,   pct_total:3.8  },
+    { key:'payment_success',   label:'Pagamento Aprovado',       icon:'payment_success',    count:33,   pct_total:2.6  },
   ],
   advance_rates: [
     { label:'Taxa de avanço',    pct:38.1 },
@@ -699,75 +699,73 @@ const _FV_MOCK = {
   ],
   kpis: {
     conv_rate:2.6, conv_orders:33, conv_visits:1248,
-    avg_ticket:47.30, avg_ticket_delta:null,
-    total_revenue:1560.90, total_revenue_delta:null,
-    abandoned_value:7388.28,
-    avg_funnel_time:'8m 42s', avg_funnel_time_delta:null,
-    approval_rate:68.8, approval_rate_delta:null,
+    avg_ticket:78.60, avg_ticket_delta:12.5,
+    total_revenue:2593.80, total_revenue_delta:15.3,
+    avg_funnel_time:'18m 42s', avg_funnel_time_delta:-8.1,
+    approval_rate:68.8, approval_rate_delta:5.2,
   },
   traffic_sources: [
-    { label:'Instagram', color:'#8b5cf6', count:474, pct:38, conv_rate:1.4, abandon_rate:71 },
-    { label:'Google',    color:'#3b82f6', count:337, pct:27, conv_rate:3.2, abandon_rate:65 },
-    { label:'WhatsApp',  color:'#22c55e', count:274, pct:22, conv_rate:5.1, abandon_rate:58 },
-    { label:'Direto',    color:'#f59e0b', count:163, pct:13, conv_rate:1.8, abandon_rate:78 },
-    { label:'Total', isTotal:true, count:1248, pct:100, conv_rate:2.6, abandon_rate:73.6 },
+    { label:'Instagram', color:'#8b5cf6', count:632, pct:50.6, conv_rate:2.5, abandon_rate:97.5 },
+    { label:'Google',    color:'#3b82f6', count:387, pct:31.0, conv_rate:3.1, abandon_rate:96.9 },
+    { label:'WhatsApp',  color:'#22c55e', count:229, pct:18.4, conv_rate:1.7, abandon_rate:98.3 },
+    { label:'Total', isTotal:true, count:1248, pct:100, conv_rate:2.6, abandon_rate:97.4 },
   ],
   devices: [
-    { label:'Mobile',  color:'#22c55e', count:774, pct:62, conv_rate:2.1, abandon_rate:77 },
-    { label:'Desktop', color:'#8b5cf6', count:387, pct:31, conv_rate:3.6, abandon_rate:62 },
-    { label:'Tablet',  color:'#3b82f6', count:87,  pct:7,  conv_rate:2.3, abandon_rate:74 },
-    { label:'Total', isTotal:true, count:1248, pct:100, conv_rate:2.6, abandon_rate:73.6 },
+    { label:'Mobile',  color:'#22c55e', count:820, pct:65.7, conv_rate:1.8, abandon_rate:96.2 },
+    { label:'Desktop', color:'#8b5cf6', count:320, pct:25.6, conv_rate:4.5, abandon_rate:95.5 },
+    { label:'Tablet',  color:'#3b82f6', count:108, pct:8.7,  conv_rate:2.9, abandon_rate:97.1 },
+    { label:'Total', isTotal:true, count:1248, pct:100, conv_rate:2.6, abandon_rate:97.4 },
   ],
   payment_methods: [
-    { label:'PIX',     color:'#22c55e', attempts:29, pct:61, approved:24, approval_rate:82.8 },
-    { label:'Crédito', color:'#3b82f6', attempts:14, pct:29, approved:7,  approval_rate:50.0 },
-    { label:'Débito',  color:'#f59e0b', attempts:5,  pct:10, approved:2,  approval_rate:40.0 },
-    { label:'Total', isTotal:true, attempts:48, pct:100, approved:33, approval_rate:68.8 },
+    { label:'Pix',              color:'#22c55e', attempts:1156, pct:61.3, approved:892,  approval_rate:77.2 },
+    { label:'Cartão de Crédito',color:'#3b82f6', attempts:589,  pct:31.3, approved:353,  approval_rate:59.9 },
+    { label:'Cartão de Débito', color:'#f59e0b', attempts:141,  pct:7.5,  approved:99,   approval_rate:63.1 },
+    { label:'Total', isTotal:true, attempts:1886, pct:100, approved:1334, approval_rate:68.8 },
   ],
   abandonment: {
-    rate:73.6, cart_count:109, cart_rate:73.2, checkout_count:47, checkout_rate:58.8,
-    total:156, lost_value:7388.28,
+    rate:60.1, cart_count:101, cart_rate:60.1, checkout_count:32, checkout_rate:40.0,
+    total:133, lost_value:2486.70,
     reasons: [
-      { label:'Preço percebido alto',    pct:34 },
-      { label:'Distrações externas',     pct:28 },
-      { label:'Método de pagamento',     pct:19 },
-      { label:'Dúvidas sobre o produto', pct:12 },
-      { label:'Outros',                  pct:7  },
+      { label:'Prazo de produção longo',  pct:29.7, count:38 },
+      { label:'Indecisão / Comparando',   pct:21.9, count:28 },
+      { label:'Preço considerado alto',   pct:17.2, count:22 },
+      { label:'Falta de urgência',        pct:12.5, count:16 },
+      { label:'Outros',                   pct:13.3, count:17 },
     ],
   },
   recovery: {
-    cart_recovered:40, cart_recovery_rate:36.7,
-    checkout_recovered:33, checkout_recovery_rate:70.2,
-    count:73, rate:46.8, recovered_value:3455.20,
-    channel:'WhatsApp', avg_response_time:'4m 20s', post_contact_conv_rate:58,
+    cart_recovered:29, cart_recovery_rate:28.7,
+    checkout_recovered:12, checkout_recovery_rate:37.5,
+    count:41, rate:30.8, recovered_value:871.40,
+    channel:'WhatsApp', avg_response_time:'8m 32s', post_contact_conv_rate:41.4,
   },
   products: {
     most_added: [
-      { name:'Pão Francês',       adds:89, conv:78, abandon:22 },
-      { name:'Croissant',         adds:67, conv:65, abandon:35 },
-      { name:'Bolo de Chocolate', adds:54, conv:71, abandon:29 },
-      { name:'Rosca Doce',        adds:43, conv:58, abandon:42 },
-      { name:'Pão Integral',      adds:38, conv:82, abandon:18 },
+      { name:'Cookie Nutella',    adds:78, conv:12.8, abandon:87.2 },
+      { name:'Cookie Clássico',   adds:64, conv:18.8, abandon:81.2 },
+      { name:'Brownie Chocolate', adds:51, conv:15.7, abandon:84.3 },
+      { name:'Cookie Red Velvet', adds:44, conv:11.4, abandon:88.6 },
+      { name:'Cinnamon Roll',     adds:38, conv:21.1, abandon:78.9 },
     ],
     worst_conversion: [
-      { name:'Bolo Recheado',  adds:45,  purchases:6,  conv:12 },
-      { name:'Torta de Limão', adds:67,  purchases:12, conv:18 },
-      { name:'Empada',         adds:89,  purchases:20, conv:22 },
-      { name:'Quiche',         adds:34,  purchases:9,  conv:26 },
-      { name:'Pão de Queijo',  adds:156, purchases:48, conv:31 },
+      { name:'Cookie Nutella',     adds:78, purchases:10, conv:12.8 },
+      { name:'Cookie Red Velvet',  adds:44, purchases:5,  conv:11.4 },
+      { name:'Brownie c/ Sorvete', adds:27, purchases:4,  conv:14.8 },
+      { name:'Torta de Brownie',   adds:26, purchases:4,  conv:15.4 },
+      { name:'Donut Gourmet',      adds:31, purchases:6,  conv:19.4 },
     ],
     most_viewed: [
-      { name:'Pão Francês',       views:234, ctr:38 },
-      { name:'Croissant',         views:189, ctr:35 },
-      { name:'Bolo de Chocolate', views:167, ctr:32 },
-      { name:'Rosca Doce',        views:143, ctr:30 },
-      { name:'Pão de Queijo',     views:128, ctr:24 },
+      { name:'Cookie Nutella',    views:312, ctr:25.0 },
+      { name:'Cookie Clássico',   views:289, ctr:22.1 },
+      { name:'Brownie Chocolate', views:241, ctr:21.2 },
+      { name:'Cinnamon Roll',     views:198, ctr:19.2 },
+      { name:'Cookie Pistache',   views:165, ctr:18.2 },
     ],
   },
   insights: [
-    { type:'bottleneck',  label:'GARGALO',     heading:'Visualização de Produto',       body:'Apenas 38.1% dos visitantes visualizam produtos. Otimize a homepage com produtos em destaque e melhore a navegação por categorias.' },
-    { type:'product',     label:'PRODUTO',      heading:'Pão de Queijo — Pior Conversão',body:'156 adições mas apenas 31% de conversão. Revise a precificação e a apresentação do produto para reduzir abandono.' },
-    { type:'opportunity', label:'OPORTUNIDADE', heading:'Recuperação no Checkout',       body:'Taxa de recuperação de 70.2% no checkout. Considere expandir a estratégia para carrinhos (36.7%) para aumentar a receita recuperada.' },
+    { type:'bottleneck',  label:'MAIOR GARGALO',                            heading:'Checkout → Pagamento',  body:'60% dos clientes iniciam o checkout, mas não tentam o pagamento. Revise o fluxo e reduza fricções.' },
+    { type:'product',     label:'PRODUTOS COM ALTO INTERESSE E BAIXA CONVERSÃO', heading:'Cookie Nutella', body:'Muitas adições ao carrinho, mas baixa conversão. Revise o preço, descrição ou fotos.' },
+    { type:'opportunity', label:'OPORTUNIDADE',                             heading:'WhatsApp como origem', body:'Tráfego com maior intenção, mas menor volume. Considere otimizar campanhas de indicação.' },
   ],
 };
 
@@ -877,19 +875,19 @@ function FunilPage() {
             </div>
             <div className="fv-kpi-card">
               <div className="fv-kpi-lbl">TICKET MÉDIO</div>
-              <div className="fv-kpi-val" style={{ fontSize:20 }}>{fBrl(kpis.avg_ticket)}</div>
+              <div className="fv-kpi-val">{fBrl(kpis.avg_ticket)}</div>
               <div className="fv-kpi-meta">por pedido</div>
               {kpis.avg_ticket_delta != null && <span className={'fv-delta-chip '+(kpis.avg_ticket_delta>=0?'up':'dn')}>{kpis.avg_ticket_delta>=0?'↑':'↓'} {Math.abs(kpis.avg_ticket_delta)}% vs período anterior</span>}
             </div>
             <div className="fv-kpi-card">
               <div className="fv-kpi-lbl">FATURAMENTO</div>
-              <div className="fv-kpi-val" style={{ fontSize:20 }}>{fBrl(kpis.total_revenue)}</div>
+              <div className="fv-kpi-val">{fBrl(kpis.total_revenue)}</div>
               <div className="fv-kpi-meta">no período</div>
               {kpis.total_revenue_delta != null && <span className={'fv-delta-chip '+(kpis.total_revenue_delta>=0?'up':'dn')}>{kpis.total_revenue_delta>=0?'↑':'↓'} {Math.abs(kpis.total_revenue_delta)}% vs período anterior</span>}
             </div>
             <div className="fv-kpi-card">
               <div className="fv-kpi-lbl">TEMPO MÉDIO DO FUNIL</div>
-              <div className="fv-kpi-val" style={{ fontSize:22 }}>{kpis.avg_funnel_time || '—'}</div>
+              <div className="fv-kpi-val">{kpis.avg_funnel_time || '—'}</div>
               <div className="fv-kpi-meta">do acesso ao pagamento</div>
               {kpis.avg_funnel_time_delta != null && <span className={'fv-delta-chip '+(kpis.avg_funnel_time_delta<=0?'up':'dn')}>{kpis.avg_funnel_time_delta<=0?'↓':'↑'} {Math.abs(kpis.avg_funnel_time_delta)}% vs período anterior</span>}
             </div>
@@ -1055,6 +1053,16 @@ function FunilPage() {
               <div style={{ padding:'12px 0 8px' }}>
                 <div style={{ fontSize:9, letterSpacing:'.14em', color:'#ef4444', textTransform:'uppercase', fontWeight:700, marginBottom:4 }}>VALOR POTENCIAL PERDIDO</div>
                 <div style={{ fontFamily:'var(--display)', fontSize:26, color:'var(--ink)', fontWeight:400 }}>{fBrl(abd.lost_value)}</div>
+                <svg width="100%" height="36" viewBox="0 0 200 36" preserveAspectRatio="none" style={{ display:'block', margin:'8px 0 0', opacity:.75 }}>
+                  <defs>
+                    <linearGradient id="fv-abd-g" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#ef4444" stopOpacity=".28"/>
+                      <stop offset="100%" stopColor="#ef4444" stopOpacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <path d="M0 28 C18 24 36 30 54 22 C72 14 90 26 108 19 C126 13 144 22 162 15 C174 10 186 17 200 12 L200 36 L0 36 Z" fill="url(#fv-abd-g)"/>
+                  <path d="M0 28 C18 24 36 30 54 22 C72 14 90 26 108 19 C126 13 144 22 162 15 C174 10 186 17 200 12" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </div>
               {abd.reasons?.length > 0 && (
                 <React.Fragment>
@@ -1099,16 +1107,31 @@ function FunilPage() {
               <div style={{ padding:'12px 0 8px' }}>
                 <div style={{ fontSize:9, letterSpacing:'.14em', color:'#22c55e', textTransform:'uppercase', fontWeight:700, marginBottom:4 }}>VALOR RECUPERADO</div>
                 <div style={{ fontFamily:'var(--display)', fontSize:26, color:'var(--ink)', fontWeight:400 }}>{fBrl(rec.recovered_value)}</div>
+                <svg width="100%" height="36" viewBox="0 0 200 36" preserveAspectRatio="none" style={{ display:'block', margin:'8px 0 0', opacity:.75 }}>
+                  <defs>
+                    <linearGradient id="fv-rec-g" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#22c55e" stopOpacity=".28"/>
+                      <stop offset="100%" stopColor="#22c55e" stopOpacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <path d="M0 30 C18 28 36 24 54 26 C72 28 90 18 108 15 C126 12 144 17 162 10 C174 5 186 13 200 6 L200 36 L0 36 Z" fill="url(#fv-rec-g)"/>
+                  <path d="M0 30 C18 28 36 24 54 26 C72 28 90 18 108 15 C126 12 144 17 162 10 C174 5 186 13 200 6" fill="none" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </div>
               <div style={{ height:1, background:'rgba(255,255,255,.07)', marginBottom:12 }}/>
               <div className="fv-mini-stats">
                 <div className="fv-mini-stat">
                   <div className="fv-mini-lbl">CANAL PRINCIPAL</div>
-                  <div className="fv-mini-val" style={{ fontSize:12, color:'#22c55e' }}>{rec.channel||'—'}</div>
+                  <div className="fv-mini-val" style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5, color:'#22c55e' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#22c55e" style={{ flexShrink:0 }}>
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                    </svg>
+                    {rec.channel||'—'}
+                  </div>
                 </div>
                 <div className="fv-mini-stat">
                   <div className="fv-mini-lbl">TEMPO MÉDIO DE RESPOSTA</div>
-                  <div className="fv-mini-val" style={{ fontSize:12 }}>{rec.avg_response_time||'—'}</div>
+                  <div className="fv-mini-val">{rec.avg_response_time||'—'}</div>
                 </div>
                 <div className="fv-mini-stat">
                   <div className="fv-mini-lbl">TAXA DE CONVERSÃO PÓS CONTATO</div>
