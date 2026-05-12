@@ -111,7 +111,7 @@ app.use((req, res, next) => {
 app.use('/api/webhook', express.raw({ type: 'application/json' }));
 
 // Todas as outras rotas usam JSON
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
 // Cookie parser seguro (sem dependência extra)
 app.use((req, _res, next) => {
