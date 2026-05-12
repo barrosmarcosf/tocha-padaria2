@@ -1811,10 +1811,16 @@ function CardapioPage() {
   const updateStock = (p, val, e) => {
     stop(e);
     const n = parseInt(val) || 0;
-    setProds(prev => prev.map(x => x.id === p.id ? { ...x, initial_stock: n } : x));
+    setProds(prev => prev.map(x => x.id === p.id
+      ? { ...x, initial_stock: n, stock_quantity: Math.max(0, n - (x.vendidos || 0)) }
+      : x));
     window.apiPost('/api/admin/save-product', { ...p, initial_stock: n })
-      .then(() => loadConfig())
-      .catch(() => alert('Erro ao atualizar estoque'));
+      .catch(() => {
+        setProds(prev => prev.map(x => x.id === p.id
+          ? { ...x, initial_stock: p.initial_stock ?? 0, stock_quantity: p.stock_quantity ?? 0 }
+          : x));
+        alert('Erro ao atualizar estoque');
+      });
   };
 
   const filteredProds = prods.filter(p => p.category_slug === sel);
@@ -1836,11 +1842,14 @@ function CardapioPage() {
   };
   const onProdDragEnd = () => { setProdDragSrc(null); setProdDragOver(null); prodDragIdx.current = null; };
 
-  const toggleStyle = (active, loading) => ({
-    background: 'none', border: 'none', cursor: loading ? 'wait' : 'pointer',
-    padding: '4px 6px', fontSize: 17, lineHeight: 1,
+  const toggleStyle = (active, isLoading) => ({
+    background: 'none', border: '1px solid currentColor', cursor: isLoading ? 'wait' : 'pointer',
+    padding: '2px 7px', fontSize: 10, fontWeight: 700, borderRadius: 3,
+    letterSpacing: '0.06em', lineHeight: 1.6,
     color: active ? 'var(--up)' : 'var(--down)',
-    opacity: loading ? 0.4 : 1,
+    opacity: isLoading ? 0.4 : 1,
+    fontFamily: 'inherit',
+    whiteSpace: 'nowrap',
   });
 
   return (
@@ -1893,7 +1902,7 @@ function CardapioPage() {
                       title={c.is_active !== false ? 'Ativa — clique para desativar' : 'Inativa — clique para ativar'}
                       style={toggleStyle(c.is_active !== false, togglingCat === c.id)}
                     >
-                      {c.is_active !== false ? '●' : '○'}
+                      {c.is_active !== false ? 'ATIVA' : 'INATIVA'}
                     </button>
                     <button className="icon-btn" title="Editar" onClick={e => editCat(c, e)}>✏</button>
                     <button className="icon-btn danger" title="Excluir" onClick={e => delCat(c, e)}>🗑</button>
@@ -1962,7 +1971,7 @@ function CardapioPage() {
                         title={p.is_active !== false ? 'Ativo — clique para desativar' : 'Inativo — clique para ativar'}
                         style={toggleStyle(p.is_active !== false, togglingProd === p.id)}
                       >
-                        {p.is_active !== false ? '●' : '○'}
+                        {p.is_active !== false ? 'ATIVO' : 'INATIVO'}
                       </button>
                       <button className="icon-btn" title="Editar" onClick={e => editProd(p, e)}>✏</button>
                       <button className="icon-btn danger" title="Excluir" onClick={e => delProd(p, e)}>🗑</button>
