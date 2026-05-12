@@ -7,6 +7,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { getDashboardMetrics, getDateRange, fetchPaidOrders, buildCostMap, calcAggregates, getBRDate, buildTimeSeries } = require('../services/dashboardMetrics');
+const { computeStepTimes, detectMissingEvents, generateAlerts, logInsights, reprocessFunnel } = require('../services/funnelAggregator');
 
 const { sendWhatsAppMessage } = require('../notification-service');
 const { getUnifiedProductList } = require('../services/stockService');
@@ -1864,7 +1865,93 @@ module.exports = function (supabase) {
                 products: { most_added, worst_conversion, most_viewed },
                 insights,
                 conversion_time_avg: fmtMs(avgMs),
+                step_times: computeStepTimes(sessMaps),
             });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    // ─── /funnel-reliability ─────────────────────────────────────────────────
+    router.get('/funnel-reliability', adminAuth, async (req, res) => {
+        try {
+            const days  = Math.min(Math.max(parseInt(req.query.days || '30', 10), 1), 365);
+            const since = new Date(Date.now() - days * 86_400_000).toISOString();
+
+            const { sessMaps, byType } = await buildFunnelMaps(since);
+
+            const { data: flaggedRows } = await supabase
+                .from('funnel_events')
+                .select('session_id, event_type, created_at')
+                .eq('flag_inconsistency', true)
+                .gte('created_at', since)
+                .order('created_at', { ascending: false })
+                .limit(100);
+
+            const sv          = Object.fromEntries(['site_enter','view_product','cart_created','checkout_started','payment_attempted','payment_success'].map(t => [t, byType[t]?.size || 0]));
+            const stepTimes   = computeStepTimes(sessMaps);
+            const missingEvts = detectMissingEvents(sessMaps);
+            const inconsistent = flaggedRows || [];
+
+            const successSet  = byType['payment_success'] || new Set();
+            const cartSet     = byType['cart_created']    || new Set();
+            const checkoutSet = byType['checkout_started']|| new Set();
+            const CART_WIN_MS = 30 * 60 * 1000;
+            const NOW = Date.now();
+            const abandonedCart = [...cartSet].filter(sid => {
+                if (checkoutSet.has(sid) || successSet.has(sid)) return false;
+                const t = sessMaps[sid]?.['cart_created'];
+                return t && (NOW - new Date(t).getTime()) > CART_WIN_MS;
+            }).length;
+            const abandonedCk = [...checkoutSet].filter(s => !successSet.has(s)).length;
+            const total = abandonedCart + abandonedCk;
+            const abandonRate = sv.cart_created > 0 ? +((total / sv.cart_created) * 100).toFixed(1) : 0;
+
+            const alerts = generateAlerts(sv, abandonRate, inconsistent.length);
+            if (alerts.length) logInsights(supabase, alerts);
+
+            res.json({
+                period: days,
+                step_times: stepTimes,
+                missing_events: { total: missingEvts.length, samples: missingEvts.slice(0, 20) },
+                inconsistencies: { total: inconsistent.length, samples: inconsistent.slice(0, 20) },
+                alerts,
+            });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    // ─── /funnel-reprocess ───────────────────────────────────────────────────
+    router.post('/funnel-reprocess', adminAuth, async (req, res) => {
+        try {
+            const days = Math.min(Math.max(parseInt(req.body?.days || req.query.days || '30', 10), 1), 365);
+            const result = await reprocessFunnel(supabase, days);
+            res.json({
+                ok: true,
+                period_days:     days,
+                sessions:        result.totalSessions,
+                counts:          result.sv,
+                step_times:      result.stepTimes,
+                missing_events:  result.missingEvts.length,
+                inconsistencies: result.inconsistencies,
+            });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    // ─── /funnel-alerts ──────────────────────────────────────────────────────
+    router.get('/funnel-alerts', adminAuth, async (_req, res) => {
+        try {
+            const { data, error } = await supabase
+                .from('insights_log')
+                .select('id, type, detected_at, value, context, resolved')
+                .eq('resolved', false)
+                .order('detected_at', { ascending: false })
+                .limit(50);
+            if (error) throw new Error(error.message);
+            res.json({ alerts: data || [] });
         } catch (e) {
             res.status(500).json({ error: e.message });
         }

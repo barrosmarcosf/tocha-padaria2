@@ -1,13 +1,46 @@
 /**
  * funnelTracker.js — grava eventos de funil server-side
  *
- * Escreve em funnel_events (tabela dedicada) E em events (backward compat).
- * Falha silenciosa em ambas — tracking nunca pode derrubar o fluxo principal.
+ * Confiabilidade:
+ * - Deduplicação write-time: upsert com ON CONFLICT (session_id, event_type) DO NOTHING
+ * - Validação de integridade: evento downstream sem upstream → flag_inconsistency = true
+ * - Falha silenciosa — tracking nunca derruba o fluxo principal
  *
  * event_type taxonomy:
- *   site_enter | cart_created | checkout_started | payment_attempted |
- *   payment_success | payment_failed | cart_abandoned | checkout_abandoned
+ *   site_enter | view_product | cart_created | checkout_started |
+ *   payment_attempted | payment_success | payment_failed | cart_abandoned
  */
+
+const FUNNEL_ORDER = [
+    'site_enter',
+    'view_product',
+    'cart_created',
+    'checkout_started',
+    'payment_attempted',
+    'payment_success',
+];
+
+// Para cada evento, qual upstream imediato é obrigatório
+const REQUIRED_UPSTREAM = {
+    cart_created:      'site_enter',
+    checkout_started:  'cart_created',
+    payment_attempted: 'checkout_started',
+    payment_success:   'payment_attempted',
+};
+
+async function checkIntegrity(supabase, session_id, event_type) {
+    const required = REQUIRED_UPSTREAM[event_type];
+    if (!required || !session_id) return false;
+
+    const { data } = await supabase
+        .from('funnel_events')
+        .select('id')
+        .eq('session_id', session_id)
+        .eq('event_type', required)
+        .limit(1);
+
+    return !data || data.length === 0;
+}
 
 async function recordFunnelEvent(supabase, { event_type, session_id, order_id, user_id, metadata = {} }) {
     if (!event_type) return;
@@ -22,16 +55,27 @@ async function recordFunnelEvent(supabase, { event_type, session_id, order_id, u
         timestamp:  new Date().toISOString(),
     });
 
-    // Tabela dedicada funnel_events
-    supabase.from('funnel_events').insert({
+    let flag_inconsistency = false;
+    if (sid && REQUIRED_UPSTREAM[event_type]) {
+        try {
+            flag_inconsistency = await checkIntegrity(supabase, sid, event_type);
+            if (flag_inconsistency) {
+                console.warn('[FUNNEL INTEGRITY]', { event_type, session_id: sid, missing_upstream: REQUIRED_UPSTREAM[event_type] });
+            }
+        } catch (_) {}
+    }
+
+    // Dedup write-time: ON CONFLICT (session_id, event_type) DO NOTHING
+    supabase.from('funnel_events').upsert({
         event_type,
         session_id: sid,
         order_id:   order_id || null,
         user_id:    user_id  || null,
         metadata,
-    }).catch(() => {});
+        flag_inconsistency,
+    }, { onConflict: 'session_id,event_type', ignoreDuplicates: true }).catch(() => {});
 
-    // Tabela events (backward compat — mantém histórico unificado)
+    // Tabela events (backward compat)
     supabase.from('events').insert({
         event_name: event_type,
         session_id: sid,
@@ -39,4 +83,4 @@ async function recordFunnelEvent(supabase, { event_type, session_id, order_id, u
     }).catch(() => {});
 }
 
-module.exports = { recordFunnelEvent };
+module.exports = { recordFunnelEvent, FUNNEL_ORDER };
