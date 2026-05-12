@@ -1086,9 +1086,233 @@ function FunilPage() {
 }
 
 /* ========== PAINEL DE PAGAMENTOS ========== */
+const _REJECT_CODES = {
+  'Saldo insuficiente': 'código 51',
+  'Limite excedido': 'código 61',
+  'Cartão expirado': 'código 54',
+  'Dados inválidos': 'código 14',
+  'Cartão bloqueado': 'código 62',
+  'Suspeita de fraude': 'código 59',
+  'Transação não permitida': 'código 57',
+  'Emissor indisponível': 'código 91',
+  'PIN incorreto': 'código 55',
+  'Limite diário excedido': 'código 65',
+  'Banco indisponível': 'código 06',
+  'Chave PIX inválida': 'código AB09',
+  'Conta do recebedor inativa': 'código AB11',
+  'Tempo expirado (timeout)': 'timeout',
+  'Limite PIX excedido': 'código AB06',
+  'Banco fora do ar': 'código BE17',
+  'QR Code expirado': 'código BE15',
+  'Erro na API do provedor': 'código BE99',
+  'Outros': '—'
+};
+const _MOCK_REJ = {
+  card_credit: [{
+    label: 'Saldo insuficiente',
+    count: 6,
+    pct: 40
+  }, {
+    label: 'Cartão expirado',
+    count: 3,
+    pct: 20
+  }, {
+    label: 'Dados inválidos',
+    count: 2,
+    pct: 13
+  }, {
+    label: 'Limite excedido',
+    count: 2,
+    pct: 13
+  }, {
+    label: 'Outros',
+    count: 2,
+    pct: 13
+  }],
+  card_debit: [{
+    label: 'Saldo insuficiente',
+    count: 4,
+    pct: 44
+  }, {
+    label: 'Dados inválidos',
+    count: 2,
+    pct: 22
+  }, {
+    label: 'Cartão bloqueado',
+    count: 2,
+    pct: 22
+  }, {
+    label: 'Outros',
+    count: 1,
+    pct: 11
+  }],
+  pix: [{
+    label: 'Saldo insuficiente',
+    count: 3,
+    pct: 50
+  }, {
+    label: 'Chave PIX inválida',
+    count: 2,
+    pct: 33
+  }, {
+    label: 'Conta do recebedor inativa',
+    count: 1,
+    pct: 17
+  }]
+};
+const _METHOD_CFG = {
+  card_credit: {
+    color: {
+      primary: 'oklch(0.68 0.19 25)',
+      border: 'oklch(0.68 0.19 25 / 0.22)'
+    },
+    title: 'CARTÃO DE CRÉDITO',
+    Icon: () => /*#__PURE__*/React.createElement(Ic.card, null)
+  },
+  card_debit: {
+    color: {
+      primary: 'oklch(0.74 0.14 55)',
+      border: 'oklch(0.74 0.14 55 / 0.22)'
+    },
+    title: 'CARTÃO DE DÉBITO',
+    Icon: () => /*#__PURE__*/React.createElement(Ic.card, null)
+  },
+  pix: {
+    color: {
+      primary: 'oklch(0.76 0.13 155)',
+      border: 'oklch(0.76 0.13 155 / 0.22)'
+    },
+    title: 'PIX',
+    Icon: () => /*#__PURE__*/React.createElement("svg", {
+      viewBox: "0 0 16 16",
+      width: "14",
+      height: "14",
+      fill: "currentColor"
+    }, /*#__PURE__*/React.createElement("path", {
+      d: "M8 0L9.3 6.7L16 8L9.3 9.3L8 16L6.7 9.3L0 8L6.7 6.7Z"
+    }))
+  }
+};
+function RejCard({
+  data,
+  color,
+  title,
+  Icon,
+  isMock
+}) {
+  const total = data.reduce((s, m) => s + m.count, 0);
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--panel)',
+      border: `1px solid ${color.border}`,
+      borderRadius: 'var(--r)',
+      padding: '18px 20px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: color.primary,
+      display: 'flex',
+      alignItems: 'center'
+    }
+  }, /*#__PURE__*/React.createElement(Icon, null)), /*#__PURE__*/React.createElement("small", {
+    style: {
+      fontSize: 10,
+      letterSpacing: '0.18em',
+      color: color.primary,
+      fontWeight: 500
+    }
+  }, title), isMock && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9,
+      color: 'var(--ink-4)',
+      marginLeft: 'auto',
+      letterSpacing: '0.05em'
+    }
+  }, "exemplo")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 9
+    }
+  }, data.map((m, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      minWidth: 180,
+      fontSize: 12,
+      color: 'var(--ink-2)',
+      flexShrink: 0
+    }
+  }, m.label), /*#__PURE__*/React.createElement("div", {
+    title: `${m.label} — ${_REJECT_CODES[m.label] || '—'}`,
+    style: {
+      flex: 1,
+      background: 'var(--panel-2)',
+      borderRadius: 2,
+      height: 6,
+      overflow: 'hidden',
+      cursor: 'default'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: m.pct + '%',
+      background: color.primary,
+      height: '100%',
+      borderRadius: 2,
+      transition: 'width 0.4s ease'
+    }
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      minWidth: 92,
+      textAlign: 'right',
+      fontSize: 11,
+      color: 'var(--ink-3)',
+      flexShrink: 0
+    }
+  }, m.count, " ", m.count === 1 ? 'ocorrência' : 'ocorrências'), /*#__PURE__*/React.createElement("span", {
+    style: {
+      minWidth: 34,
+      textAlign: 'right',
+      fontSize: 11,
+      color: color.primary,
+      fontWeight: 600,
+      flexShrink: 0
+    }
+  }, m.pct, "%")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      paddingTop: 10,
+      borderTop: '1px solid var(--line-2)',
+      display: 'flex',
+      justifyContent: 'space-between',
+      fontSize: 11
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--ink-4)'
+    }
+  }, "Total"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--ink-3)'
+    }
+  }, total, " ", total === 1 ? 'ocorrência' : 'ocorrências')));
+}
 function PagtoPainelPage() {
   const [analytics, setAnalytics] = useStX(null);
   const [loading, setLoading] = useStX(true);
+  const [tab, setTab] = useStX('all');
   useEffX(() => {
     let mounted = true;
     const tok = localStorage.getItem('tocha_admin_token');
@@ -1107,7 +1331,6 @@ function PagtoPainelPage() {
       mounted = false;
     };
   }, []);
-  const [tab, setTab] = useStX('all');
   const approved = analytics?.approved ?? {
     count: 0,
     rate: 0,
@@ -1140,8 +1363,31 @@ function PagtoPainelPage() {
     key: 'pix',
     label: 'Pix'
   }];
-  const activeMotivos = mrej[tab] ?? mrej.all ?? [];
-  const hasAny = (mrej.all ?? []).length > 0 || rejected.count > 0;
+  const getMethodData = method => {
+    const real = mrej[method];
+    return real && real.length > 0 ? {
+      data: real,
+      isMock: false
+    } : {
+      data: _MOCK_REJ[method] || [],
+      isMock: true
+    };
+  };
+  const renderCard = method => {
+    const cfg = _METHOD_CFG[method];
+    const {
+      data,
+      isMock
+    } = getMethodData(method);
+    return /*#__PURE__*/React.createElement(RejCard, {
+      key: method,
+      data: data,
+      color: cfg.color,
+      title: cfg.title,
+      Icon: cfg.Icon,
+      isMock: isMock
+    });
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement(PH, {
@@ -1190,7 +1436,7 @@ function PagtoPainelPage() {
       flexDirection: 'column',
       justifyContent: 'center'
     }
-  }, /*#__PURE__*/React.createElement("small", null, "ESTORNADOS"), /*#__PURE__*/React.createElement("b", null, refunds.count), /*#__PURE__*/React.createElement("span", null, refunds.amount_total > 0 ? brl(refunds.amount_total) : '—'))), hasAny && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "ESTORNADOS"), /*#__PURE__*/React.createElement("b", null, refunds.count), /*#__PURE__*/React.createElement("span", null, refunds.amount_total > 0 ? brl(refunds.amount_total) : '—'))), /*#__PURE__*/React.createElement("div", {
     className: "card mt",
     style: {
       padding: '20px 24px'
@@ -1200,15 +1446,12 @@ function PagtoPainelPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 16,
+      marginBottom: 20,
       flexWrap: 'wrap',
       gap: 8
     }
   }, /*#__PURE__*/React.createElement("small", {
-    className: "kv-l",
-    style: {
-      display: 'block'
-    }
+    className: "kv-l"
   }, "MOTIVOS DE REJEI\xC7\xC3O"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
@@ -1224,56 +1467,17 @@ function PagtoPainelPage() {
       cursor: 'pointer',
       border: '1px solid var(--line-2)',
       background: tab === t.key ? 'var(--ink)' : 'transparent',
-      color: tab === t.key ? 'var(--bg)' : 'var(--ink-3)'
+      color: tab === t.key ? 'var(--bg)' : 'var(--ink-3)',
+      fontFamily: 'inherit'
     }
-  }, t.label)))), activeMotivos.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, t.label)))), tab === 'all' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
-      color: 'var(--ink-4)',
-      fontSize: 13,
-      padding: '12px 0'
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 14,
+      marginBottom: 14
     }
-  }, "Sem dados para este m\xE9todo no per\xEDodo.") : /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 14
-    }
-  }, activeMotivos.map((m, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      minWidth: 190,
-      fontSize: 12,
-      color: 'var(--ink-2)'
-    }
-  }, m.label), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      background: 'var(--line-2)',
-      borderRadius: 3,
-      height: 7,
-      overflow: 'hidden'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: m.pct + '%',
-      background: 'var(--down)',
-      height: '100%',
-      borderRadius: 3
-    }
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      minWidth: 90,
-      textAlign: 'right',
-      fontSize: 12,
-      color: 'var(--ink-3)'
-    }
-  }, m.count, " ocorr\xEAncias ", m.pct, "%")))))));
+  }, renderCard('card_credit'), renderCard('card_debit')), renderCard('pix')) : renderCard(tab))));
 }
 
 /* ========== CARDÁPIO ========== */
