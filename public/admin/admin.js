@@ -4293,6 +4293,7 @@ let state = {
                 headers: { 'Authorization': `Bearer ${state.token}` },
                 body: formData
             });
+            if (!resp.ok) { const b = await resp.text(); console.error('[UPLOAD-HERO-403]', resp.status, b); throw new Error(`${resp.status}: ${b}`); }
             const data = await resp.json();
             if (data.success) {
                 state.tempHeroImg = data.url;
@@ -4428,6 +4429,7 @@ let state = {
                 headers: { 'Authorization': `Bearer ${state.token}` },
                 body: formData
             });
+            if (!resp.ok) { const b = await resp.text(); console.error('[UPLOAD-LOGO-403]', resp.status, b); throw new Error(`${resp.status}: ${b}`); }
             const data = await resp.json();
             if (data.success) {
                 state.tempLogo = data.url;
@@ -6200,6 +6202,7 @@ let state = {
                 headers: { 'Authorization': `Bearer ${state.token}` },
                 body: formData
             });
+            if (!res.ok) { const b = await res.text(); console.error('[UPLOAD-PROD-403]', res.status, b); throw new Error(`${res.status}: ${b}`); }
             const data = await res.json();
             if (data.success) {
                 document.getElementById(urlHiddenId).value = data.url;

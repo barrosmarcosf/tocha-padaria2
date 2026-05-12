@@ -1138,11 +1138,28 @@ module.exports = function (supabase) {
         }
     });
 
-    router.post('/upload', adminAuth, upload.single('image'), (req, res) => {
+    // DIAGNÓSTICO: sem adminAuth para isolar quem devolve o 403
+    router.post('/upload', (req, res, next) => {
+        console.log('[UPLOAD_ENTRY]', {
+            method: req.method,
+            path: req.path,
+            contentType: req.headers['content-type'],
+            hasAuth: !!req.headers.authorization,
+            authValue: (req.headers.authorization || '').slice(0, 30) + '...',
+            cookie: req.headers.cookie || '(vazio)',
+            sessionId: req.session_id || '(vazio)',
+            csrfHeader: req.headers['x-csrf-token'] ? 'presente' : '(ausente)',
+        });
+        next();
+    }, upload.single('image'), (req, res) => {
+        console.log('[UPLOAD_HANDLER_HIT]', { file: req.file?.originalname, size: req.file?.size });
         try {
             if (!req.file) throw new Error("Falha no upload.");
             res.json({ success: true, url: `assets/uploads/${req.file.filename}` });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) {
+            console.log('[UPLOAD_ERROR]', e.message);
+            res.status(500).json({ error: e.message });
+        }
     });
 
     router.get('/opcionais-config', adminAuth, async (req, res) => {

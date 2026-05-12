@@ -17,7 +17,11 @@ async function _uploadImage(file) {
     },
     body: fd
   });
-  if (!r.ok) throw new Error('Upload falhou');
+  if (!r.ok) {
+    const body = await r.text();
+    console.error('[UPLOAD-403-BODY]', r.status, body);
+    throw new Error(`Upload falhou ${r.status}: ${body}`);
+  }
   return (await r.json()).url;
 }
 function PH({
