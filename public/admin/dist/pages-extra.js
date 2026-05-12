@@ -1154,7 +1154,7 @@ function PagtoPainelPage() {
     className: "pay-stat k-warn"
   }, /*#__PURE__*/React.createElement("small", null, "PENDENTES"), /*#__PURE__*/React.createElement("b", null, h.pending), /*#__PURE__*/React.createElement("span", null, s.pending_revenue > 0 ? brl(s.pending_revenue) : 'Aguardando confirmação')), /*#__PURE__*/React.createElement("div", {
     className: "pay-stat k-down"
-  }, /*#__PURE__*/React.createElement("small", null, "REJEITADOS"), /*#__PURE__*/React.createElement("b", null, h.failed), /*#__PURE__*/React.createElement("span", null, s.failure_rate, "% do total"))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "REJEITADOS"), /*#__PURE__*/React.createElement("b", null, h.failed), /*#__PURE__*/React.createElement("span", null, s.failure_rate, "% do total", motivos[0] ? ` — ${motivos[0].label}` : ''))), /*#__PURE__*/React.createElement("div", {
     className: "grid row-2 mt"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card"

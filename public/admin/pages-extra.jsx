@@ -813,7 +813,7 @@ function PagtoPainelPage() {
             <div className="pay-stat k-down">
               <small>REJEITADOS</small>
               <b>{h.failed}</b>
-              <span>{s.failure_rate}% do total</span>
+              <span>{s.failure_rate}% do total{motivos[0] ? ` — ${motivos[0].label}` : ''}</span>
             </div>
           </div>
 
