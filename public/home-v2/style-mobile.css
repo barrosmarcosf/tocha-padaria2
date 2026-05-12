@@ -397,7 +397,17 @@
 
   /* Touch targets */
   .qty-btn { width: 32px; min-height: 44px; font-size: 17px; }
-  .add-btn { min-height: 44px; font-size: 10px; padding: 0 4px; letter-spacing: 0; }
+  /* add-btn: icon-only no mobile para não cortar em nenhum aparelho */
+  .add-btn { min-height: 44px; }
+  .add-btn:not([disabled]) {
+    display: flex; align-items: center; justify-content: center;
+    padding: 0; font-size: 0; letter-spacing: 0;
+  }
+  .add-btn:not([disabled])::before {
+    content: "+"; font-size: 22px; font-weight: 300; line-height: 1;
+  }
+  .add-btn.added:not([disabled])::before { content: "✓"; font-size: 16px; }
+  .add-btn[disabled] { font-size: 10px; padding: 0 4px; letter-spacing: 0; }
   .ci-btn { width: 40px; height: 40px; }
   .cart-btn { min-height: 44px; padding: 10px 14px; }
 
