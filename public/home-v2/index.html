@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./style-mobile.css">
 </head>
 <body>
 
@@ -49,8 +50,52 @@
       <span>Pedido</span>
       <span id="cart-badge" class="cart-badge" data-count="0" aria-label="itens no pedido">0</span>
     </button>
+    <button
+      id="nav-hamburger"
+      class="nav-hamburger"
+      aria-label="Abrir menu"
+      aria-expanded="false"
+      aria-controls="mobile-nav"
+    >
+      <span class="ham-line"></span>
+      <span class="ham-line"></span>
+      <span class="ham-line"></span>
+    </button>
   </div>
 </nav>
+
+<!-- ============================================================
+     MOBILE NAV MENU
+     ============================================================ -->
+<div id="mobile-nav" role="dialog" aria-modal="true" aria-label="Menu de navegação" aria-hidden="true">
+  <div class="mobile-nav-overlay"></div>
+  <div class="mobile-nav-panel">
+    <div class="mobile-nav-header">
+      <img
+        src="https://www.tochapadaria.com/assets/logo.png"
+        alt="Tocha Padaria"
+        class="mobile-nav-logo"
+        loading="lazy"
+      >
+      <button id="mobile-nav-close" class="mobile-nav-close" aria-label="Fechar menu">×</button>
+    </div>
+    <nav class="mobile-nav-links" aria-label="Links de navegação">
+      <a href="#hero"               class="mobile-nav-link">Início</a>
+      <a href="#menu"               class="mobile-nav-link">Cardápio</a>
+      <a href="#como-funciona"      class="mobile-nav-link">Como pedir</a>
+      <a href="#foodservice"        class="mobile-nav-link">Food Service</a>
+      <a href="nossa-historia.html" class="mobile-nav-link">Nossa História</a>
+      <a href="fale-conosco.html"   class="mobile-nav-link">Fale Conosco</a>
+    </nav>
+    <div class="mobile-nav-footer">
+      <button id="mobile-nav-cart-btn" class="mobile-nav-cart-btn">
+        <span aria-hidden="true">🧺</span>
+        <span>Ver Pedido</span>
+        <span id="mobile-nav-badge" class="mobile-nav-badge" data-count="0" aria-hidden="true">0</span>
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- ============================================================
      HERO
@@ -61,6 +106,8 @@
       src="https://www.tochapadaria.com/assets/sourdough.jpg"
       alt=""
       class="hero-img"
+      fetchpriority="high"
+      decoding="async"
     >
     <div class="hero-overlay"></div>
   </div>
@@ -293,6 +340,7 @@
           src="https://www.tochapadaria.com/assets/logo-footer%20(1).png"
           alt="Tocha Padaria"
           class="footer-logo"
+          loading="lazy"
         >
         <p class="footer-tagline">
           Padaria informal com respeito à longa fermentação.
@@ -329,6 +377,17 @@
     </div>
   </div>
 </footer>
+
+<!-- ============================================================
+     MOBILE STICKY CTA
+     ============================================================ -->
+<div id="mobile-sticky-cta" aria-hidden="true">
+  <a href="#menu" class="sticky-cta-menu">Ver Cardápio →</a>
+  <button id="sticky-cart-btn" class="sticky-cta-cart" aria-label="Ver pedido" style="display:none">
+    <span aria-hidden="true">🧺</span>
+    <span id="sticky-cart-count">0</span>
+  </button>
+</div>
 
 <!-- ============================================================
      WHATSAPP FLOATING
@@ -415,5 +474,6 @@
 <script src="/track.js"></script>
 <script src="./data/menu-data.js"></script>
 <script src="./main.js"></script>
+<script src="./mobile.js"></script>
 </body>
 </html>
