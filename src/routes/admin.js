@@ -1365,6 +1365,17 @@ module.exports = function (supabase) {
                 }))
                 .sort((a, b) => b.count - a.count || a.reason.localeCompare(b.reason));
 
+            // Ordens rejeitadas sem motivo específico → "Outros"
+            const namedCount = rejectionReasons.reduce((s, r) => s + r.count, 0);
+            const unnamedCount = failed - namedCount;
+            if (unnamedCount > 0) {
+                rejectionReasons.push({
+                    reason: 'outros', label: 'Outros', count: unnamedCount,
+                    pct: Math.round((unnamedCount / failed) * 100)
+                });
+                rejectionReasons.sort((a, b) => b.count - a.count || a.reason.localeCompare(b.reason));
+            }
+
             const topReason = rejectionReasons[0]?.label ?? 'Sem dados';
 
             // Split por método (pedidos aprovados) — sort determinístico: count DESC, method ASC
