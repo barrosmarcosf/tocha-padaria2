@@ -776,12 +776,23 @@ function PagtoPainelPage() {
     return () => { mounted = false; };
   }, []);
 
+  const [tab, setTab] = useStX('all');
+
   const approved = analytics?.approved    ?? { count: 0, rate: 0, revenue: 0 };
   const pending  = analytics?.pending     ?? { count: 0, revenue: 0 };
   const rejected = analytics?.rejected    ?? { count: 0, rate: 0 };
   const refunds  = analytics?.refunds     ?? { count: 0, amount_total: 0 };
   const total    = analytics?.total       ?? 0;
-  const motivos  = analytics?.rejection_reasons ?? [];
+  const mrej     = analytics?.method_rejections ?? {};
+
+  const TABS = [
+    { key: 'all',         label: 'Todos' },
+    { key: 'card_credit', label: 'Cartão de Crédito' },
+    { key: 'card_debit',  label: 'Débito' },
+    { key: 'pix',         label: 'Pix' },
+  ];
+  const activeMotivos = mrej[tab] ?? mrej.all ?? [];
+  const hasAny = (mrej.all ?? []).length > 0 || rejected.count > 0;
 
   return (
     <div className="page">
@@ -820,20 +831,36 @@ function PagtoPainelPage() {
             </div>
           </div>
 
-          {motivos.length > 0 && (
+          {hasAny && (
             <div className="card mt" style={{ padding: '20px 24px' }}>
-              <small className="kv-l" style={{ display: 'block', marginBottom: 16 }}>MOTIVOS DE REJEIÇÃO</small>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {motivos.map((m, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ minWidth: 170, fontSize: 12, color: 'var(--ink-2)' }}>{m.label}</span>
-                    <div style={{ flex: 1, background: 'var(--line-2)', borderRadius: 3, height: 7, overflow: 'hidden' }}>
-                      <div style={{ width: m.pct + '%', background: 'var(--down)', height: '100%', borderRadius: 3 }}/>
-                    </div>
-                    <span style={{ minWidth: 72, textAlign: 'right', fontSize: 12, color: 'var(--ink-3)' }}>{m.count} / {m.pct}%</span>
-                  </div>
-                ))}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+                <small className="kv-l" style={{ display: 'block' }}>MOTIVOS DE REJEIÇÃO</small>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {TABS.map(t => (
+                    <button key={t.key} onClick={() => setTab(t.key)} style={{
+                      padding: '4px 12px', fontSize: 11, borderRadius: 20, cursor: 'pointer',
+                      border: '1px solid var(--line-2)',
+                      background: tab === t.key ? 'var(--ink)' : 'transparent',
+                      color:      tab === t.key ? 'var(--bg)' : 'var(--ink-3)',
+                    }}>{t.label}</button>
+                  ))}
+                </div>
               </div>
+              {activeMotivos.length === 0 ? (
+                <div style={{ color: 'var(--ink-4)', fontSize: 13, padding: '12px 0' }}>Sem dados para este método no período.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {activeMotivos.map((m, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ minWidth: 190, fontSize: 12, color: 'var(--ink-2)' }}>{m.label}</span>
+                      <div style={{ flex: 1, background: 'var(--line-2)', borderRadius: 3, height: 7, overflow: 'hidden' }}>
+                        <div style={{ width: m.pct + '%', background: 'var(--down)', height: '100%', borderRadius: 3 }}/>
+                      </div>
+                      <span style={{ minWidth: 90, textAlign: 'right', fontSize: 12, color: 'var(--ink-3)' }}>{m.count} ocorrências {m.pct}%</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </>

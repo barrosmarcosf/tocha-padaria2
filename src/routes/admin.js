@@ -1312,9 +1312,20 @@ module.exports = function (supabase) {
             refunds:     { count: 0, rate: 0, amount_total: 0 },
             chargebacks: { count: 0, rate: 0 },
             rejection_reasons: [],
+            method_rejections: { all: [], card_credit: [], card_debit: [], pix: [] },
             method_split: [],
             timestamp: new Date().toISOString()
         };
+    }
+
+    // Normaliza string de método para bucket de segmentação
+    function _normMethod(m) {
+        const s = (m || '').toLowerCase();
+        if (s.includes('pix'))                                                               return 'pix';
+        if (s.includes('déb') || s.includes('deb') || s === 'debit_card')                   return 'card_debit';
+        if (s.includes('créd') || s.includes('cred') || s.includes('credit') ||
+            s.includes('card') || s.includes('cartã') || s.includes('carta'))               return 'card_credit';
+        return null;
     }
 
     // Analytics consolidado de pagamentos (PIX + Crédito + Débito)
@@ -1395,6 +1406,39 @@ module.exports = function (supabase) {
                 .map(([method, count]) => ({ method, count, pct: paid > 0 ? Math.round((count / paid) * 100) : 0 }))
                 .sort((a, b) => b.count - a.count || a.method.localeCompare(b.method));
 
+            // Rejeições segmentadas por método — fonte: payment_events
+            const { data: pevents } = await supabase
+                .from('payment_events')
+                .select('reason, method')
+                .eq('event_type', 'decline')
+                .gte('created_at', since);
+
+            const mBuckets = { card_credit: {}, card_debit: {}, pix: {} };
+            (pevents || []).forEach(e => {
+                if (!e.reason) return;
+                const bucket = _normMethod(e.method);
+                if (bucket && mBuckets[bucket]) {
+                    mBuckets[bucket][e.reason] = (mBuckets[bucket][e.reason] || 0) + 1;
+                }
+            });
+
+            function _bucketToArray(map) {
+                const tot = Object.values(map).reduce((s, n) => s + n, 0);
+                return Object.entries(map)
+                    .map(([reason, count]) => ({
+                        reason, label: getCategoryLabel(reason), count,
+                        pct: tot > 0 ? Math.round((count / tot) * 100) : 0
+                    }))
+                    .sort((a, b) => b.count - a.count || a.reason.localeCompare(b.reason));
+            }
+
+            const method_rejections = {
+                all:         rejectionReasons,
+                card_credit: _bucketToArray(mBuckets.card_credit),
+                card_debit:  _bucketToArray(mBuckets.card_debit),
+                pix:         _bucketToArray(mBuckets.pix),
+            };
+
             const result = {
                 period_days: days,
                 total,
@@ -1404,6 +1448,7 @@ module.exports = function (supabase) {
                 refunds:     { count: refunded,     rate: refundRate,     amount_total: refundTotal },
                 chargebacks: { count: chargebacks,  rate: chargebackRate },
                 rejection_reasons: rejectionReasons,
+                method_rejections,
                 method_split: methodSplit,
                 timestamp: new Date().toISOString()
             };
