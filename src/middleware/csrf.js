@@ -23,9 +23,6 @@ function csrfProtection(secret) {
         const ua = req.headers['user-agent'] || '';
         let valid = false;
 
-        // DEBUG temporário — remover após confirmar root cause
-        console.log(`[CSRF-DEBUG] ${req.method} ${req.path} | sid=${sid} | cookie=${req.headers.cookie || '(vazio)'} | token=${token ? token.slice(0, 8) + '...' : '(ausente)'}`);
-
         if (token && sid) {
             const expected = generateCsrfToken(sid, ua, secret);
             if (token.length === expected.length) {
@@ -41,7 +38,6 @@ function csrfProtection(secret) {
         if (!valid) {
             const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
             secLog('CSRF_REJEITADO', ip, `${req.method} ${req.path}`);
-            console.log(`[CSRF-DEBUG] REJEITADO — sid=${sid} | token_present=${!!token} | cookies_raw=${req.headers.cookie || '(vazio)'}`);
             return res.status(403).json({ error: 'Token CSRF inválido ou ausente.' });
         }
         next();

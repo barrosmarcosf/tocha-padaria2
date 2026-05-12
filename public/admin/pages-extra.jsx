@@ -11,11 +11,7 @@ async function _uploadImage(file) {
     headers: { 'Authorization': 'Bearer ' + token },
     body: fd,
   });
-  if (!r.ok) {
-    const body = await r.text();
-    console.error('[UPLOAD-403-BODY]', r.status, body);
-    throw new Error(`Upload falhou ${r.status}: ${body}`);
-  }
+  if (!r.ok) throw new Error('Upload falhou');
   return (await r.json()).url;
 }
 
