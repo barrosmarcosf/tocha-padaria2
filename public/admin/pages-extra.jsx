@@ -663,6 +663,7 @@ function FunilPage() {
 
   const funnel = data?.funnel || { visitors: 0, add_to_cart: 0, checkout: 0, success: 0 };
   const payments = data?.payments || { total: 0, success: 0, failed: 0, pending: 0, approval_rate: 0 };
+  const avgConvMin = data?.metrics?.avg_conversion_min ?? null;
 
   const pct = (v, base) => base > 0 ? ((v / base) * 100).toFixed(1) : '0.0';
 
@@ -732,25 +733,32 @@ function FunilPage() {
                 <div><b>Reprovados</b><small>Falhas de pagamento</small></div>
                 <b className="abandon-v">{payments.failed}</b>
               </div>
+              <div className="abandon-row" style={{ borderTop: '1px solid var(--border)', marginTop: 10, paddingTop: 10 }}>
+                <div><b>Tempo médio de conversão</b><small>checkout → pagamento</small></div>
+                <b className="abandon-v" style={{ color: avgConvMin !== null ? 'var(--ink)' : 'var(--ink-4)' }}>
+                  {avgConvMin !== null ? `${avgConvMin}m` : '—'}
+                </b>
+              </div>
             </div>
           </div>
 
           <div className="grid row-2 mt">
             <div className="card">
-              <div className="section-title">ORIGEM DO PAGAMENTO</div>
-              {payments.total === 0 ? (
-                <div style={{ color: 'var(--ink-4)', fontSize: 13, padding: '12px 0' }}>Sem dados de pagamento disponíveis.</div>
-              ) : [
-                { l: 'PIX', v: 0, pct: 0 },
-                { l: 'Cartão de Crédito', v: 0, pct: 0 },
-                { l: 'Cartão de Débito', v: 0, pct: 0 },
-              ].map((r, i) => (
-                <div className="origin-row" key={i}>
-                  <span className="origin-lbl">{r.l}</span>
-                  <div className="origin-bar"><div className="origin-fill" style={{ width: `${r.pct}%` }}/></div>
-                  <span className="origin-v"><b>{r.v}</b> pedidos <span>{r.pct}%</span></span>
-                </div>
-              ))}
+              <div className="section-title">EFICIÊNCIA</div>
+              <div className="abandon-row">
+                <div><b>Conversão checkout→pag.</b><small>sessões que completaram</small></div>
+                <b className="abandon-v">{pct(funnel.success, funnel.checkout)}%</b>
+              </div>
+              <div className="abandon-row">
+                <div><b>Conversão visita→pag.</b><small>visitantes que compraram</small></div>
+                <b className="abandon-v">{pct(funnel.success, funnel.visitors)}%</b>
+              </div>
+              <div className="abandon-row">
+                <div><b>Tempo médio</b><small>checkout → pagamento</small></div>
+                <b className="abandon-v" style={{ color: avgConvMin !== null ? 'var(--ink)' : 'var(--ink-4)' }}>
+                  {avgConvMin !== null ? `${avgConvMin}m` : 'Sem dados'}
+                </b>
+              </div>
             </div>
             <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
               <span className="insight-chip tc1" style={{ width: 28, height: 28, marginBottom: 12 }}/>

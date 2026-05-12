@@ -936,6 +936,7 @@ function FunilPage() {
     pending: 0,
     approval_rate: 0
   };
+  const avgConvMin = data?.metrics?.avg_conversion_min ?? null;
   const pct = (v, base) => base > 0 ? (v / base * 100).toFixed(1) : '0.0';
   const FUNIL = [{
     label: 'VISITANTES',
@@ -1021,45 +1022,40 @@ function FunilPage() {
     className: "abandon-row down"
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Reprovados"), /*#__PURE__*/React.createElement("small", null, "Falhas de pagamento")), /*#__PURE__*/React.createElement("b", {
     className: "abandon-v"
-  }, payments.failed)))), /*#__PURE__*/React.createElement("div", {
+  }, payments.failed)), /*#__PURE__*/React.createElement("div", {
+    className: "abandon-row",
+    style: {
+      borderTop: '1px solid var(--border)',
+      marginTop: 10,
+      paddingTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Tempo m\xE9dio de convers\xE3o"), /*#__PURE__*/React.createElement("small", null, "checkout \u2192 pagamento")), /*#__PURE__*/React.createElement("b", {
+    className: "abandon-v",
+    style: {
+      color: avgConvMin !== null ? 'var(--ink)' : 'var(--ink-4)'
+    }
+  }, avgConvMin !== null ? `${avgConvMin}m` : '—')))), /*#__PURE__*/React.createElement("div", {
     className: "grid row-2 mt"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-title"
-  }, "ORIGEM DO PAGAMENTO"), payments.total === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, "EFICI\xCANCIA"), /*#__PURE__*/React.createElement("div", {
+    className: "abandon-row"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Convers\xE3o checkout\u2192pag."), /*#__PURE__*/React.createElement("small", null, "sess\xF5es que completaram")), /*#__PURE__*/React.createElement("b", {
+    className: "abandon-v"
+  }, pct(funnel.success, funnel.checkout), "%")), /*#__PURE__*/React.createElement("div", {
+    className: "abandon-row"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Convers\xE3o visita\u2192pag."), /*#__PURE__*/React.createElement("small", null, "visitantes que compraram")), /*#__PURE__*/React.createElement("b", {
+    className: "abandon-v"
+  }, pct(funnel.success, funnel.visitors), "%")), /*#__PURE__*/React.createElement("div", {
+    className: "abandon-row"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Tempo m\xE9dio"), /*#__PURE__*/React.createElement("small", null, "checkout \u2192 pagamento")), /*#__PURE__*/React.createElement("b", {
+    className: "abandon-v",
     style: {
-      color: 'var(--ink-4)',
-      fontSize: 13,
-      padding: '12px 0'
+      color: avgConvMin !== null ? 'var(--ink)' : 'var(--ink-4)'
     }
-  }, "Sem dados de pagamento dispon\xEDveis.") : [{
-    l: 'PIX',
-    v: 0,
-    pct: 0
-  }, {
-    l: 'Cartão de Crédito',
-    v: 0,
-    pct: 0
-  }, {
-    l: 'Cartão de Débito',
-    v: 0,
-    pct: 0
-  }].map((r, i) => /*#__PURE__*/React.createElement("div", {
-    className: "origin-row",
-    key: i
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "origin-lbl"
-  }, r.l), /*#__PURE__*/React.createElement("div", {
-    className: "origin-bar"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "origin-fill",
-    style: {
-      width: `${r.pct}%`
-    }
-  })), /*#__PURE__*/React.createElement("span", {
-    className: "origin-v"
-  }, /*#__PURE__*/React.createElement("b", null, r.v), " pedidos ", /*#__PURE__*/React.createElement("span", null, r.pct, "%"))))), /*#__PURE__*/React.createElement("div", {
+  }, avgConvMin !== null ? `${avgConvMin}m` : 'Sem dados'))), /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
       display: 'flex',

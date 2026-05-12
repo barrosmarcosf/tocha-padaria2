@@ -1438,8 +1438,8 @@ module.exports = function (supabase) {
                 supabase.from('pedidos').select('status'),
                 supabase.from('events').select('session_id').eq('event_name', 'view_page'),
                 supabase.from('events').select('session_id').eq('event_name', 'add_to_cart'),
-                supabase.from('events').select('session_id').eq('event_name', 'start_checkout'),
-                supabase.from('events').select('session_id').eq('event_name', 'payment_success'),
+                supabase.from('events').select('session_id, created_at').eq('event_name', 'start_checkout'),
+                supabase.from('events').select('session_id, created_at').eq('event_name', 'payment_success'),
             ]);
 
             const allOrders = ordersRes.data || [];
@@ -1451,6 +1451,24 @@ module.exports = function (supabase) {
 
             const uniq = rows => new Set((rows || []).map(e => e.session_id).filter(Boolean)).size;
 
+            // earliest checkout timestamp per session
+            const checkoutTimes = {};
+            (evCheckout.data || []).forEach(e => {
+                if (e.session_id && e.created_at) {
+                    if (!checkoutTimes[e.session_id] || e.created_at < checkoutTimes[e.session_id])
+                        checkoutTimes[e.session_id] = e.created_at;
+                }
+            });
+            let convTotalMs = 0, convCount = 0;
+            (evSuccess.data || []).forEach(e => {
+                const t0 = checkoutTimes[e.session_id];
+                if (t0 && e.created_at) {
+                    const ms = new Date(e.created_at).getTime() - new Date(t0).getTime();
+                    if (ms > 0 && ms < 30 * 60 * 1000) { convTotalMs += ms; convCount++; }
+                }
+            });
+            const avg_conversion_min = convCount > 0 ? +(convTotalMs / convCount / 60000).toFixed(1) : null;
+
             res.json({
                 payments: { total, success, failed, pending, approval_rate },
                 funnel: {
@@ -1458,7 +1476,8 @@ module.exports = function (supabase) {
                     add_to_cart: uniq(evCart.data),
                     checkout:    uniq(evCheckout.data),
                     success:     uniq(evSuccess.data),
-                }
+                },
+                metrics: { avg_conversion_min }
             });
         } catch (e) {
             res.status(500).json({ error: e.message });
