@@ -41,7 +41,10 @@ window.addToCart = function(product, qty = 1) {
         });
     }
     save();
-    if (window.track) window.track('add_to_cart', { product_id: product.id, name: product.name, price: product.price, qty: qty });
+    if (window.track) {
+        if (wasEmpty) window.track('cart_created', { product_id: product.id, name: product.name });
+        window.track('add_to_cart', { product_id: product.id, name: product.name, price: product.price, qty: qty });
+    }
     window.openCart();
 
     // Abre modal de captura apenas na primeira adição de item da sessão
@@ -444,7 +447,7 @@ window.confirmarPedido = async function() {
         body: JSON.stringify(customer)
     }).catch(() => {});
 
-    if (window.track) window.track('start_checkout', { method: payment, items: cartToCheckout.length });
+    if (window.track) window.track('checkout_started', { method: payment, items: cartToCheckout.length });
 
     const btn = document.querySelector('#checkoutModal .btn-primary');
     const originalText = btn ? btn.innerText : 'CONFIRMAR PEDIDO';
@@ -454,7 +457,7 @@ window.confirmarPedido = async function() {
 
     try {
         if (btn) { btn.innerText = "PROCESSANDO..."; btn.disabled = true; }
-        if (window.track) window.track('payment_attempt', { method: payment });
+        if (window.track) window.track('payment_attempted', { method: payment });
 
         // BUSCA CONFIGURAÇÃO ATUAL DO BACKEND (FONTE DA VERDADE)
         let settings;

@@ -1519,6 +1519,129 @@ module.exports = function (supabase) {
         }
     });
 
+    // ─── /funnel-analytics ────────────────────────────────────────────────────
+    router.get('/funnel-analytics', adminAuth, async (_req, res) => {
+        try {
+            // Backward-compat: query both old and new event names
+            const FUNNEL_NAMES = [
+                'site_enter', 'view_page',
+                'cart_created', 'add_to_cart',
+                'checkout_started', 'start_checkout',
+                'payment_attempted', 'payment_attempt',
+                'payment_success',
+                'payment_failed',
+            ];
+
+            const [evRes, ordersRes] = await Promise.all([
+                supabase
+                    .from('events')
+                    .select('event_name, session_id, created_at')
+                    .in('event_name', FUNNEL_NAMES)
+                    .order('created_at', { ascending: true }),
+                supabase.from('pedidos').select('status, payment_method, items'),
+            ]);
+
+            // Normalize event names to canonical form
+            const norm = n => {
+                if (n === 'view_page')        return 'site_enter';
+                if (n === 'add_to_cart')      return 'cart_created';
+                if (n === 'start_checkout')   return 'checkout_started';
+                if (n === 'payment_attempt')  return 'payment_attempted';
+                return n;
+            };
+
+            // Per-session earliest timestamp per canonical event
+            const sessMaps = {}; // { session_id: { event_type: earliest_iso } }
+            const byType   = {}; // { event_type: Set<session_id> }
+
+            (evRes.data || []).forEach(e => {
+                if (!e.session_id) return;
+                const t = norm(e.event_name);
+                if (!byType[t]) byType[t] = new Set();
+                byType[t].add(e.session_id);
+                if (!sessMaps[e.session_id]) sessMaps[e.session_id] = {};
+                if (!sessMaps[e.session_id][t] || e.created_at < sessMaps[e.session_id][t])
+                    sessMaps[e.session_id][t] = e.created_at;
+            });
+
+            const uniq = t => (byType[t]?.size || 0);
+
+            const steps = {
+                site_enter:       uniq('site_enter'),
+                cart_created:     uniq('cart_created'),
+                checkout_started: uniq('checkout_started'),
+                payment_success:  uniq('payment_success'),
+            };
+
+            // Dropoff % from each step to the next (relative to the step above)
+            const dp = (lost, base) => base > 0 ? +((lost / base) * 100).toFixed(1) : 0;
+            const dropoff = {
+                cart:     dp(steps.site_enter - steps.cart_created,     steps.site_enter),
+                checkout: dp(steps.cart_created - steps.checkout_started, steps.cart_created),
+                payment:  dp(steps.checkout_started - steps.payment_success, steps.checkout_started),
+            };
+
+            // Abandoned / recovered
+            const successSet  = byType['payment_success']  || new Set();
+            const cartSet     = byType['cart_created']     || new Set();
+            const checkoutSet = byType['checkout_started'] || new Set();
+
+            const recoveredCart     = [...cartSet].filter(s => successSet.has(s)).length;
+            const recoveredCheckout = [...checkoutSet].filter(s => successSet.has(s)).length;
+            const abandonedCart     = cartSet.size     - recoveredCart;
+            const abandonedCheckout = checkoutSet.size - recoveredCheckout;
+
+            // Avg conversion time: site_enter → payment_success per session (max 4h window)
+            let convTotalMs = 0, convCount = 0;
+            for (const [, evs] of Object.entries(sessMaps)) {
+                const t0 = evs['site_enter'];
+                const t1 = evs['payment_success'];
+                if (t0 && t1) {
+                    const ms = new Date(t1).getTime() - new Date(t0).getTime();
+                    if (ms > 0 && ms < 4 * 60 * 60 * 1000) { convTotalMs += ms; convCount++; }
+                }
+            }
+            const avgMs = convCount > 0 ? Math.round(convTotalMs / convCount) : null;
+            const fmtMs = ms => {
+                if (ms === null) return null;
+                const m = Math.floor(ms / 60000);
+                const s = Math.round((ms % 60000) / 1000);
+                return `${m}m ${s.toString().padStart(2, '0')}s`;
+            };
+
+            // Payment origin from orders
+            const PAID = new Set(['concluido','concluído','paid','pago','finalizado','success','succeeded','completed','entregue','delivered','aceito','preparo','retirada']);
+            const allOrders = ordersRes.data || [];
+            const paidOrders = allOrders.filter(o => PAID.has((o.status || '').toLowerCase().trim()));
+            const mCount = { pix: 0, credito: 0, debito: 0 };
+            paidOrders.forEach(o => {
+                let it = o.items;
+                try { if (typeof it === 'string') it = JSON.parse(it); } catch (_) { it = {}; }
+                const raw = (o.payment_method || it?.payment_method || '').toLowerCase();
+                if (raw.includes('pix')) mCount.pix++;
+                else if (raw.includes('debito') || raw.includes('débito') || raw.includes('debit')) mCount.debito++;
+                else if (raw.includes('credito') || raw.includes('crédito') || raw.includes('credit') || raw.includes('card') || raw.includes('cartao') || raw.includes('cartão')) mCount.credito++;
+            });
+            const payTotal = mCount.pix + mCount.credito + mCount.debito;
+            const pay_origin = [
+                { l: 'PIX',               v: mCount.pix,     pct: payTotal > 0 ? Math.round(mCount.pix     / payTotal * 100) : 0 },
+                { l: 'Cartão de Crédito', v: mCount.credito, pct: payTotal > 0 ? Math.round(mCount.credito / payTotal * 100) : 0 },
+                { l: 'Cartão de Débito',  v: mCount.debito,  pct: payTotal > 0 ? Math.round(mCount.debito  / payTotal * 100) : 0 },
+            ].sort((a, b) => b.v - a.v);
+
+            res.json({
+                conversion_time_avg: fmtMs(avgMs),
+                steps,
+                dropoff,
+                abandoned: { cart: abandonedCart, checkout: abandonedCheckout },
+                recovered: { cart: recoveredCart, checkout: recoveredCheckout },
+                pay_origin,
+            });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
     return router;
 };
 

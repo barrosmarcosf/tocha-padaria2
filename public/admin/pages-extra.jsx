@@ -654,40 +654,29 @@ function FunilPage() {
 
   useEffX(() => {
     let mounted = true;
-    window.apiGet('/api/admin/metrics')
+    window.apiGet('/api/admin/funnel-analytics')
       .then(d => { if (mounted) setData(d); })
       .catch(() => {})
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, []);
 
-  const funnel   = data?.funnel   || { visitors: 0, add_to_cart: 0, checkout: 0, success: 0 };
-  const recovery = data?.recovery || { recovered_carts: 0, recovered_checkouts: 0, cart_abandoned: 0, checkout_abandoned: 0 };
+  const steps     = data?.steps     || { site_enter: 0, cart_created: 0, checkout_started: 0, payment_success: 0 };
+  const dropoff   = data?.dropoff   || { cart: 0, checkout: 0, payment: 0 };
+  const abandoned = data?.abandoned || { cart: 0, checkout: 0 };
+  const recovered = data?.recovered || { cart: 0, checkout: 0 };
   const payOrigin = data?.pay_origin || [];
-  const avgConvMs = data?.metrics?.avg_conversion_ms ?? null;
+  const convTime  = data?.conversion_time_avg ?? null;
 
   const pct = (v, base) => base > 0 ? ((v / base) * 100).toFixed(1) : '0.0';
-
-  const fmtTime = ms => {
-    if (ms === null) return 'Sem dados';
-    const m = Math.floor(ms / 60000);
-    const s = Math.round((ms % 60000) / 1000);
-    return `${m}m ${s.toString().padStart(2, '0')}s`;
-  };
+  const maxOriginPct = payOrigin.length > 0 ? Math.max(...payOrigin.map(r => r.pct), 1) : 1;
 
   const FUNIL = [
-    { label: 'VISITANTES',            v: funnel.visitors,    pct: 100,                                                          tone: 'c1' },
-    { label: 'CARRINHOS CRIADOS',     v: funnel.add_to_cart, pct: parseFloat(pct(funnel.add_to_cart, funnel.visitors)),          tone: 'c1' },
-    { label: 'CHECKOUTS INICIADOS',   v: funnel.checkout,    pct: parseFloat(pct(funnel.checkout,    funnel.visitors)),          tone: 'c1' },
-    { label: 'PAGAMENTOS CONCLUÍDOS', v: funnel.success,     pct: parseFloat(pct(funnel.success,     funnel.visitors)),          tone: 'c2' },
+    { label: 'VISITANTES',            v: steps.site_enter,       pctVal: 100,                                                   tone: 'c1' },
+    { label: 'CARRINHOS CRIADOS',     v: steps.cart_created,     pctVal: parseFloat(pct(steps.cart_created,     steps.site_enter)), tone: 'c1' },
+    { label: 'CHECKOUTS INICIADOS',   v: steps.checkout_started, pctVal: parseFloat(pct(steps.checkout_started, steps.site_enter)), tone: 'c1' },
+    { label: 'PAGAMENTOS CONCLUÍDOS', v: steps.payment_success,  pctVal: parseFloat(pct(steps.payment_success,  steps.site_enter)), tone: 'c2' },
   ];
-
-  const abandoned      = recovery.cart_abandoned;
-  const abandonedPct   = pct(abandoned, funnel.add_to_cart);
-  const checkAbandoned    = recovery.checkout_abandoned;
-  const checkAbandonedPct = pct(checkAbandoned, funnel.checkout);
-
-  const maxOriginPct = payOrigin.length > 0 ? Math.max(...payOrigin.map(r => r.pct), 1) : 1;
 
   return (
     <div className="page">
@@ -707,7 +696,7 @@ function FunilPage() {
                       <b>{s.v}</b>
                     </div>
                     <div className="funnel-pct">
-                      <b>{s.pct.toFixed(1)}%</b>
+                      <b>{s.pctVal.toFixed(1)}%</b>
                       <small>de conversão</small>
                     </div>
                   </div>
@@ -721,23 +710,23 @@ function FunilPage() {
             <div className="card">
               <div className="section-title">ABANDONO</div>
               <div className="abandon-row down">
-                <div><b>Carrinhos abandonados</b><small>{abandonedPct}% dos carrinhos</small></div>
-                <b className="abandon-v">{abandoned}</b>
+                <div><b>Carrinhos abandonados</b><small>{dropoff.cart}% drop-off</small></div>
+                <b className="abandon-v">{abandoned.cart}</b>
               </div>
               <div className="abandon-row down">
-                <div><b>Checkouts abandonados</b><small>{checkAbandonedPct}% dos checkouts</small></div>
-                <b className="abandon-v">{checkAbandoned}</b>
+                <div><b>Checkouts abandonados</b><small>{dropoff.checkout}% drop-off</small></div>
+                <b className="abandon-v">{abandoned.checkout}</b>
               </div>
             </div>
             <div className="card">
               <div className="section-title">RECUPERAÇÃO</div>
               <div className="abandon-row up">
-                <div><b>Carrinhos recuperados</b><small>{pct(recovery.recovered_carts, abandoned)}% dos abandonados</small></div>
-                <b className="abandon-v">{recovery.recovered_carts}</b>
+                <div><b>Carrinhos recuperados</b><small>{pct(recovered.cart, abandoned.cart)}% dos abandonados</small></div>
+                <b className="abandon-v">{recovered.cart}</b>
               </div>
               <div className="abandon-row up">
-                <div><b>Checkouts recuperados</b><small>{pct(recovery.recovered_checkouts, checkAbandoned)}% dos abandonados</small></div>
-                <b className="abandon-v">{recovery.recovered_checkouts}</b>
+                <div><b>Checkouts recuperados</b><small>{pct(recovered.checkout, abandoned.checkout)}% dos abandonados</small></div>
+                <b className="abandon-v">{recovered.checkout}</b>
               </div>
             </div>
           </div>
@@ -758,7 +747,7 @@ function FunilPage() {
             <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
               <span className="insight-chip tc1" style={{ width: 28, height: 28, marginBottom: 12 }}/>
               <small className="section-title" style={{ margin: 0 }}>TEMPO MÉDIO DE CONVERSÃO</small>
-              <b style={{ fontFamily: 'var(--display)', fontSize: 40, fontWeight: 400, color: avgConvMs !== null ? 'var(--ink)' : 'var(--ink-4)', margin: '8px 0' }}>{fmtTime(avgConvMs)}</b>
+              <b style={{ fontFamily: 'var(--display)', fontSize: 40, fontWeight: 400, color: convTime ? 'var(--ink)' : 'var(--ink-4)', margin: '8px 0' }}>{convTime || 'Sem dados'}</b>
               <small style={{ color: 'var(--ink-4)' }}>do carrinho ao pagamento</small>
             </div>
           </div>

@@ -914,7 +914,7 @@ function FunilPage() {
   const [loading, setLoading] = useStX(true);
   useEffX(() => {
     let mounted = true;
-    window.apiGet('/api/admin/metrics').then(d => {
+    window.apiGet('/api/admin/funnel-analytics').then(d => {
       if (mounted) setData(d);
     }).catch(() => {}).finally(() => {
       if (mounted) setLoading(false);
@@ -923,53 +923,50 @@ function FunilPage() {
       mounted = false;
     };
   }, []);
-  const funnel = data?.funnel || {
-    visitors: 0,
-    add_to_cart: 0,
-    checkout: 0,
-    success: 0
+  const steps = data?.steps || {
+    site_enter: 0,
+    cart_created: 0,
+    checkout_started: 0,
+    payment_success: 0
   };
-  const recovery = data?.recovery || {
-    recovered_carts: 0,
-    recovered_checkouts: 0,
-    cart_abandoned: 0,
-    checkout_abandoned: 0
+  const dropoff = data?.dropoff || {
+    cart: 0,
+    checkout: 0,
+    payment: 0
+  };
+  const abandoned = data?.abandoned || {
+    cart: 0,
+    checkout: 0
+  };
+  const recovered = data?.recovered || {
+    cart: 0,
+    checkout: 0
   };
   const payOrigin = data?.pay_origin || [];
-  const avgConvMs = data?.metrics?.avg_conversion_ms ?? null;
+  const convTime = data?.conversion_time_avg ?? null;
   const pct = (v, base) => base > 0 ? (v / base * 100).toFixed(1) : '0.0';
-  const fmtTime = ms => {
-    if (ms === null) return 'Sem dados';
-    const m = Math.floor(ms / 60000);
-    const s = Math.round(ms % 60000 / 1000);
-    return `${m}m ${s.toString().padStart(2, '0')}s`;
-  };
+  const maxOriginPct = payOrigin.length > 0 ? Math.max(...payOrigin.map(r => r.pct), 1) : 1;
   const FUNIL = [{
     label: 'VISITANTES',
-    v: funnel.visitors,
-    pct: 100,
+    v: steps.site_enter,
+    pctVal: 100,
     tone: 'c1'
   }, {
     label: 'CARRINHOS CRIADOS',
-    v: funnel.add_to_cart,
-    pct: parseFloat(pct(funnel.add_to_cart, funnel.visitors)),
+    v: steps.cart_created,
+    pctVal: parseFloat(pct(steps.cart_created, steps.site_enter)),
     tone: 'c1'
   }, {
     label: 'CHECKOUTS INICIADOS',
-    v: funnel.checkout,
-    pct: parseFloat(pct(funnel.checkout, funnel.visitors)),
+    v: steps.checkout_started,
+    pctVal: parseFloat(pct(steps.checkout_started, steps.site_enter)),
     tone: 'c1'
   }, {
     label: 'PAGAMENTOS CONCLUÍDOS',
-    v: funnel.success,
-    pct: parseFloat(pct(funnel.success, funnel.visitors)),
+    v: steps.payment_success,
+    pctVal: parseFloat(pct(steps.payment_success, steps.site_enter)),
     tone: 'c2'
   }];
-  const abandoned = recovery.cart_abandoned;
-  const abandonedPct = pct(abandoned, funnel.add_to_cart);
-  const checkAbandoned = recovery.checkout_abandoned;
-  const checkAbandonedPct = pct(checkAbandoned, funnel.checkout);
-  const maxOriginPct = payOrigin.length > 0 ? Math.max(...payOrigin.map(r => r.pct), 1) : 1;
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement(PH, {
@@ -998,7 +995,7 @@ function FunilPage() {
     className: "funnel-meta"
   }, /*#__PURE__*/React.createElement("small", null, s.label), /*#__PURE__*/React.createElement("b", null, s.v)), /*#__PURE__*/React.createElement("div", {
     className: "funnel-pct"
-  }, /*#__PURE__*/React.createElement("b", null, s.pct.toFixed(1), "%"), /*#__PURE__*/React.createElement("small", null, "de convers\xE3o"))), i < FUNIL.length - 1 && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("b", null, s.pctVal.toFixed(1), "%"), /*#__PURE__*/React.createElement("small", null, "de convers\xE3o"))), i < FUNIL.length - 1 && /*#__PURE__*/React.createElement("div", {
     className: "funnel-arrow"
   }, "\u2193"))))), /*#__PURE__*/React.createElement("div", {
     className: "grid row-2 mt"
@@ -1008,25 +1005,25 @@ function FunilPage() {
     className: "section-title"
   }, "ABANDONO"), /*#__PURE__*/React.createElement("div", {
     className: "abandon-row down"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Carrinhos abandonados"), /*#__PURE__*/React.createElement("small", null, abandonedPct, "% dos carrinhos")), /*#__PURE__*/React.createElement("b", {
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Carrinhos abandonados"), /*#__PURE__*/React.createElement("small", null, dropoff.cart, "% drop-off")), /*#__PURE__*/React.createElement("b", {
     className: "abandon-v"
-  }, abandoned)), /*#__PURE__*/React.createElement("div", {
+  }, abandoned.cart)), /*#__PURE__*/React.createElement("div", {
     className: "abandon-row down"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Checkouts abandonados"), /*#__PURE__*/React.createElement("small", null, checkAbandonedPct, "% dos checkouts")), /*#__PURE__*/React.createElement("b", {
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Checkouts abandonados"), /*#__PURE__*/React.createElement("small", null, dropoff.checkout, "% drop-off")), /*#__PURE__*/React.createElement("b", {
     className: "abandon-v"
-  }, checkAbandoned))), /*#__PURE__*/React.createElement("div", {
+  }, abandoned.checkout))), /*#__PURE__*/React.createElement("div", {
     className: "card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-title"
   }, "RECUPERA\xC7\xC3O"), /*#__PURE__*/React.createElement("div", {
     className: "abandon-row up"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Carrinhos recuperados"), /*#__PURE__*/React.createElement("small", null, pct(recovery.recovered_carts, abandoned), "% dos abandonados")), /*#__PURE__*/React.createElement("b", {
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Carrinhos recuperados"), /*#__PURE__*/React.createElement("small", null, pct(recovered.cart, abandoned.cart), "% dos abandonados")), /*#__PURE__*/React.createElement("b", {
     className: "abandon-v"
-  }, recovery.recovered_carts)), /*#__PURE__*/React.createElement("div", {
+  }, recovered.cart)), /*#__PURE__*/React.createElement("div", {
     className: "abandon-row up"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Checkouts recuperados"), /*#__PURE__*/React.createElement("small", null, pct(recovery.recovered_checkouts, checkAbandoned), "% dos abandonados")), /*#__PURE__*/React.createElement("b", {
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Checkouts recuperados"), /*#__PURE__*/React.createElement("small", null, pct(recovered.checkout, abandoned.checkout), "% dos abandonados")), /*#__PURE__*/React.createElement("b", {
     className: "abandon-v"
-  }, recovery.recovered_checkouts)))), /*#__PURE__*/React.createElement("div", {
+  }, recovered.checkout)))), /*#__PURE__*/React.createElement("div", {
     className: "grid row-2 mt"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card"
@@ -1078,10 +1075,10 @@ function FunilPage() {
       fontFamily: 'var(--display)',
       fontSize: 40,
       fontWeight: 400,
-      color: avgConvMs !== null ? 'var(--ink)' : 'var(--ink-4)',
+      color: convTime ? 'var(--ink)' : 'var(--ink-4)',
       margin: '8px 0'
     }
-  }, fmtTime(avgConvMs)), /*#__PURE__*/React.createElement("small", {
+  }, convTime || 'Sem dados'), /*#__PURE__*/React.createElement("small", {
     style: {
       color: 'var(--ink-4)'
     }

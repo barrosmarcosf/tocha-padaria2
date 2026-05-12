@@ -19,8 +19,16 @@
                     session_id: getSessionId(),
                     metadata: data || {}
                 }),
-                keepalive: true   // garante envio mesmo em redirects
+                keepalive: true
             }).catch(function () {});
         } catch (_) {}
     };
+
+    window.getSessionId = getSessionId;
+
+    // Dispara site_enter uma vez por sessão
+    if (!sessionStorage.getItem('_se')) {
+        sessionStorage.setItem('_se', '1');
+        window.track('site_enter', { referrer: document.referrer || '', path: location.pathname });
+    }
 }());

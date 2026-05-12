@@ -557,6 +557,15 @@ async function processPaidSession(supabase, stripe, session) {
         // Registrar evento de aprovação em payment_events
         recordStripeApproval(supabase, orderUpdate, session).catch(() => {});
 
+        // Registrar no funil de conversão
+        const { recordFunnelEvent } = require('../services/funnelTracker');
+        recordFunnelEvent(supabase, {
+            event_type: 'payment_success',
+            session_id: session.metadata?.sessionId || null,
+            order_id: orderUpdate.id,
+            metadata: { provider: 'stripe', stripe_session_id: session.id }
+        });
+
         const { data: customer, error: custErr } = await supabase
             .from('clientes').select('*').eq('id', orderUpdate.customer_id).single();
 

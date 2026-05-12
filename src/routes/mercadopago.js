@@ -1355,6 +1355,15 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
         metadata: { mp_payment_id: mpId, payment_type_id: _mpPayment?.payment_type_id }
     });
 
+    // Registrar no funil de conversão
+    const { recordFunnelEvent } = require('../services/funnelTracker');
+    recordFunnelEvent(supabase, {
+        event_type: 'payment_success',
+        session_id: itemsData?.client_session_id || null,
+        order_id: order.id,
+        metadata: { provider: 'mercadopago', method: resolvedMethod, mp_payment_id: mpId }
+    });
+
     console.log(`✅ [MP] Pedido ${order.id} processado com sucesso.`);
 }
 
