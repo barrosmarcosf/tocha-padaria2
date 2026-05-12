@@ -3333,10 +3333,7 @@ function CategoriaModal({
     value: desc,
     onChange: e => setDesc(e.target.value)
   })), /*#__PURE__*/React.createElement("div", {
-    className: "grid",
     style: {
-      gridTemplateColumns: '1fr 1fr',
-      gap: 14,
       marginTop: 12
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -3368,25 +3365,7 @@ function CategoriaModal({
       display: 'none'
     },
     onChange: handleImg
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "field"
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      visibility: 'hidden'
-    }
-  }, "."), /*#__PURE__*/React.createElement("div", {
-    className: "toggle-card"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "switch"
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "checkbox",
-    checked: visible,
-    onChange: e => setVisible(e.target.checked)
-  }), /*#__PURE__*/React.createElement("span", {
-    className: "sw-track"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "sw-thumb"
-  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Categoria Vis\xEDvel"), /*#__PURE__*/React.createElement("small", null, "Status 'Inativa' oculta a categoria e todos seus produtos do site."))))), /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", {
     className: "modal-actions"
   }, /*#__PURE__*/React.createElement("button", {
     className: "btn-ghost",
@@ -3552,22 +3531,7 @@ function ProdutoModal({
     }
   })), /*#__PURE__*/React.createElement("small", {
     className: "hint"
-  }, "Saldo dispon\xEDvel para novas compras.")), /*#__PURE__*/React.createElement("div", {
-    className: "toggle-card",
-    style: {
-      marginTop: 10
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "switch"
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "checkbox",
-    checked: active,
-    onChange: e => setActive(e.target.checked)
-  }), /*#__PURE__*/React.createElement("span", {
-    className: "sw-track"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "sw-thumb"
-  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Produto Ativo"))))), /*#__PURE__*/React.createElement("div", {
+  }, "Saldo dispon\xEDvel para novas compras.")))), /*#__PURE__*/React.createElement("div", {
     className: "modal-actions"
   }, /*#__PURE__*/React.createElement("button", {
     className: "btn-ghost",
@@ -3585,6 +3549,14 @@ function CardapioPage() {
   const [loading, setLoading] = useStX(true);
   const [catModal, setCatModal] = useStX(null);
   const [prodModal, setProdModal] = useStX(null);
+  const [togglingCat, setTogglingCat] = useStX(null);
+  const [togglingProd, setTogglingProd] = useStX(null);
+  const catDragIdx = useRefX(null);
+  const prodDragIdx = useRefX(null);
+  const [catDragSrc, setCatDragSrc] = useStX(null);
+  const [catDragOver, setCatDragOver] = useStX(null);
+  const [prodDragSrc, setProdDragSrc] = useStX(null);
+  const [prodDragOver, setProdDragOver] = useStX(null);
   const loadConfig = useCbX(() => {
     setLoading(true);
     window.apiGet('/api/admin/config').then(d => {
@@ -3599,6 +3571,8 @@ function CardapioPage() {
     loadConfig();
   }, [loadConfig]);
   const stop = e => e.stopPropagation();
+
+  /* ── categorias ── */
   const editCat = (cat, e) => {
     stop(e);
     setCatModal({
@@ -3620,6 +3594,69 @@ function CardapioPage() {
     setCatModal(null);
     loadConfig();
   };
+  const toggleCat = (cat, e) => {
+    stop(e);
+    const next = cat.is_active === false;
+    setCats(prev => prev.map(c => c.id === cat.id ? {
+      ...c,
+      is_active: next
+    } : c));
+    setTogglingCat(cat.id);
+    window.apiPost('/api/admin/save-category', {
+      ...cat,
+      is_active: next
+    }).catch(() => {
+      setCats(prev => prev.map(c => c.id === cat.id ? {
+        ...c,
+        is_active: cat.is_active
+      } : c));
+      alert('Erro ao alterar status da categoria');
+    }).finally(() => setTogglingCat(null));
+  };
+  const onCatDragStart = (e, idx) => {
+    catDragIdx.current = idx;
+    setCatDragSrc(idx);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+  const onCatDragOver = (e, idx) => {
+    e.preventDefault();
+    setCatDragOver(idx);
+  };
+  const onCatDrop = (e, idx) => {
+    e.preventDefault();
+    const from = catDragIdx.current;
+    if (from === null || from === idx) {
+      setCatDragOver(null);
+      return;
+    }
+    const updated = [...cats];
+    const [moved] = updated.splice(from, 1);
+    updated.splice(idx, 0, moved);
+    const reordered = updated.map((c, i) => ({
+      ...c,
+      display_order: i
+    }));
+    setCats(reordered);
+    setCatDragSrc(null);
+    setCatDragOver(null);
+    catDragIdx.current = null;
+    window.apiPost('/api/admin/update-categories-order', {
+      orders: reordered.map(c => ({
+        id: c.id,
+        display_order: c.display_order
+      }))
+    }).catch(() => {
+      alert('Erro ao reordenar categorias');
+      loadConfig();
+    });
+  };
+  const onCatDragEnd = () => {
+    setCatDragSrc(null);
+    setCatDragOver(null);
+    catDragIdx.current = null;
+  };
+
+  /* ── produtos ── */
   const editProd = (p, e) => {
     stop(e);
     setProdModal({
@@ -3639,11 +3676,98 @@ function CardapioPage() {
       category_slug: sel
     }
   });
-  const saveProd = () => {
+  const saveProd = payload => {
+    if (payload?.id) setProds(prev => prev.map(p => p.id === payload.id ? {
+      ...p,
+      ...payload
+    } : p));
     setProdModal(null);
     loadConfig();
   };
+  const toggleProd = (p, e) => {
+    stop(e);
+    const next = p.is_active === false;
+    setProds(prev => prev.map(x => x.id === p.id ? {
+      ...x,
+      is_active: next
+    } : x));
+    setTogglingProd(p.id);
+    window.apiPost('/api/admin/save-product', {
+      ...p,
+      is_active: next
+    }).catch(() => {
+      setProds(prev => prev.map(x => x.id === p.id ? {
+        ...x,
+        is_active: p.is_active
+      } : x));
+      alert('Erro ao alterar status do produto');
+    }).finally(() => setTogglingProd(null));
+  };
+  const updateStock = (p, val, e) => {
+    stop(e);
+    const n = parseInt(val) || 0;
+    setProds(prev => prev.map(x => x.id === p.id ? {
+      ...x,
+      initial_stock: n
+    } : x));
+    window.apiPost('/api/admin/save-product', {
+      ...p,
+      initial_stock: n
+    }).then(() => loadConfig()).catch(() => alert('Erro ao atualizar estoque'));
+  };
   const filteredProds = prods.filter(p => p.category_slug === sel);
+  const onProdDragStart = (e, idx) => {
+    prodDragIdx.current = idx;
+    setProdDragSrc(idx);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+  const onProdDragOver = (e, idx) => {
+    e.preventDefault();
+    setProdDragOver(idx);
+  };
+  const onProdDrop = (e, idx) => {
+    e.preventDefault();
+    const from = prodDragIdx.current;
+    if (from === null || from === idx) {
+      setProdDragOver(null);
+      return;
+    }
+    const updated = [...filteredProds];
+    const [moved] = updated.splice(from, 1);
+    updated.splice(idx, 0, moved);
+    const reordered = updated.map((p, i) => ({
+      ...p,
+      display_order: i
+    }));
+    setProds(prev => [...prev.filter(p => p.category_slug !== sel), ...reordered]);
+    setProdDragSrc(null);
+    setProdDragOver(null);
+    prodDragIdx.current = null;
+    window.apiPost('/api/admin/update-products-order', {
+      orders: reordered.map(p => ({
+        id: p.id,
+        display_order: p.display_order
+      }))
+    }).catch(() => {
+      alert('Erro ao reordenar produtos');
+      loadConfig();
+    });
+  };
+  const onProdDragEnd = () => {
+    setProdDragSrc(null);
+    setProdDragOver(null);
+    prodDragIdx.current = null;
+  };
+  const toggleStyle = (active, loading) => ({
+    background: 'none',
+    border: 'none',
+    cursor: loading ? 'wait' : 'pointer',
+    padding: '4px 6px',
+    fontSize: 17,
+    lineHeight: 1,
+    color: active ? 'var(--up)' : 'var(--down)',
+    opacity: loading ? 0.4 : 1
+  });
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement("div", {
@@ -3675,12 +3799,17 @@ function CardapioPage() {
       alignItems: 'center',
       marginBottom: 12
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "section-title",
     style: {
       margin: 0
     }
-  }, "CATEGORIAS"), /*#__PURE__*/React.createElement("button", {
+  }, "CATEGORIAS"), /*#__PURE__*/React.createElement("small", {
+    style: {
+      color: 'var(--ink-4)',
+      fontSize: 11
+    }
+  }, "Arraste para reordenar \xB7 clique \u25CF\u25CB para ativar")), /*#__PURE__*/React.createElement("button", {
     className: "btn-primary sm",
     onClick: newCat
   }, "+ Nova Categoria")), /*#__PURE__*/React.createElement("div", {
@@ -3689,10 +3818,20 @@ function CardapioPage() {
       flexDirection: 'column',
       gap: 8
     }
-  }, cats.map(c => /*#__PURE__*/React.createElement("div", {
+  }, cats.map((c, idx) => /*#__PURE__*/React.createElement("div", {
     key: c.slug,
+    draggable: true,
+    onDragStart: e => onCatDragStart(e, idx),
+    onDragOver: e => onCatDragOver(e, idx),
+    onDrop: e => onCatDrop(e, idx),
+    onDragEnd: onCatDragEnd,
     onClick: () => setSel(c.slug),
-    className: `cat-row ${sel === c.slug ? 'on' : ''}`
+    className: `cat-row ${sel === c.slug ? 'on' : ''}`,
+    style: {
+      opacity: catDragSrc === idx ? 0.35 : 1,
+      outline: catDragOver === idx ? '2px solid var(--amber)' : 'none',
+      cursor: 'grab'
+    }
   }, /*#__PURE__*/React.createElement("div", {
     className: "cat-thumb"
   }, c.image_url && /*#__PURE__*/React.createElement("img", {
@@ -3704,15 +3843,18 @@ function CardapioPage() {
       borderRadius: 4
     }
   })), /*#__PURE__*/React.createElement("div", {
-    className: "cat-text"
-  }, /*#__PURE__*/React.createElement("b", null, c.name), /*#__PURE__*/React.createElement("small", null, c.description), /*#__PURE__*/React.createElement("span", {
-    className: `tag ${c.is_active !== false ? 'up' : 'down'}`,
+    className: "cat-text",
     style: {
-      marginTop: 4
+      flex: 1
     }
-  }, c.is_active !== false ? 'ATIVA' : 'INATIVA')), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("b", null, c.name), /*#__PURE__*/React.createElement("small", null, c.description)), /*#__PURE__*/React.createElement("div", {
     className: "row-actions"
   }, /*#__PURE__*/React.createElement("button", {
+    onClick: e => toggleCat(c, e),
+    disabled: togglingCat === c.id,
+    title: c.is_active !== false ? 'Ativa — clique para desativar' : 'Inativa — clique para ativar',
+    style: toggleStyle(c.is_active !== false, togglingCat === c.id)
+  }, c.is_active !== false ? '●' : '○'), /*#__PURE__*/React.createElement("button", {
     className: "icon-btn",
     title: "Editar",
     onClick: e => editCat(c, e)
@@ -3745,7 +3887,12 @@ function CardapioPage() {
       color: 'var(--ink)',
       display: 'block'
     }
-  }, cats.find(c => c.slug === sel)?.name || '—')), /*#__PURE__*/React.createElement("button", {
+  }, cats.find(c => c.slug === sel)?.name || '—'), /*#__PURE__*/React.createElement("small", {
+    style: {
+      color: 'var(--ink-4)',
+      fontSize: 11
+    }
+  }, "Arraste para reordenar \xB7 clique \u25CF\u25CB para ativar \xB7 Est. edit\xE1vel")), /*#__PURE__*/React.createElement("button", {
     className: "btn-primary",
     onClick: newProd
   }, "Novo Produto")), /*#__PURE__*/React.createElement("div", {
@@ -3757,12 +3904,21 @@ function CardapioPage() {
       overflowY: 'auto',
       paddingRight: 4
     }
-  }, filteredProds.map(p => {
-    const stock = p.stock_quantity ?? p.initial_stock ?? 0;
-    const esgotado = stock <= 0;
+  }, filteredProds.map((p, idx) => {
+    const esgotado = (p.stock_quantity ?? p.initial_stock ?? 0) <= 0;
     return /*#__PURE__*/React.createElement("div", {
       key: p.id,
-      className: "prod-row-full"
+      draggable: true,
+      onDragStart: e => onProdDragStart(e, idx),
+      onDragOver: e => onProdDragOver(e, idx),
+      onDrop: e => onProdDrop(e, idx),
+      onDragEnd: onProdDragEnd,
+      className: "prod-row-full",
+      style: {
+        opacity: prodDragSrc === idx ? 0.35 : 1,
+        outline: prodDragOver === idx ? '2px solid var(--amber)' : 'none',
+        cursor: 'grab'
+      }
     }, /*#__PURE__*/React.createElement("div", {
       className: "prod-thumb"
     }, p.image_url && /*#__PURE__*/React.createElement("img", {
@@ -3774,7 +3930,10 @@ function CardapioPage() {
         borderRadius: 4
       }
     })), /*#__PURE__*/React.createElement("div", {
-      className: "prod-text"
+      className: "prod-text",
+      style: {
+        flex: 1
+      }
     }, /*#__PURE__*/React.createElement("b", null, p.name), /*#__PURE__*/React.createElement("small", null, p.description)), /*#__PURE__*/React.createElement("div", {
       className: "prod-meta"
     }, /*#__PURE__*/React.createElement("b", {
@@ -3782,15 +3941,48 @@ function CardapioPage() {
       style: {
         color: 'var(--ink)'
       }
-    }, "R$ ", Number(p.price || 0).toFixed(2).replace('.', ',')), /*#__PURE__*/React.createElement("span", {
-      className: `tag ${p.is_active !== false ? 'up' : 'down'}`
-    }, p.is_active !== false ? 'ATIVO' : 'INATIVO'), /*#__PURE__*/React.createElement("small", {
+    }, "R$ ", Number(p.price || 0).toFixed(2).replace('.', ',')), /*#__PURE__*/React.createElement("div", {
       style: {
-        color: esgotado ? 'var(--down)' : 'var(--ink-3)'
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4
       }
-    }, esgotado ? 'Esgotado' : `${stock} un.`)), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("small", {
+      style: {
+        color: 'var(--ink-4)',
+        fontSize: 11
+      }
+    }, "Est."), /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      min: "0",
+      defaultValue: p.initial_stock ?? 0,
+      onClick: stop,
+      onDragStart: e => e.stopPropagation(),
+      onBlur: e => updateStock(p, e.target.value, e),
+      style: {
+        width: 52,
+        padding: '2px 4px',
+        fontSize: 12,
+        textAlign: 'center',
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 4,
+        color: esgotado ? 'var(--down)' : 'var(--ink-3)',
+        cursor: 'text'
+      }
+    }), esgotado && /*#__PURE__*/React.createElement("small", {
+      style: {
+        color: 'var(--down)',
+        fontSize: 10
+      }
+    }, "ESG"))), /*#__PURE__*/React.createElement("div", {
       className: "row-actions"
     }, /*#__PURE__*/React.createElement("button", {
+      onClick: e => toggleProd(p, e),
+      disabled: togglingProd === p.id,
+      title: p.is_active !== false ? 'Ativo — clique para desativar' : 'Inativo — clique para ativar',
+      style: toggleStyle(p.is_active !== false, togglingProd === p.id)
+    }, p.is_active !== false ? '●' : '○'), /*#__PURE__*/React.createElement("button", {
       className: "icon-btn",
       title: "Editar",
       onClick: e => editProd(p, e)
