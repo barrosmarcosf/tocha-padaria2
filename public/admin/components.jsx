@@ -377,6 +377,7 @@ function Donut({ data, size = 148 }) {
           {/* track */}
           <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--panel-3)" strokeWidth={stroke}/>
           {arcs.map((a, i) => {
+            if (a.to <= a.from) return null;
             const [x1, y1] = polar(a.from);
             const [x2, y2] = polar(a.to);
             const large = (a.to - a.from) > 0.5 ? 1 : 0;

@@ -1224,7 +1224,7 @@ function ResumoPage() {
   const [loading, setLoading] = useStP(true);
   useEffP(() => {
     let mounted = true;
-    window.apiGet('/api/admin/detailed-analytics?period=today&tzOffset=180').then(d => {
+    window.apiGet('/api/admin/detailed-analytics?period=30d&tzOffset=180').then(d => {
       if (mounted) setAnalytics(d);
     }).catch(() => {}).finally(() => {
       if (mounted) setLoading(false);

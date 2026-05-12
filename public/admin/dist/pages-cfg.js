@@ -1,8 +1,9 @@
-/* global React, Ic */
+/* global React, Ic, _uploadImage */
 const {
   useState: useStC,
   useEffect: useEffC,
-  useCallback: useCbC
+  useCallback: useCbC,
+  useRef: useRefC
 } = React;
 function PageHead2({
   title,
@@ -476,12 +477,47 @@ function CycleCard({
 }
 
 /* ========== HOME PAGE EDITOR ========== */
+const BANNER_DEFAULTS = [{
+  kicker: 'Fermentação Natural',
+  title: 'O pão que\ntransforma\no seu dia',
+  desc: 'Cada pão nasce de levain vivo, farinha de qualidade e tempo; não tem atalho, tem respeito.',
+  imageUrl: ''
+}, {
+  kicker: 'Fornada de Sábado',
+  title: 'Reserve sua\nfornada da\nsemana',
+  desc: 'Pedidos abertos até sexta-feira às 16h. Retirada sábado a partir das 9h, ainda quente da pedra.',
+  imageUrl: ''
+}];
 function BannerEditor({
   index,
-  defaults,
+  value,
+  onChange,
   active,
   onSelect
 }) {
+  const imgRef = useRefC(null);
+  const [uploading, setUploading] = useStC(false);
+  const handleImg = async e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setUploading(true);
+    try {
+      const url = await window._uploadImage(file);
+      onChange({
+        ...value,
+        imageUrl: url
+      });
+    } catch (err) {
+      alert('Erro no upload: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+  const set = field => e => onChange({
+    ...value,
+    [field]: e.target.value
+  });
   return /*#__PURE__*/React.createElement("div", {
     className: `card banner-card ${active ? 'on' : ''}`
   }, /*#__PURE__*/React.createElement("div", {
@@ -509,7 +545,8 @@ function BannerEditor({
     className: "ref-tag green"
   }, "Ref. ret\xE2ngulo verde")), /*#__PURE__*/React.createElement("input", {
     className: "inp",
-    defaultValue: defaults.kicker
+    value: value.kicker,
+    onChange: set('kicker')
   })), /*#__PURE__*/React.createElement("div", {
     className: "form-row"
   }, /*#__PURE__*/React.createElement("label", null, "T\xEDtulo principal grande", /*#__PURE__*/React.createElement("small", {
@@ -517,7 +554,8 @@ function BannerEditor({
   }, "Ref. ret\xE2ngulo vermelho")), /*#__PURE__*/React.createElement("textarea", {
     className: "inp",
     rows: 3,
-    defaultValue: defaults.title
+    value: value.title,
+    onChange: set('title')
   }), /*#__PURE__*/React.createElement("small", {
     className: "hint"
   }, "Use asteriscos para destacar o texto em dourado. Ex: *transforma*")), /*#__PURE__*/React.createElement("div", {
@@ -527,7 +565,8 @@ function BannerEditor({
   }, "Ref. ret\xE2ngulo roxo")), /*#__PURE__*/React.createElement("textarea", {
     className: "inp",
     rows: 3,
-    defaultValue: defaults.desc
+    value: value.desc,
+    onChange: set('desc')
   }))), /*#__PURE__*/React.createElement("div", {
     className: "hp-preview"
   }, /*#__PURE__*/React.createElement("div", {
@@ -536,7 +575,15 @@ function BannerEditor({
     className: "hp-image"
   }, /*#__PURE__*/React.createElement("div", {
     className: "hp-image-inner"
-  }, /*#__PURE__*/React.createElement("svg", {
+  }, value.imageUrl ? /*#__PURE__*/React.createElement("img", {
+    src: `/${value.imageUrl}`,
+    style: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      borderRadius: 4
+    }
+  }) : /*#__PURE__*/React.createElement("svg", {
     viewBox: "0 0 100 100",
     width: "56",
     height: "56",
@@ -579,11 +626,60 @@ function BannerEditor({
       marginTop: 12
     }
   }, /*#__PURE__*/React.createElement("button", {
-    className: "btn-ghost btn-narrow"
-  }, "Substituir imagem"))))));
+    className: "btn-ghost btn-narrow",
+    onClick: e => {
+      e.stopPropagation();
+      imgRef.current?.click();
+    },
+    disabled: uploading
+  }, uploading ? 'Enviando…' : 'Substituir imagem'), /*#__PURE__*/React.createElement("input", {
+    ref: imgRef,
+    type: "file",
+    accept: "image/*",
+    style: {
+      display: 'none'
+    },
+    onChange: handleImg
+  }))))));
 }
 function HomePageCfgPage() {
   const [active, setActive] = useStC(1);
+  const [banners, setBanners] = useStC(BANNER_DEFAULTS.map(b => ({
+    ...b
+  })));
+  const [saving, setSaving] = useStC(false);
+  const [msg, setMsg] = useStC('');
+  const load = useCbC(() => {
+    window.apiGet('/api/admin/config').then(d => {
+      const hp = d?.siteContent?.home_banners;
+      if (hp) {
+        if (hp.active) setActive(hp.active);
+        if (Array.isArray(hp.banners)) {
+          setBanners(hp.banners.map((b, i) => ({
+            ...BANNER_DEFAULTS[i],
+            ...b
+          })));
+        }
+      }
+    }).catch(() => {});
+  }, []);
+  useEffC(() => {
+    load();
+  }, [load]);
+  const handleBannerChange = (i, val) => {
+    setBanners(prev => prev.map((b, idx) => idx === i ? val : b));
+  };
+  const handleSave = () => {
+    setSaving(true);
+    setMsg('');
+    window.apiPost('/api/admin/save-content', {
+      key: 'home_banners',
+      value: {
+        active,
+        banners
+      }
+    }).then(() => setMsg('Home page atualizada com sucesso!')).catch(e => setMsg('Erro: ' + e.message)).finally(() => setSaving(false));
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement(PageHead2, {
@@ -595,25 +691,21 @@ function HomePageCfgPage() {
       gridTemplateColumns: '1fr',
       gap: 18
     }
-  }, /*#__PURE__*/React.createElement(BannerEditor, {
-    index: 1,
-    active: active === 1,
-    onSelect: () => setActive(1),
-    defaults: {
-      kicker: 'Fermentação Natural',
-      title: 'O pão que\ntransforma\no seu dia',
-      desc: 'Cada pão nasce de levain vivo, farinha de qualidade e tempo; não tem atalho, tem respeito.'
+  }, banners.map((b, i) => /*#__PURE__*/React.createElement(BannerEditor, {
+    key: i,
+    index: i + 1,
+    value: b,
+    onChange: val => handleBannerChange(i, val),
+    active: active === i + 1,
+    onSelect: () => setActive(i + 1)
+  }))), msg && /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      fontSize: 13,
+      marginTop: 12,
+      color: msg.startsWith('Erro') ? 'var(--down)' : 'var(--up)'
     }
-  }), /*#__PURE__*/React.createElement(BannerEditor, {
-    index: 2,
-    active: active === 2,
-    onSelect: () => setActive(2),
-    defaults: {
-      kicker: 'Fornada de Sábado',
-      title: 'Reserve sua\nfornada da\nsemana',
-      desc: 'Pedidos abertos até sexta-feira às 16h. Retirada sábado a partir das 9h, ainda quente da pedra.'
-    }
-  })), /*#__PURE__*/React.createElement("div", {
+  }, msg), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       justifyContent: 'flex-end',
@@ -621,10 +713,13 @@ function HomePageCfgPage() {
       marginTop: 24
     }
   }, /*#__PURE__*/React.createElement("button", {
-    className: "btn-ghost btn-narrow"
+    className: "btn-ghost btn-narrow",
+    onClick: load
   }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
-    className: "btn-primary"
-  }, "Atualizar Home Page")));
+    className: "btn-primary",
+    onClick: handleSave,
+    disabled: saving
+  }, saving ? 'Atualizando…' : 'Atualizar Home Page')));
 }
 
 /* ========== SOBRE A LOJA ========== */

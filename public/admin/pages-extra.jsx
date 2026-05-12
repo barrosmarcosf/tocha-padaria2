@@ -890,7 +890,7 @@ function CategoriaModal({ cat, onClose, onSave }) {
             <div
               className="img-slot"
               style={{ cursor: 'pointer' }}
-              onClick={() => imgRef.current?.click()}
+              onClick={(e) => { e.stopPropagation(); imgRef.current?.click(); }}
               title="Clique para escolher imagem"
             >
               {uploading ? (
@@ -995,7 +995,7 @@ function ProdutoModal({ prod, onClose, onSave }) {
             <div
               className="img-slot"
               style={{ cursor: 'pointer' }}
-              onClick={() => imgRef.current?.click()}
+              onClick={(e) => { e.stopPropagation(); imgRef.current?.click(); }}
               title="Clique para trocar imagem"
             >
               {uploading ? (
@@ -1115,7 +1115,9 @@ function CardapioPage() {
               {cats.map(c => (
                 <div key={c.slug} onClick={() => setSel(c.slug)}
                   className={`cat-row ${sel === c.slug ? 'on' : ''}`}>
-                  <div className="cat-thumb"/>
+                  <div className="cat-thumb">
+                    {c.image_url && <img src={`/${c.image_url}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}/>}
+                  </div>
                   <div className="cat-text">
                     <b>{c.name}</b>
                     <small>{c.description}</small>
@@ -1584,6 +1586,30 @@ function EditarPerfilPage() {
   const [dirty, setDirty] = useStX(false);
   const [saving, setSaving] = useStX(false);
   const [msg, setMsg] = useStX('');
+  const [avatarUrl, setAvatarUrl] = useStX(stored.avatar_url || '');
+  const [uploadingAvatar, setUploadingAvatar] = useStX(false);
+  const avatarRef = useRefX(null);
+
+  useEffX(() => {
+    window.apiGet('/api/admin/config')
+      .then(d => { const url = d?.siteContent?.admin_profile_avatar; if (url) setAvatarUrl(url); })
+      .catch(() => {});
+  }, []);
+
+  const handleAvatarFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setUploadingAvatar(true);
+    try {
+      const url = await _uploadImage(file);
+      setAvatarUrl(url);
+      await window.apiPost('/api/admin/save-content', { key: 'admin_profile_avatar', value: url });
+      const updated = { ...stored, avatar_url: url };
+      localStorage.setItem('tocha_admin_user', JSON.stringify(updated));
+    } catch (err) { alert('Erro no upload: ' + err.message); }
+    finally { setUploadingAvatar(false); }
+  };
 
   const upd = (fn, v) => { fn(v); setDirty(true); setMsg(''); };
 
@@ -1618,14 +1644,29 @@ function EditarPerfilPage() {
         <div className="section-title">DADOS PESSOAIS</div>
         <div className="grid" style={{ gridTemplateColumns: '320px 1fr', gap: 28, marginTop: 8 }}>
           <div className="avatar-uploader">
-            <div className="avatar-circle">
-              <div className="avatar-mark">{(nome || 'A')[0].toUpperCase()}</div>
+            <div
+              className="avatar-circle"
+              style={{ cursor: 'pointer', overflow: 'hidden' }}
+              onClick={() => avatarRef.current?.click()}
+            >
+              {avatarUrl
+                ? <img src={`/${avatarUrl}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                : <div className="avatar-mark">{(nome || 'A')[0].toUpperCase()}</div>
+              }
             </div>
             <b className="av-title">Foto de Perfil</b>
             <small>Formato: PNG ou JPG</small>
             <small>Resolução mínima: 350px x 195px</small>
             <div className="av-drop">Arraste sua imagem aqui ou escolha uma direto do seu dispositivo</div>
-            <button className="btn-ghost" style={{ width: '100%' }}>Escolher foto</button>
+            <button
+              className="btn-ghost"
+              style={{ width: '100%' }}
+              onClick={() => avatarRef.current?.click()}
+              disabled={uploadingAvatar}
+            >
+              {uploadingAvatar ? 'Enviando…' : 'Escolher foto'}
+            </button>
+            <input ref={avatarRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarFile}/>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 720 }}>
@@ -1672,4 +1713,5 @@ function EditarPerfilPage() {
 Object.assign(window, {
   InsightsPage, InteligenciaPage, AlertasPage, FunilPage, PagtoPainelPage,
   CardapioPage, CentralMsgPage, CfgMsgPage, EditarPerfilPage,
+  _uploadImage,
 });

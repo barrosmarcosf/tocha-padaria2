@@ -1326,7 +1326,10 @@ function CategoriaModal({
     style: {
       cursor: 'pointer'
     },
-    onClick: () => imgRef.current?.click(),
+    onClick: e => {
+      e.stopPropagation();
+      imgRef.current?.click();
+    },
     title: "Clique para escolher imagem"
   }, uploading ? /*#__PURE__*/React.createElement("div", {
     className: "img-empty"
@@ -1481,7 +1484,10 @@ function ProdutoModal({
     style: {
       cursor: 'pointer'
     },
-    onClick: () => imgRef.current?.click(),
+    onClick: e => {
+      e.stopPropagation();
+      imgRef.current?.click();
+    },
     title: "Clique para trocar imagem"
   }, uploading ? /*#__PURE__*/React.createElement("div", {
     className: "img-empty"
@@ -1675,7 +1681,15 @@ function CardapioPage() {
     className: `cat-row ${sel === c.slug ? 'on' : ''}`
   }, /*#__PURE__*/React.createElement("div", {
     className: "cat-thumb"
-  }), /*#__PURE__*/React.createElement("div", {
+  }, c.image_url && /*#__PURE__*/React.createElement("img", {
+    src: `/${c.image_url}`,
+    style: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      borderRadius: 4
+    }
+  })), /*#__PURE__*/React.createElement("div", {
     className: "cat-text"
   }, /*#__PURE__*/React.createElement("b", null, c.name), /*#__PURE__*/React.createElement("small", null, c.description), /*#__PURE__*/React.createElement("span", {
     className: `tag ${c.is_active !== false ? 'up' : 'down'}`,
@@ -2405,6 +2419,38 @@ function EditarPerfilPage() {
   const [dirty, setDirty] = useStX(false);
   const [saving, setSaving] = useStX(false);
   const [msg, setMsg] = useStX('');
+  const [avatarUrl, setAvatarUrl] = useStX(stored.avatar_url || '');
+  const [uploadingAvatar, setUploadingAvatar] = useStX(false);
+  const avatarRef = useRefX(null);
+  useEffX(() => {
+    window.apiGet('/api/admin/config').then(d => {
+      const url = d?.siteContent?.admin_profile_avatar;
+      if (url) setAvatarUrl(url);
+    }).catch(() => {});
+  }, []);
+  const handleAvatarFile = async e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setUploadingAvatar(true);
+    try {
+      const url = await _uploadImage(file);
+      setAvatarUrl(url);
+      await window.apiPost('/api/admin/save-content', {
+        key: 'admin_profile_avatar',
+        value: url
+      });
+      const updated = {
+        ...stored,
+        avatar_url: url
+      };
+      localStorage.setItem('tocha_admin_user', JSON.stringify(updated));
+    } catch (err) {
+      alert('Erro no upload: ' + err.message);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
   const upd = (fn, v) => {
     fn(v);
     setDirty(true);
@@ -2464,8 +2510,20 @@ function EditarPerfilPage() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "avatar-uploader"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "avatar-circle"
-  }, /*#__PURE__*/React.createElement("div", {
+    className: "avatar-circle",
+    style: {
+      cursor: 'pointer',
+      overflow: 'hidden'
+    },
+    onClick: () => avatarRef.current?.click()
+  }, avatarUrl ? /*#__PURE__*/React.createElement("img", {
+    src: `/${avatarUrl}`,
+    style: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover'
+    }
+  }) : /*#__PURE__*/React.createElement("div", {
     className: "avatar-mark"
   }, (nome || 'A')[0].toUpperCase())), /*#__PURE__*/React.createElement("b", {
     className: "av-title"
@@ -2475,8 +2533,18 @@ function EditarPerfilPage() {
     className: "btn-ghost",
     style: {
       width: '100%'
-    }
-  }, "Escolher foto")), /*#__PURE__*/React.createElement("div", {
+    },
+    onClick: () => avatarRef.current?.click(),
+    disabled: uploadingAvatar
+  }, uploadingAvatar ? 'Enviando…' : 'Escolher foto'), /*#__PURE__*/React.createElement("input", {
+    ref: avatarRef,
+    type: "file",
+    accept: "image/*",
+    style: {
+      display: 'none'
+    },
+    onChange: handleAvatarFile
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       flexDirection: 'column',
@@ -2551,5 +2619,6 @@ Object.assign(window, {
   CardapioPage,
   CentralMsgPage,
   CfgMsgPage,
-  EditarPerfilPage
+  EditarPerfilPage,
+  _uploadImage
 });

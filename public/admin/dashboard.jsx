@@ -168,12 +168,12 @@ function Dashboard() {
   // ---------- derived: payments donut ----------
   const rawPmt = analytics?.paymentBreakdown;
   const payments = rawPmt ? [
-    { label: 'Pix',               value: rawPmt.pix?.revenue    || 0, count: rawPmt.pix?.count    || 0, color: 'var(--c1)' },
+    { label: 'PIX',               value: rawPmt.pix?.revenue    || 0, count: rawPmt.pix?.count    || 0, color: 'var(--c1)' },
     { label: 'Cartão de crédito', value: rawPmt.credito?.revenue || 0, count: rawPmt.credito?.count || 0, color: 'var(--c2)' },
     { label: 'Cartão de débito',  value: rawPmt.debito?.revenue  || 0, count: rawPmt.debito?.count  || 0, color: 'var(--c3)' },
-    { label: 'Outros',            value: rawPmt.outros?.revenue  || 0, count: rawPmt.outros?.count  || 0, color: 'var(--c4)' },
-  ].filter(p => p.value > 0) : null;
-  const donutData = payments && payments.length > 0 ? payments : [{ label: 'Sem dados', value: 1, count: 0, color: 'var(--line-2)' }];
+    ...(rawPmt.outros?.revenue > 0 ? [{ label: 'Outros', value: rawPmt.outros.revenue, count: rawPmt.outros.count || 0, color: 'var(--c4)' }] : []),
+  ] : null;
+  const donutData = payments ? payments : [{ label: 'Sem dados', value: 1, count: 0, color: 'var(--line-2)' }];
 
   // ---------- derived: top products ----------
   const topProducts = analytics?.itemPerformance?.products?.slice(0, 5).map((p, i) => ({

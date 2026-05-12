@@ -288,7 +288,7 @@ function Dashboard() {
   // ---------- derived: payments donut ----------
   const rawPmt = analytics?.paymentBreakdown;
   const payments = rawPmt ? [{
-    label: 'Pix',
+    label: 'PIX',
     value: rawPmt.pix?.revenue || 0,
     count: rawPmt.pix?.count || 0,
     color: 'var(--c1)'
@@ -302,13 +302,13 @@ function Dashboard() {
     value: rawPmt.debito?.revenue || 0,
     count: rawPmt.debito?.count || 0,
     color: 'var(--c3)'
-  }, {
+  }, ...(rawPmt.outros?.revenue > 0 ? [{
     label: 'Outros',
-    value: rawPmt.outros?.revenue || 0,
-    count: rawPmt.outros?.count || 0,
+    value: rawPmt.outros.revenue,
+    count: rawPmt.outros.count || 0,
     color: 'var(--c4)'
-  }].filter(p => p.value > 0) : null;
-  const donutData = payments && payments.length > 0 ? payments : [{
+  }] : [])] : null;
+  const donutData = payments ? payments : [{
     label: 'Sem dados',
     value: 1,
     count: 0,
