@@ -54,7 +54,7 @@
    ────────────────────────────────────────────── */
 #mobile-nav {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  z-index: 99; pointer-events: none;
+  z-index: 200; pointer-events: none;
 }
 #mobile-nav.open { pointer-events: auto; }
 #mobile-nav[aria-hidden="true"]  { visibility: hidden; }
@@ -86,7 +86,7 @@
   display: flex; justify-content: space-between; align-items: center;
   padding: 20px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;
 }
-.mobile-nav-logo { height: 32px; filter: brightness(1.1); }
+.mobile-nav-logo { height: 44px; width: auto; display: block; filter: brightness(1.1); }
 .mobile-nav-close {
   width: 44px; height: 44px; background: none;
   border: 1px solid var(--border); border-radius: 50%;
@@ -276,7 +276,7 @@
   /* ═══════════════════════════════════════════
      MENU SECTION
      ═══════════════════════════════════════════ */
-  #menu { padding: 48px 0 56px; }
+  #menu { padding: 48px 0 56px; scroll-margin-top: 88px; }
   .menu-header {
     margin-bottom: 20px;
     flex-direction: row;
@@ -285,6 +285,7 @@
   }
   .menu-h2 { font-size: clamp(18px, 5vw, 26px); }
   .menu-search-wrap { width: 40%; min-width: unset; flex-shrink: 0; }
+  .menu-search { font-size: 16px !important; } /* prevents iOS auto-zoom on tap */
 
   /* Category: dropdown substitui nav lateral no mobile */
   .cat-dropdown-wrap {
@@ -393,8 +394,8 @@
   .products-cat-desc { font-size: 13px; }
 
   /* Touch targets */
-  .qty-btn { width: 40px; min-height: 44px; font-size: 20px; }
-  .add-btn { min-height: 44px; font-size: 11px; padding: 0 8px; }
+  .qty-btn { width: 32px; min-height: 44px; font-size: 17px; }
+  .add-btn { min-height: 44px; font-size: 10px; padding: 0 4px; letter-spacing: 0; }
   .ci-btn { width: 40px; height: 40px; }
   .cart-btn { min-height: 44px; padding: 10px 14px; }
 

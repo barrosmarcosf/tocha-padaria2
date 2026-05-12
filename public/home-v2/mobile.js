@@ -23,8 +23,12 @@
       return mobileNav.classList.contains('open');
     }
 
+    var cartBtn = document.getElementById('cart-btn');
+
     function openNav() {
       hamburger.classList.add('open');
+      hamburger.style.visibility = 'hidden';
+      if (cartBtn) cartBtn.style.display = 'none';
       mobileNav.classList.add('open');
       mobileNav.setAttribute('aria-hidden', 'false');
       hamburger.setAttribute('aria-expanded', 'true');
@@ -33,6 +37,8 @@
 
     function closeNav() {
       hamburger.classList.remove('open');
+      hamburger.style.visibility = '';
+      if (cartBtn) cartBtn.style.display = '';
       mobileNav.classList.remove('open');
       mobileNav.setAttribute('aria-hidden', 'true');
       hamburger.setAttribute('aria-expanded', 'false');
@@ -88,22 +94,40 @@
   // Shows after hero scrolls off-screen; hides when back on hero
   // ──────────────────────────────────────────────────────────
   function initStickyCta() {
-    var stickyCta   = document.getElementById('mobile-sticky-cta');
-    var hero        = document.getElementById('hero');
-    var stickyCart  = document.getElementById('sticky-cart-btn');
-    var stickyCount = document.getElementById('sticky-cart-count');
-    var mainBadge   = document.getElementById('cart-badge');
+    var stickyCta    = document.getElementById('mobile-sticky-cta');
+    var hero         = document.getElementById('hero');
+    var menuSection  = document.getElementById('menu');
+    var stickyCart   = document.getElementById('sticky-cart-btn');
+    var stickyCount  = document.getElementById('sticky-cart-count');
+    var stickyMenu   = stickyCta && stickyCta.querySelector('.sticky-cta-menu');
+    var mainBadge    = document.getElementById('cart-badge');
 
     if (!stickyCta || !hero) return;
 
-    // Show/hide CTA based on hero visibility
-    var heroObserver = new IntersectionObserver(function (entries) {
-      stickyCta.classList.toggle('visible', !entries[0].isIntersecting);
-      stickyCta.setAttribute('aria-hidden',
-        entries[0].isIntersecting ? 'true' : 'false');
-    }, { threshold: 0.15 });
+    var heroGone   = false;
+    var inMenu     = false;
+    var cartCount  = 0;
 
-    heroObserver.observe(hero);
+    function syncVisible() {
+      // "Ver Cardápio" only makes sense when hero is gone and user is NOT already in menu
+      if (stickyMenu) stickyMenu.style.display = (heroGone && !inMenu) ? '' : 'none';
+      // Bar shows when hero gone AND (menu link is visible OR cart has items)
+      var showBar = heroGone && (!inMenu || cartCount > 0);
+      stickyCta.classList.toggle('visible', showBar);
+      stickyCta.setAttribute('aria-hidden', showBar ? 'false' : 'true');
+    }
+
+    new IntersectionObserver(function (entries) {
+      heroGone = !entries[0].isIntersecting;
+      syncVisible();
+    }, { threshold: 0.15 }).observe(hero);
+
+    if (menuSection) {
+      new IntersectionObserver(function (entries) {
+        inMenu = entries[0].isIntersecting;
+        syncVisible();
+      }, { threshold: 0.1 }).observe(menuSection);
+    }
 
     // Cart button in sticky bar opens main cart drawer
     if (stickyCart) {
@@ -116,9 +140,10 @@
     // Sync cart count badge in sticky bar
     if (mainBadge && stickyCart && stickyCount) {
       function syncCart() {
-        var count = parseInt(mainBadge.dataset.count || '0', 10);
-        stickyCount.textContent = count;
-        stickyCart.style.display = count > 0 ? 'flex' : 'none';
+        cartCount = parseInt(mainBadge.dataset.count || '0', 10);
+        stickyCount.textContent = cartCount;
+        stickyCart.style.display = cartCount > 0 ? 'flex' : 'none';
+        syncVisible();
       }
       syncCart();
       new MutationObserver(syncCart).observe(mainBadge, {
