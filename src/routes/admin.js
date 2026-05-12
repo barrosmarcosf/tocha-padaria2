@@ -529,7 +529,18 @@ module.exports = function (supabase) {
             });
         } catch (e) {
             console.error("[DetailedAnalytics] Error:", e);
-            res.status(500).json({ error: e.message });
+            res.json({
+                VERSION: 'FIX_V7_CALENDAR_DATA',
+                metrics: { revenue: 0, ticket: 0, totalOrders: 0 },
+                summaries: { topProduct: 'Sem informação', bestPeriod: '0h' },
+                itemPerformance: { products: [], optionals: [] },
+                production: { currentBakeDate: null, nextBakeDate: null },
+                hourly: Array(24).fill(0),
+                dailyBreakdown: {},
+                paymentBreakdown: { credito: {count:0,revenue:0}, debito: {count:0,revenue:0}, pix: {count:0,revenue:0}, outros: {count:0,revenue:0} },
+                _error: e.message,
+                fallback: true
+            });
         }
     });
 

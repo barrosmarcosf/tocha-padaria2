@@ -62,12 +62,19 @@ function getDateRange(period, from, to, tzOffset = 180) {
             start = new Date(Date.UTC(br.year, br.month - 1, 1, 0, 0, 0, 0) - BR_OFFSET_MS);
             end = new Date(Date.UTC(br.year, br.month, 0, 23, 59, 59, 999) - BR_OFFSET_MS);
             break;
-        case 'custom':
-            start = new Date(from + 'T00:00:00Z');
-            start = new Date(start.getTime() - BR_OFFSET_MS); // Ajusta para que 00:00 do input seja 00:00 BR
-            end = new Date(to + 'T23:59:59Z');
-            end = new Date(end.getTime() - BR_OFFSET_MS);
+        case 'custom': {
+            const ps = from ? new Date(from + 'T00:00:00Z') : null;
+            const pe = to   ? new Date(to   + 'T23:59:59Z') : null;
+            if (ps && !isNaN(ps.getTime()) && pe && !isNaN(pe.getTime())) {
+                start = new Date(ps.getTime() - BR_OFFSET_MS);
+                end   = new Date(pe.getTime() - BR_OFFSET_MS);
+            } else {
+                // fallback: últimos 7 dias quando datas ausentes ou inválidas
+                start = new Date(startOfBrToday.getTime() - 7 * 24 * 60 * 60 * 1000);
+                end   = new Date(now.getTime());
+            }
             break;
+        }
         default: // today
             start = startOfBrToday;
             end = new Date(startOfBrToday.getTime() + 24 * 60 * 60 * 1000 - 1);
@@ -83,6 +90,11 @@ function getDateRange(period, from, to, tzOffset = 180) {
 }
 
 async function fetchPaidOrders(supabase, start, end) {
+    if (!start || isNaN(start.getTime()) || !end || isNaN(end.getTime())) {
+        console.warn('[fetchPaidOrders] data inválida — fallback 7d');
+        end   = new Date();
+        start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
+    }
     const { data, error } = await supabase
         .from('pedidos')
         .select('*, clientes(name)')
