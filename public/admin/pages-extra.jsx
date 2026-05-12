@@ -7,6 +7,7 @@ async function _uploadImage(file) {
   const token = localStorage.getItem('tocha_admin_token');
   const r = await fetch('/api/admin/upload', {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Authorization': 'Bearer ' + token },
     body: fd,
   });

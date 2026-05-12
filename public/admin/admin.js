@@ -4289,6 +4289,7 @@ let state = {
         try {
             const resp = await fetch('/api/admin/upload', {
                 method: 'POST',
+                credentials: 'include',
                 headers: { 'Authorization': `Bearer ${state.token}` },
                 body: formData
             });
@@ -4423,6 +4424,7 @@ let state = {
         try {
             const resp = await fetch('/api/admin/upload', {
                 method: 'POST',
+                credentials: 'include',
                 headers: { 'Authorization': `Bearer ${state.token}` },
                 body: formData
             });
@@ -6194,6 +6196,7 @@ let state = {
 
             const res = await fetch('/api/admin/upload', {
                 method: 'POST',
+                credentials: 'include',
                 headers: { 'Authorization': `Bearer ${state.token}` },
                 body: formData
             });
