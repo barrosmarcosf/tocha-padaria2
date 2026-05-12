@@ -562,8 +562,9 @@ async function processPaidSession(supabase, stripe, session) {
         recordFunnelEvent(supabase, {
             event_type: 'payment_success',
             session_id: session.metadata?.sessionId || null,
-            order_id: orderUpdate.id,
-            metadata: { provider: 'stripe', stripe_session_id: session.id }
+            order_id:   orderUpdate.id,
+            user_id:    orderUpdate.customer_id || null,
+            metadata:   { provider: 'stripe', stripe_session_id: session.id }
         });
 
         const { data: customer, error: custErr } = await supabase

@@ -555,7 +555,7 @@ module.exports = function (supabase) {
                         order_type: storeStatusResult.orderType,
                         batch_date: batchDate,
                         payment_method: 'Pix (Mercado Pago)',
-                        client_session_id: req.session_id
+                        client_session_id: req.body.funnel_session_id || req.session_id
                     })
                 };
 
@@ -678,7 +678,7 @@ module.exports = function (supabase) {
                         order_type: storeStatusResult.orderType,
                         batch_date: batchDate,
                         payment_method: 'Cartão (Mercado Pago)',
-                        client_session_id: req.session_id
+                        client_session_id: req.body.funnel_session_id || req.session_id
                     })
                 };
 
@@ -1360,8 +1360,9 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
     recordFunnelEvent(supabase, {
         event_type: 'payment_success',
         session_id: itemsData?.client_session_id || null,
-        order_id: order.id,
-        metadata: { provider: 'mercadopago', method: resolvedMethod, mp_payment_id: mpId }
+        order_id:   order.id,
+        user_id:    order.customer_id || null,
+        metadata:   { provider: 'mercadopago', method: resolvedMethod, mp_payment_id: mpId }
     });
 
     console.log(`✅ [MP] Pedido ${order.id} processado com sucesso.`);

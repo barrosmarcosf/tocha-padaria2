@@ -1,33 +1,41 @@
 /**
- * funnelTracker.js
+ * funnelTracker.js — grava eventos de funil server-side
  *
- * Records funnel events to:
- *   1. `events` table  — always works (existing schema)
- *   2. `funnel_events` — works after migration 001_funnel_events.sql is run; silent-fail otherwise
+ * Escreve em funnel_events (tabela dedicada) E em events (backward compat).
+ * Falha silenciosa em ambas — tracking nunca pode derrubar o fluxo principal.
  *
  * event_type taxonomy:
  *   site_enter | cart_created | checkout_started | payment_attempted |
  *   payment_success | payment_failed | cart_abandoned | checkout_abandoned
  */
 
-async function recordFunnelEvent(supabase, { event_type, session_id, order_id, metadata = {} }) {
+async function recordFunnelEvent(supabase, { event_type, session_id, order_id, user_id, metadata = {} }) {
     if (!event_type) return;
 
-    const base = {
-        event_name: event_type,
-        session_id: session_id ? String(session_id).slice(0, 128) : null,
-        metadata: { ...metadata, ...(order_id ? { order_id } : {}) },
-    };
+    const sid = session_id ? String(session_id).slice(0, 128) : null;
 
-    // Always write to existing events table
-    supabase.from('events').insert(base).catch(() => {});
+    console.log('[FUNNEL EVENT]', {
+        event_type,
+        session_id: sid,
+        user_id:    user_id || null,
+        order_id:   order_id || null,
+        timestamp:  new Date().toISOString(),
+    });
 
-    // Also write to dedicated funnel_events if it exists
+    // Tabela dedicada funnel_events
     supabase.from('funnel_events').insert({
         event_type,
-        session_id: base.session_id,
-        order_id: order_id || null,
+        session_id: sid,
+        order_id:   order_id || null,
+        user_id:    user_id  || null,
         metadata,
+    }).catch(() => {});
+
+    // Tabela events (backward compat — mantém histórico unificado)
+    supabase.from('events').insert({
+        event_name: event_type,
+        session_id: sid,
+        metadata:   { ...metadata, ...(order_id ? { order_id } : {}), ...(user_id ? { user_id } : {}) },
     }).catch(() => {});
 }
 

@@ -42,7 +42,14 @@ window.addToCart = function(product, qty = 1) {
     }
     save();
     if (window.track) {
-        if (wasEmpty) window.track('cart_created', { product_id: product.id, name: product.name });
+        // cart_created: uma vez por sessão (primeira adição ao carrinho)
+        if (wasEmpty) {
+            var _sid = window.getSessionId ? window.getSessionId() : '';
+            if (localStorage.getItem('_tscc') !== _sid) {
+                localStorage.setItem('_tscc', _sid);
+                window.track('cart_created', { product_id: product.id, name: product.name });
+            }
+        }
         window.track('add_to_cart', { product_id: product.id, name: product.name, price: product.price, qty: qty });
     }
     window.openCart();
@@ -476,11 +483,11 @@ window.confirmarPedido = async function() {
             console.log('💳 [MP] Preparando pedido para checkout externo...');
             const res = await fetch('/api/mercadopago/prepare-card-order', {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'x-idempotency-key': idempotencyKey
                 },
-                body: JSON.stringify({ customer, cart: cartToCheckout })
+                body: JSON.stringify({ customer, cart: cartToCheckout, funnel_session_id: window.getSessionId ? window.getSessionId() : null })
             });
             
             if (!res.ok) {
@@ -506,7 +513,7 @@ window.confirmarPedido = async function() {
                     'Content-Type': 'application/json',
                     'x-idempotency-key': idempotencyKey
                 },
-                body: JSON.stringify({ customer, cart: cartToCheckout })
+                body: JSON.stringify({ customer, cart: cartToCheckout, funnel_session_id: window.getSessionId ? window.getSessionId() : null })
             });
             if (!prepareRes.ok) {
                 const errData = await prepareRes.json().catch(() => ({ error: 'Erro ao preparar pedido.' }));
@@ -541,11 +548,11 @@ window.confirmarPedido = async function() {
             if (settings.mp_card || !settings.card) throw new Error('Stripe desabilitado');
             const res = await fetch('/api/checkout', {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'x-idempotency-key': idempotencyKey
                 },
-                body: JSON.stringify({ customer, cart: cartToCheckout })
+                body: JSON.stringify({ customer, cart: cartToCheckout, funnel_session_id: window.getSessionId ? window.getSessionId() : null })
             });
             if (!res.ok) throw new Error('Erro ao iniciar checkout Stripe.');
             const data = await res.json();

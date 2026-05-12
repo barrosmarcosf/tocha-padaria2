@@ -1519,53 +1519,71 @@ module.exports = function (supabase) {
         }
     });
 
+    // ─── helpers compartilhados pelos endpoints de funil ──────────────────────
+    const FUNNEL_NORM = {
+        'site_enter':'site_enter', 'view_page':'site_enter',
+        'cart_created':'cart_created', 'add_to_cart':'cart_created',
+        'checkout_started':'checkout_started', 'start_checkout':'checkout_started',
+        'payment_attempted':'payment_attempted', 'payment_attempt':'payment_attempted',
+        'payment_success':'payment_success',
+        'payment_failed':'payment_failed',
+    };
+    const FUNNEL_TYPES = new Set(Object.values(FUNNEL_NORM));
+
+    // Constrói sessMaps + byType a partir de eventos das duas tabelas (dedup por sessão+tipo)
+    async function buildFunnelMaps() {
+        const [feRes, evRes] = await Promise.all([
+            supabase.from('funnel_events')
+                .select('event_type, session_id, created_at')
+                .in('event_type', [...FUNNEL_TYPES])
+                .order('created_at', { ascending: true }),
+            supabase.from('events')
+                .select('event_name, session_id, created_at')
+                .in('event_name', Object.keys(FUNNEL_NORM))
+                .order('created_at', { ascending: true }),
+        ]);
+
+        const sessMaps = {};
+        const byType   = {};
+
+        const ingest = (sid, type, ts) => {
+            if (!sid || !FUNNEL_TYPES.has(type)) return;
+            if (!byType[type]) byType[type] = new Set();
+            byType[type].add(sid);
+            if (!sessMaps[sid]) sessMaps[sid] = {};
+            if (!sessMaps[sid][type] || ts < sessMaps[sid][type])
+                sessMaps[sid][type] = ts;
+        };
+
+        // 1. funnel_events (fonte de verdade)
+        (feRes.data || []).forEach(e => ingest(e.session_id, e.event_type, e.created_at));
+
+        // 2. events (backward compat — só ingere se funnel_events NÃO tem essa sessão+tipo)
+        (evRes.data || []).forEach(e => {
+            const t = FUNNEL_NORM[e.event_name];
+            if (!t || sessMaps[e.session_id]?.[t]) return; // dedup
+            ingest(e.session_id, t, e.created_at);
+        });
+
+        return { sessMaps, byType };
+    }
+
+    const fmtMs = ms => {
+        if (ms === null) return null;
+        const m = Math.floor(ms / 60000);
+        const s = Math.round((ms % 60000) / 1000);
+        return `${m}m ${s.toString().padStart(2, '0')}s`;
+    };
+
     // ─── /funnel-analytics ────────────────────────────────────────────────────
     router.get('/funnel-analytics', adminAuth, async (_req, res) => {
         try {
-            // Backward-compat: query both old and new event names
-            const FUNNEL_NAMES = [
-                'site_enter', 'view_page',
-                'cart_created', 'add_to_cart',
-                'checkout_started', 'start_checkout',
-                'payment_attempted', 'payment_attempt',
-                'payment_success',
-                'payment_failed',
-            ];
-
-            const [evRes, ordersRes] = await Promise.all([
-                supabase
-                    .from('events')
-                    .select('event_name, session_id, created_at')
-                    .in('event_name', FUNNEL_NAMES)
-                    .order('created_at', { ascending: true }),
+            const [{ sessMaps, byType }, ordersRes] = await Promise.all([
+                buildFunnelMaps(),
                 supabase.from('pedidos').select('status, payment_method, items'),
             ]);
 
-            // Normalize event names to canonical form
-            const norm = n => {
-                if (n === 'view_page')        return 'site_enter';
-                if (n === 'add_to_cart')      return 'cart_created';
-                if (n === 'start_checkout')   return 'checkout_started';
-                if (n === 'payment_attempt')  return 'payment_attempted';
-                return n;
-            };
-
-            // Per-session earliest timestamp per canonical event
-            const sessMaps = {}; // { session_id: { event_type: earliest_iso } }
-            const byType   = {}; // { event_type: Set<session_id> }
-
-            (evRes.data || []).forEach(e => {
-                if (!e.session_id) return;
-                const t = norm(e.event_name);
-                if (!byType[t]) byType[t] = new Set();
-                byType[t].add(e.session_id);
-                if (!sessMaps[e.session_id]) sessMaps[e.session_id] = {};
-                if (!sessMaps[e.session_id][t] || e.created_at < sessMaps[e.session_id][t])
-                    sessMaps[e.session_id][t] = e.created_at;
-            });
-
             const uniq = t => (byType[t]?.size || 0);
-
             const steps = {
                 site_enter:       uniq('site_enter'),
                 cart_created:     uniq('cart_created'),
@@ -1573,46 +1591,53 @@ module.exports = function (supabase) {
                 payment_success:  uniq('payment_success'),
             };
 
-            // Dropoff % from each step to the next (relative to the step above)
             const dp = (lost, base) => base > 0 ? +((lost / base) * 100).toFixed(1) : 0;
             const dropoff = {
-                cart:     dp(steps.site_enter - steps.cart_created,     steps.site_enter),
+                cart:     dp(steps.site_enter   - steps.cart_created,     steps.site_enter),
                 checkout: dp(steps.cart_created - steps.checkout_started, steps.cart_created),
                 payment:  dp(steps.checkout_started - steps.payment_success, steps.checkout_started),
             };
 
-            // Abandoned / recovered
-            const successSet  = byType['payment_success']  || new Set();
-            const cartSet     = byType['cart_created']     || new Set();
-            const checkoutSet = byType['checkout_started'] || new Set();
+            const NOW          = Date.now();
+            const CART_WIN_MS  = 30 * 60 * 1000;
+            const successSet   = byType['payment_success']  || new Set();
+            const cartSet      = byType['cart_created']     || new Set();
+            const checkoutSet  = byType['checkout_started'] || new Set();
 
+            // Abandono real: cart_created > 30min atrás sem checkout_started
+            const abandonedCart = [...cartSet].filter(sid => {
+                if (checkoutSet.has(sid) || successSet.has(sid)) return false;
+                const t = sessMaps[sid]?.['cart_created'];
+                return t && (NOW - new Date(t).getTime()) > CART_WIN_MS;
+            }).length;
+            // Abandono de checkout: checkout_started sem payment_success
+            const abandonedCheckout = [...checkoutSet].filter(sid => !successSet.has(sid)).length;
+
+            // Recuperação: sessão que caiu + depois converteu
             const recoveredCart     = [...cartSet].filter(s => successSet.has(s)).length;
             const recoveredCheckout = [...checkoutSet].filter(s => successSet.has(s)).length;
-            const abandonedCart     = cartSet.size     - recoveredCart;
-            const abandonedCheckout = checkoutSet.size - recoveredCheckout;
 
-            // Avg conversion time: site_enter → payment_success per session (max 4h window)
+            // Tempo de conversão REAL: exige sequência completa em ordem
             let convTotalMs = 0, convCount = 0;
             for (const [, evs] of Object.entries(sessMaps)) {
-                const t0 = evs['site_enter'];
-                const t1 = evs['payment_success'];
-                if (t0 && t1) {
-                    const ms = new Date(t1).getTime() - new Date(t0).getTime();
-                    if (ms > 0 && ms < 4 * 60 * 60 * 1000) { convTotalMs += ms; convCount++; }
+                const t0  = evs['site_enter'];
+                const tc  = evs['cart_created'];
+                const tco = evs['checkout_started'];
+                const t1  = evs['payment_success'];
+                if (!t0 || !tc || !tco || !t1) continue;
+                const ms0 = new Date(t0).getTime(), ms1 = new Date(t1).getTime();
+                const msc = new Date(tc).getTime(), msco = new Date(tco).getTime();
+                // Valida ordem cronológica e janela máxima de 4h
+                if (ms0 < msc && msc < msco && msco < ms1 && (ms1 - ms0) < 4 * 3600 * 1000) {
+                    convTotalMs += ms1 - ms0;
+                    convCount++;
                 }
             }
             const avgMs = convCount > 0 ? Math.round(convTotalMs / convCount) : null;
-            const fmtMs = ms => {
-                if (ms === null) return null;
-                const m = Math.floor(ms / 60000);
-                const s = Math.round((ms % 60000) / 1000);
-                return `${m}m ${s.toString().padStart(2, '0')}s`;
-            };
 
-            // Payment origin from orders
+            // Origem dos pagamentos (pedidos)
             const PAID = new Set(['concluido','concluído','paid','pago','finalizado','success','succeeded','completed','entregue','delivered','aceito','preparo','retirada']);
-            const allOrders = ordersRes.data || [];
-            const paidOrders = allOrders.filter(o => PAID.has((o.status || '').toLowerCase().trim()));
+            const paidOrders = (ordersRes.data || []).filter(o => PAID.has((o.status || '').toLowerCase().trim()));
             const mCount = { pix: 0, credito: 0, debito: 0 };
             paidOrders.forEach(o => {
                 let it = o.items;
@@ -1636,6 +1661,71 @@ module.exports = function (supabase) {
                 abandoned: { cart: abandonedCart, checkout: abandonedCheckout },
                 recovered: { cart: recoveredCart, checkout: recoveredCheckout },
                 pay_origin,
+            });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    // ─── /funnel-analytics-debug ──────────────────────────────────────────────
+    router.get('/funnel-analytics-debug', adminAuth, async (_req, res) => {
+        try {
+            const { sessMaps } = await buildFunnelMaps();
+
+            const ORDER = ['site_enter','cart_created','checkout_started','payment_success'];
+
+            const incomplete_sessions  = [];
+            const out_of_order         = [];
+            const invalid_jumps        = [];
+
+            for (const [sid, evs] of Object.entries(sessMaps)) {
+                // Sessão incompleta = tem algum evento mas não payment_success
+                const hasAny = ORDER.some(t => evs[t]);
+                if (hasAny && !evs['payment_success'])
+                    incomplete_sessions.push({ session_id: sid, steps: Object.keys(evs) });
+
+                // Ordem inválida
+                const ts = ORDER.map(t => evs[t] ? new Date(evs[t]).getTime() : null);
+                for (let i = 1; i < ts.length; i++) {
+                    if (ts[i] !== null && ts[i - 1] !== null && ts[i] < ts[i - 1]) {
+                        out_of_order.push({ session_id: sid, before: ORDER[i - 1], after: ORDER[i] });
+                    }
+                }
+
+                // Salto inválido: payment_success sem checkout_started
+                if (evs['payment_success'] && !evs['checkout_started'])
+                    invalid_jumps.push({ session_id: sid, issue: 'payment_success_without_checkout' });
+            }
+
+            // Duplicações: sessões com > 1 evento do mesmo tipo em funnel_events
+            const { data: dupRows } = await supabase
+                .from('funnel_events')
+                .select('session_id, event_type')
+                .not('session_id', 'is', null)
+                .order('created_at', { ascending: true })
+                .limit(5000);
+
+            const dupMap = {};
+            (dupRows || []).forEach(r => {
+                const k = `${r.session_id}::${r.event_type}`;
+                dupMap[k] = (dupMap[k] || 0) + 1;
+            });
+            const duplicate_events = Object.entries(dupMap)
+                .filter(([, c]) => c > 1)
+                .map(([k, count]) => { const [session_id, event_type] = k.split('::'); return { session_id, event_type, count }; });
+
+            res.json({
+                summary: {
+                    total_sessions: Object.keys(sessMaps).length,
+                    incomplete:     incomplete_sessions.length,
+                    out_of_order:   out_of_order.length,
+                    invalid_jumps:  invalid_jumps.length,
+                    duplicates:     duplicate_events.length,
+                },
+                incomplete_sessions: incomplete_sessions.slice(0, 20),
+                out_of_order:        out_of_order.slice(0, 20),
+                invalid_jumps:       invalid_jumps.slice(0, 20),
+                duplicate_events:    duplicate_events.slice(0, 20),
             });
         } catch (e) {
             res.status(500).json({ error: e.message });
