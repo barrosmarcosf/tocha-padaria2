@@ -67,9 +67,17 @@
     localStorage.setItem('tocha-cart', JSON.stringify(c));
   }
 
+  function loadCustomerInfo() {
+    try { return JSON.parse(localStorage.getItem('tocha-customer')) || null; } catch { return null; }
+  }
+
+  function saveCustomerInfo(info) {
+    try { localStorage.setItem('tocha-customer', JSON.stringify(info)); } catch {}
+  }
+
   const state = {
     cart: getCart(),
-    customerInfo: null,
+    customerInfo: loadCustomerInfo(),
     cartOpen: false,
     captureOpen: false,
     pendingItem: null,
@@ -515,6 +523,14 @@
     saveCart(state.cart);
     updateCartUI();
     safeTrack('add_to_cart', { id: item.id, name: item.name, qty: qty });
+  }
+
+  function executePendingAction() {
+    if (!state.pendingItem) return;
+    var item = state.pendingItem;
+    state.pendingItem = null;
+    addToCart(item, item._qty || 1);
+    openCart();
   }
 
   function handleAdd(item) {
@@ -1306,7 +1322,7 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
         if (state.cartOpen)    closeCart();
-        if (state.captureOpen) closeCapture();
+        if (state.captureOpen) { closeCapture(); executePendingAction(); }
       }
     });
 
@@ -1337,7 +1353,6 @@
     state.captureOpen = false;
     const modal = qs('#early-capture');
     if (modal) modal.classList.remove('open');
-    state.pendingItem = null;
     document.body.style.overflow = '';
     clearModalError();
   }
@@ -1359,7 +1374,10 @@
 
     if (!modal) return;
 
-    overlay.addEventListener('click', closeCapture);
+    overlay.addEventListener('click', function () {
+      closeCapture();
+      executePendingAction();
+    });
 
     waInput.addEventListener('input', function (e) {
       e.target.value = normalizePhone(e.target.value);
@@ -1367,12 +1385,9 @@
 
     function confirm(data) {
       state.customerInfo = data;
+      saveCustomerInfo(data);
       closeCapture();
-      if (state.pendingItem) {
-        addToCart(state.pendingItem, state.pendingItem._qty || 1);
-        state.pendingItem = null;
-        openCart();
-      }
+      executePendingAction();
     }
 
     btnConfirm.addEventListener('click', function () {
@@ -1390,7 +1405,10 @@
       confirm({ name: '', whatsapp: '' });
     });
 
-    btnCancel.addEventListener('click', closeCapture);
+    btnCancel.addEventListener('click', function () {
+      state.pendingItem = null;
+      closeCapture();
+    });
 
     // Enter key on inputs
     [nameInput, waInput].forEach(function (inp) {
