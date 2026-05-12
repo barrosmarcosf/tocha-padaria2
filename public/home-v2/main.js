@@ -530,7 +530,6 @@
           '<div class="products-title-row">' +
             '<span class="products-cat-icon" aria-hidden="true">' + cat.icon + '</span>' +
             '<h3 class="products-cat-name">' + escHtml(state.activeCategory) + '</h3>' +
-            '<span class="products-count-badge">' + items.length + '</span>' +
           '</div>' +
           '<p class="products-cat-desc">' + escHtml(cat.desc) + '</p>' +
         '</div>';
