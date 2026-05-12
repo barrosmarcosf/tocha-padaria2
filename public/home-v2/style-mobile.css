@@ -525,4 +525,7 @@
 
   /* Historia */
   .historia-milestones { grid-template-columns: 1fr; }
+
+  /* Reduz leve oversizing típico do Android Chrome em telas pequenas */
+  body { font-size: 15px; }
 }

@@ -51,7 +51,7 @@
   --t-reveal: 0.7s ease;
 }
 
-html { scroll-behavior: smooth; }
+html { font-size: 16px; scroll-behavior: smooth; }
 body {
   background: var(--bg);
   color: var(--text);
@@ -60,6 +60,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
 }
 
 ::-webkit-scrollbar { width: 4px; }
@@ -72,6 +73,7 @@ input:focus { outline: none; }
 a { transition: color var(--t-fast); }
 select { appearance: none; }
 button { font-family: var(--font-sans); }
+img { max-width: 100%; height: auto; }
 
 /* ============================================================
    ANIMATIONS
