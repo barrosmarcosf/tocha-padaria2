@@ -1058,21 +1058,21 @@ const _FV_MOCK = {
   },
   traffic_sources: [{
     label: 'Instagram',
-    color: '#8b5cf6',
+    color: '#7c4dff',
     count: 632,
     pct: 50.6,
     conv_rate: 2.5,
     abandon_rate: 97.5
   }, {
     label: 'Google',
-    color: '#3b82f6',
+    color: '#4a9eff',
     count: 387,
     pct: 31.0,
     conv_rate: 3.1,
     abandon_rate: 96.9
   }, {
     label: 'WhatsApp',
-    color: '#22c55e',
+    color: '#00c853',
     count: 229,
     pct: 18.4,
     conv_rate: 1.7,
@@ -1087,7 +1087,7 @@ const _FV_MOCK = {
   }],
   devices: [{
     label: 'Mobile',
-    color: '#22c55e',
+    color: '#7c4dff',
     count: 820,
     pct: 65.7,
     conv_rate: 1.8,
@@ -1095,7 +1095,7 @@ const _FV_MOCK = {
     approved: 15
   }, {
     label: 'Desktop',
-    color: '#8b5cf6',
+    color: '#4a9eff',
     count: 320,
     pct: 25.6,
     conv_rate: 4.5,
@@ -1103,7 +1103,7 @@ const _FV_MOCK = {
     approved: 14
   }, {
     label: 'Tablet',
-    color: '#3b82f6',
+    color: '#00c853',
     count: 108,
     pct: 8.7,
     conv_rate: 2.9,
@@ -1120,21 +1120,21 @@ const _FV_MOCK = {
   }],
   payment_methods: [{
     label: 'Pix',
-    color: '#22c55e',
+    color: '#00c853',
     attempts: 1156,
     pct: 61.3,
     approved: 892,
     approval_rate: 77.2
   }, {
     label: 'Cartão de Crédito',
-    color: '#3b82f6',
+    color: '#4a9eff',
     attempts: 589,
     pct: 31.3,
     approved: 353,
     approval_rate: 59.9
   }, {
     label: 'Cartão de Débito',
-    color: '#f59e0b',
+    color: '#ffaa00',
     attempts: 141,
     pct: 7.5,
     approved: 99,
@@ -1281,13 +1281,13 @@ const _FV_MOCK = {
     body: 'Tráfego com maior intenção, mas menor volume. Considere otimizar campanhas de indicação.'
   }]
 };
-const FV_STEP_COLORS = ['#8b5cf6', '#06b6d4', '#f59e0b', '#f97316', '#ef4444', '#22c55e'];
-const FV_PILL_BG = ['rgba(139,92,246,.18)', 'rgba(6,182,212,.18)', 'rgba(249,115,22,.18)', 'rgba(239,68,68,.18)', 'rgba(34,197,94,.18)'];
-const FV_ADV_COLORS = ['#a78bfa', '#22d3ee', '#fb923c', '#f87171', '#4ade80'];
+const FV_STEP_COLORS = ['#4a9eff', '#00d4ff', '#ff8c00', '#ffd700', '#cc4400', '#00c853'];
+const FV_PILL_BG = ['rgba(74,158,255,0.15)', 'rgba(74,158,255,0.15)', 'rgba(255,140,0,0.15)', 'rgba(255,68,68,0.2)', 'rgba(0,200,83,0.15)'];
+const FV_ADV_COLORS = ['#4a9eff', '#4a9eff', '#ff8c00', '#ff4444', '#00c853'];
 function _fvStepIcon(key, color) {
   const p = {
-    width: 20,
-    height: 20,
+    width: 18,
+    height: 18,
     viewBox: '0 0 24 24',
     fill: 'none',
     stroke: color,
@@ -1405,7 +1405,7 @@ function FunilPage() {
     }
   }, /*#__PURE__*/React.createElement(PH, {
     title: "Funil de Vendas",
-    subtitle: "Rastreie a jornada do cliente \u2014 do acesso ao pagamento."
+    subtitle: "Acompanhe todo o caminho do cliente at\xE9 a convers\xE3o."
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
@@ -1444,30 +1444,28 @@ function FunilPage() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-step-card",
     style: {
-      borderColor: FV_STEP_COLORS[i] + '50'
+      borderColor: FV_STEP_COLORS[i],
+      background: i === 5 ? '#161f16' : 'rgba(255,255,255,.03)'
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "fv-step-icon-wrap",
-    style: {
-      background: FV_STEP_COLORS[i] + '1a'
-    }
-  }, _fvStepIcon(step.key, FV_STEP_COLORS[i])), /*#__PURE__*/React.createElement("div", {
+    className: "fv-step-icon-wrap"
+  }, _fvStepIcon(step.key, FV_STEP_COLORS[i]), /*#__PURE__*/React.createElement("div", {
     className: "fv-step-lbl",
     style: {
       color: FV_STEP_COLORS[i]
     }
-  }, step.label), /*#__PURE__*/React.createElement("div", {
+  }, step.label)), /*#__PURE__*/React.createElement("div", {
     className: "fv-step-num"
   }, (step.count || 0).toLocaleString('pt-BR')), /*#__PURE__*/React.createElement("div", {
     className: "fv-step-pct-lbl"
-  }, i === 0 ? '100% do total' : `${(step.pct_total || 0).toFixed(1)}% dos visitantes`))), i < steps.length - 1 && /*#__PURE__*/React.createElement("div", {
+  }, i === 0 ? '100% do total' : `${(+(step.pct_total || 0)).toFixed(1).replace('.', ',')}% dos visitantes`))), i < steps.length - 1 && /*#__PURE__*/React.createElement("div", {
     className: "fv-arrow-wrap"
   }, /*#__PURE__*/React.createElement("svg", {
     width: "16",
     height: "16",
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: "rgba(255,255,255,.2)",
+    stroke: "#aaaaaa",
     strokeWidth: "2",
     strokeLinecap: "round",
     strokeLinejoin: "round"
@@ -1477,9 +1475,10 @@ function FunilPage() {
     className: "fv-adv-pill",
     style: {
       background: FV_PILL_BG[i],
-      color: FV_ADV_COLORS[i]
+      color: FV_ADV_COLORS[i],
+      border: '1px solid ' + FV_ADV_COLORS[i]
     }
-  }, typeof advRates[i] === 'object' ? advRates[i].label : 'Taxa de avanço', " ", advPct(advRates[i]), "%")))))), /*#__PURE__*/React.createElement("div", {
+  }, typeof advRates[i] === 'object' ? advRates[i].label : 'Taxa de avanço', " ", (+advPct(advRates[i])).toFixed(1).replace('.', ','), "%")))))), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-grid"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-card"
@@ -1487,11 +1486,11 @@ function FunilPage() {
     className: "fv-kpi-lbl"
   }, "TAXA DE CONVERS\xC3O GERAL"), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-val"
-  }, (kpis.conv_rate || 0).toFixed(1), "%"), /*#__PURE__*/React.createElement("div", {
+  }, (+(kpis.conv_rate || 0)).toFixed(1).replace('.', ','), "%"), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-meta"
   }, kpis.conv_orders || 0, " pedidos / ", (kpis.conv_visits || 0).toLocaleString('pt-BR'), " visitas"), kpis.avg_ticket_delta != null && /*#__PURE__*/React.createElement("span", {
     className: 'fv-delta-chip ' + (kpis.avg_ticket_delta >= 0 ? 'up' : 'dn')
-  }, kpis.avg_ticket_delta >= 0 ? '↑' : '↓', " ", Math.abs(kpis.avg_ticket_delta), "% vs per\xEDodo anterior")), /*#__PURE__*/React.createElement("div", {
+  }, kpis.avg_ticket_delta >= 0 ? '↑' : '↓', " ", Math.abs(kpis.avg_ticket_delta).toFixed(1).replace('.', ','), "% vs per\xEDodo anterior")), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-card"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-lbl"
@@ -1527,11 +1526,11 @@ function FunilPage() {
     className: "fv-kpi-lbl"
   }, "TAXA DE APROVA\xC7\xC3O (PAGAMENTO)"), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-val"
-  }, (kpis.approval_rate || 0).toFixed(1), "%"), /*#__PURE__*/React.createElement("div", {
+  }, (+(kpis.approval_rate || 0)).toFixed(1).replace('.', ','), "%"), /*#__PURE__*/React.createElement("div", {
     className: "fv-kpi-meta"
   }, "tentativas aprovadas"), kpis.approval_rate_delta != null && /*#__PURE__*/React.createElement("span", {
     className: 'fv-delta-chip ' + (kpis.approval_rate_delta >= 0 ? 'up' : 'dn')
-  }, kpis.approval_rate_delta >= 0 ? '↑' : '↓', " ", Math.abs(kpis.approval_rate_delta), "% vs per\xEDodo anterior"))), /*#__PURE__*/React.createElement("div", {
+  }, kpis.approval_rate_delta >= 0 ? '↑' : '↓', " ", Math.abs(kpis.approval_rate_delta).toFixed(1).replace('.', ','), "% vs per\xEDodo anterior"))), /*#__PURE__*/React.createElement("div", {
     className: "fv-analysis-grid"
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-analysis-card"
@@ -1544,10 +1543,8 @@ function FunilPage() {
     }
   }, /*#__PURE__*/React.createElement(FunilDonut, {
     segments: mkSegs(src),
-    size: 100,
-    stroke: 13,
-    label: src.find(r => !r.isTotal)?.pct + '%',
-    sub: src.find(r => !r.isTotal)?.label?.split(' ')[0]
+    size: 140,
+    stroke: 25
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
@@ -1755,10 +1752,8 @@ function FunilPage() {
     }
   }, /*#__PURE__*/React.createElement(FunilDonut, {
     segments: mkSegs(devs),
-    size: 100,
-    stroke: 13,
-    label: devs.find(r => !r.isTotal)?.pct + '%',
-    sub: devs.find(r => !r.isTotal)?.label
+    size: 140,
+    stroke: 25
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
@@ -1983,10 +1978,8 @@ function FunilPage() {
     }
   }, /*#__PURE__*/React.createElement(FunilDonut, {
     segments: mkSegs(pms),
-    size: 100,
-    stroke: 13,
-    label: pms.find(r => !r.isTotal)?.pct + '%',
-    sub: pms.find(r => !r.isTotal)?.label
+    size: 140,
+    stroke: 25
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1,
@@ -2156,23 +2149,25 @@ function FunilPage() {
   }, "*Inclui tentativas."))), /*#__PURE__*/React.createElement("div", {
     className: "fv-abd-rec-grid"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "fv-abd-card"
+    className: "fv-abd-card",
+    style: {
+      borderLeft: '3px solid #ff4444'
+    }
   }, /*#__PURE__*/React.createElement("div", {
     className: "fv-abd-hdr"
   }, "ABANDONO"), /*#__PURE__*/React.createElement("div", {
     className: "fv-abd-row"
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
-      color: 'var(--ink-4)',
+      fontSize: 13,
+      color: '#aaaaaa',
       marginBottom: 4
     }
   }, "Carrinhos abandonados"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: 'var(--display)',
-      fontSize: 32,
-      color: 'var(--ink)',
-      fontWeight: 400,
+      fontSize: 20,
+      color: '#ffffff',
+      fontWeight: 700,
       lineHeight: 1.1
     }
   }, abd.cart_count || 0)), /*#__PURE__*/React.createElement("div", {
@@ -2181,32 +2176,30 @@ function FunilPage() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: 'var(--display)',
-      fontSize: 24,
-      color: '#ef4444',
-      fontWeight: 400,
+      fontSize: 28,
+      color: '#ff4444',
+      fontWeight: 700,
       lineHeight: 1.1
     }
-  }, abd.cart_rate || 0, "%"), /*#__PURE__*/React.createElement("div", {
+  }, (+(abd.cart_rate || 0)).toFixed(1).replace('.', ','), "%"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      color: 'var(--ink-4)',
+      fontSize: 12,
+      color: '#aaaaaa',
       marginTop: 3
     }
   }, "dos carrinhos"))), /*#__PURE__*/React.createElement("div", {
     className: "fv-abd-row"
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
-      color: 'var(--ink-4)',
+      fontSize: 13,
+      color: '#aaaaaa',
       marginBottom: 4
     }
   }, "Checkouts abandonados"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: 'var(--display)',
-      fontSize: 32,
-      color: 'var(--ink)',
-      fontWeight: 400,
+      fontSize: 20,
+      color: '#ffffff',
+      fontWeight: 700,
       lineHeight: 1.1
     }
   }, abd.checkout_count || 0)), /*#__PURE__*/React.createElement("div", {
@@ -2215,16 +2208,15 @@ function FunilPage() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: 'var(--display)',
-      fontSize: 24,
-      color: '#ef4444',
-      fontWeight: 400,
+      fontSize: 28,
+      color: '#ff4444',
+      fontWeight: 700,
       lineHeight: 1.1
     }
-  }, abd.checkout_rate || 0, "%"), /*#__PURE__*/React.createElement("div", {
+  }, (+(abd.checkout_rate || 0)).toFixed(1).replace('.', ','), "%"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      color: 'var(--ink-4)',
+      fontSize: 12,
+      color: '#aaaaaa',
       marginTop: 3
     }
   }, "dos checkouts iniciados"))), /*#__PURE__*/React.createElement("div", {
@@ -2233,29 +2225,27 @@ function FunilPage() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 9,
-      letterSpacing: '.14em',
-      color: '#ef4444',
+      fontSize: 10,
+      letterSpacing: '.1em',
+      color: '#ff4444',
       textTransform: 'uppercase',
       fontWeight: 700,
       marginBottom: 4
     }
   }, "VALOR POTENCIAL PERDIDO"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: 'var(--display)',
-      fontSize: 26,
-      color: 'var(--ink)',
-      fontWeight: 400
+      fontSize: 22,
+      color: '#ffffff',
+      fontWeight: 700
     }
   }, fBrl(abd.lost_value)), /*#__PURE__*/React.createElement("svg", {
     width: "100%",
-    height: "36",
-    viewBox: "0 0 200 36",
+    height: "50",
+    viewBox: "0 0 200 50",
     preserveAspectRatio: "none",
     style: {
       display: 'block',
-      margin: '8px 0 0',
-      opacity: .75
+      margin: '8px 0 0'
     }
   }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
     id: "fv-abd-g",
@@ -2265,20 +2255,20 @@ function FunilPage() {
     y2: "1"
   }, /*#__PURE__*/React.createElement("stop", {
     offset: "0%",
-    stopColor: "#ef4444",
+    stopColor: "#ff4444",
     stopOpacity: ".28"
   }), /*#__PURE__*/React.createElement("stop", {
     offset: "100%",
-    stopColor: "#ef4444",
+    stopColor: "#ff4444",
     stopOpacity: "0"
   }))), /*#__PURE__*/React.createElement("path", {
-    d: "M0 28 C18 24 36 30 54 22 C72 14 90 26 108 19 C126 13 144 22 162 15 C174 10 186 17 200 12 L200 36 L0 36 Z",
+    d: "M0 38 C18 32 36 42 54 30 C72 18 90 36 108 26 C126 17 144 30 162 20 C174 14 186 24 200 16 L200 50 L0 50 Z",
     fill: "url(#fv-abd-g)"
   }), /*#__PURE__*/React.createElement("path", {
-    d: "M0 28 C18 24 36 30 54 22 C72 14 90 26 108 19 C126 13 144 22 162 15 C174 10 186 17 200 12",
+    d: "M0 38 C18 32 36 42 54 30 C72 18 90 36 108 26 C126 17 144 30 162 20 C174 14 186 24 200 16",
     fill: "none",
-    stroke: "#ef4444",
-    strokeWidth: "1.5",
+    stroke: "#ff4444",
+    strokeWidth: "2",
     strokeLinecap: "round",
     strokeLinejoin: "round"
   }))), abd.reasons?.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -2324,16 +2314,15 @@ function FunilPage() {
     className: "fv-abd-row"
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
-      color: 'var(--ink-4)',
+      fontSize: 13,
+      color: '#aaaaaa',
       marginBottom: 4
     }
   }, "Carrinhos recuperados"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: 'var(--display)',
-      fontSize: 32,
-      color: 'var(--ink)',
-      fontWeight: 400,
+      fontSize: 20,
+      color: '#ffffff',
+      fontWeight: 700,
       lineHeight: 1.1
     }
   }, rec.cart_recovered || 0)), /*#__PURE__*/React.createElement("div", {
@@ -2342,32 +2331,30 @@ function FunilPage() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: 'var(--display)',
-      fontSize: 24,
-      color: '#22c55e',
-      fontWeight: 400,
+      fontSize: 22,
+      color: '#00c853',
+      fontWeight: 700,
       lineHeight: 1.1
     }
-  }, rec.cart_recovery_rate || 0, "%"), /*#__PURE__*/React.createElement("div", {
+  }, (+(rec.cart_recovery_rate || 0)).toFixed(1).replace('.', ','), "%"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      color: 'var(--ink-4)',
+      fontSize: 12,
+      color: '#aaaaaa',
       marginTop: 3
     }
   }, "taxa de recupera\xE7\xE3o"))), /*#__PURE__*/React.createElement("div", {
     className: "fv-abd-row"
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
-      color: 'var(--ink-4)',
+      fontSize: 13,
+      color: '#aaaaaa',
       marginBottom: 4
     }
   }, "Checkouts recuperados"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: 'var(--display)',
-      fontSize: 32,
-      color: 'var(--ink)',
-      fontWeight: 400,
+      fontSize: 20,
+      color: '#ffffff',
+      fontWeight: 700,
       lineHeight: 1.1
     }
   }, rec.checkout_recovered || 0)), /*#__PURE__*/React.createElement("div", {
@@ -2376,16 +2363,15 @@ function FunilPage() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: 'var(--display)',
-      fontSize: 24,
-      color: '#22c55e',
-      fontWeight: 400,
+      fontSize: 22,
+      color: '#00c853',
+      fontWeight: 700,
       lineHeight: 1.1
     }
-  }, rec.checkout_recovery_rate || 0, "%"), /*#__PURE__*/React.createElement("div", {
+  }, (+(rec.checkout_recovery_rate || 0)).toFixed(1).replace('.', ','), "%"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 10,
-      color: 'var(--ink-4)',
+      fontSize: 12,
+      color: '#aaaaaa',
       marginTop: 3
     }
   }, "taxa de recupera\xE7\xE3o"))), /*#__PURE__*/React.createElement("div", {
@@ -2394,29 +2380,27 @@ function FunilPage() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 9,
-      letterSpacing: '.14em',
-      color: '#22c55e',
+      fontSize: 10,
+      letterSpacing: '.1em',
+      color: '#00c853',
       textTransform: 'uppercase',
       fontWeight: 700,
       marginBottom: 4
     }
   }, "VALOR RECUPERADO"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontFamily: 'var(--display)',
-      fontSize: 26,
-      color: 'var(--ink)',
-      fontWeight: 400
+      fontSize: 22,
+      color: '#ffffff',
+      fontWeight: 700
     }
   }, fBrl(rec.recovered_value)), /*#__PURE__*/React.createElement("svg", {
     width: "100%",
-    height: "36",
-    viewBox: "0 0 200 36",
+    height: "50",
+    viewBox: "0 0 200 50",
     preserveAspectRatio: "none",
     style: {
       display: 'block',
-      margin: '8px 0 0',
-      opacity: .75
+      margin: '8px 0 0'
     }
   }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
     id: "fv-rec-g",
@@ -2426,20 +2410,20 @@ function FunilPage() {
     y2: "1"
   }, /*#__PURE__*/React.createElement("stop", {
     offset: "0%",
-    stopColor: "#22c55e",
+    stopColor: "#00c853",
     stopOpacity: ".28"
   }), /*#__PURE__*/React.createElement("stop", {
     offset: "100%",
-    stopColor: "#22c55e",
+    stopColor: "#00c853",
     stopOpacity: "0"
   }))), /*#__PURE__*/React.createElement("path", {
-    d: "M0 30 C18 28 36 24 54 26 C72 28 90 18 108 15 C126 12 144 17 162 10 C174 5 186 13 200 6 L200 36 L0 36 Z",
+    d: "M0 42 C18 40 36 34 54 36 C72 38 90 26 108 22 C126 18 144 24 162 15 C174 8 186 18 200 10 L200 50 L0 50 Z",
     fill: "url(#fv-rec-g)"
   }), /*#__PURE__*/React.createElement("path", {
-    d: "M0 30 C18 28 36 24 54 26 C72 28 90 18 108 15 C126 12 144 17 162 10 C174 5 186 13 200 6",
+    d: "M0 42 C18 40 36 34 54 36 C72 38 90 26 108 22 C126 18 144 24 162 15 C174 8 186 18 200 10",
     fill: "none",
-    stroke: "#22c55e",
-    strokeWidth: "1.5",
+    stroke: "#00c853",
+    strokeWidth: "2",
     strokeLinecap: "round",
     strokeLinejoin: "round"
   }))), /*#__PURE__*/React.createElement("div", {
@@ -2461,13 +2445,13 @@ function FunilPage() {
       alignItems: 'center',
       justifyContent: 'center',
       gap: 5,
-      color: '#22c55e'
+      color: '#00c853'
     }
   }, /*#__PURE__*/React.createElement("svg", {
     width: "14",
     height: "14",
     viewBox: "0 0 24 24",
-    fill: "#22c55e",
+    fill: "#00c853",
     style: {
       flexShrink: 0
     }
@@ -2504,9 +2488,9 @@ function FunilPage() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
-      letterSpacing: '.14em',
-      color: 'var(--ink-3)',
+      fontSize: 14,
+      letterSpacing: '.08em',
+      color: '#ffffff',
       textTransform: 'uppercase',
       fontWeight: 700
     }
@@ -2528,8 +2512,8 @@ function FunilPage() {
     className: "fv-bad-val"
   }, p.abandon, "%"))))), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
-      color: 'var(--ink-4)',
+      fontSize: 12,
+      color: '#00c853',
       marginTop: 10,
       cursor: 'pointer'
     }
@@ -2549,8 +2533,8 @@ function FunilPage() {
     className: "fv-bad-val"
   }, p.conv, "%"))))), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
-      color: 'var(--ink-4)',
+      fontSize: 12,
+      color: '#ff8c00',
       marginTop: 10,
       cursor: 'pointer'
     }
@@ -2568,8 +2552,8 @@ function FunilPage() {
     className: "fv-conv-val"
   }, p.ctr, "%"))))), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
-      color: 'var(--ink-4)',
+      fontSize: 12,
+      color: '#4a9eff',
       marginTop: 10,
       cursor: 'pointer'
     }
@@ -2579,9 +2563,9 @@ function FunilPage() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
-      letterSpacing: '.14em',
-      color: 'var(--ink-3)',
+      fontSize: 14,
+      letterSpacing: '.08em',
+      color: '#ffffff',
       textTransform: 'uppercase',
       fontWeight: 700
     }
@@ -2590,29 +2574,62 @@ function FunilPage() {
   }, insights.map((ins, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     className: 'fv-ins-card ' + (ins.type || 'bottleneck')
-  }, /*#__PURE__*/React.createElement("div", {
+  }, ins.type === 'bottleneck' && /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 24,
+      height: 24,
+      borderRadius: '50%',
+      background: 'rgba(255,140,0,0.2)',
+      border: '1px solid rgba(255,140,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "13",
+    height: "13",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#ff8c00",
+    strokeWidth: "2.5",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "12",
+    y1: "9",
+    x2: "12",
+    y2: "13"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "12",
+    y1: "17",
+    x2: "12.01",
+    y2: "17"
+  }))), /*#__PURE__*/React.createElement("div", {
     className: 'fv-ins-type-tag ' + (ins.type || 'bottleneck')
   }, ins.label || ins.type), /*#__PURE__*/React.createElement("div", {
     className: "fv-ins-heading"
   }, ins.heading || ins.title), /*#__PURE__*/React.createElement("div", {
     className: "fv-ins-body",
     style: {
-      paddingRight: ins.type === 'opportunity' ? 70 : 0
+      paddingRight: ins.type === 'opportunity' ? 70 : ins.type === 'product' ? 70 : 0
     }
   }, ins.body), ins.type === 'bottleneck' && /*#__PURE__*/React.createElement("svg", {
-    width: "32",
-    height: "32",
+    width: "20",
+    height: "20",
     viewBox: "0 0 24 24",
     fill: "none",
-    stroke: "#ef4444",
-    strokeWidth: "1.8",
+    stroke: "#ff4444",
+    strokeWidth: "2",
     strokeLinecap: "round",
     strokeLinejoin: "round",
     style: {
       position: 'absolute',
       bottom: 14,
       right: 14,
-      opacity: .45
+      opacity: .8
     }
   }, /*#__PURE__*/React.createElement("line", {
     x1: "5",
@@ -2658,10 +2675,9 @@ function FunilPage() {
   })))))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
-      color: 'var(--ink-4)',
+      color: '#555555',
       textAlign: 'center',
-      paddingTop: 4,
-      paddingBottom: 8
+      padding: '16px 0'
     }
   }, "Os dados s\xE3o atualizados em tempo real.")));
 }
