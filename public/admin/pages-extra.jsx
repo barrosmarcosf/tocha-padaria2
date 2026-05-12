@@ -1616,7 +1616,7 @@ function EditarPerfilPage() {
 
   const handleSave = () => {
     setSaving(true);
-    const payload = { nome, email, telefone: tel };
+    const payload = { nome, email };
     if (senha && senha.trim()) payload.senha = senha;
     window.apiPost('/api/admin/update-profile', payload)
       .then(() => {

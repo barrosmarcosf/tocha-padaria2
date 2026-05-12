@@ -2455,8 +2455,7 @@ function EditarPerfilPage() {
     setSaving(true);
     const payload = {
       nome,
-      email,
-      telefone: tel
+      email
     };
     if (senha && senha.trim()) payload.senha = senha;
     window.apiPost('/api/admin/update-profile', payload).then(() => {

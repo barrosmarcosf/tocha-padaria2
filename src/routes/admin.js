@@ -1230,8 +1230,8 @@ module.exports = function (supabase) {
 
     router.post('/update-profile', adminAuth, async (req, res) => {
         try {
-            const { nome, email, senha, telefone } = req.body;
-            const updates = { nome, email, telefone };
+            const { nome, email, senha } = req.body;
+            const updates = { nome, email };
             if (senha && senha.trim() !== '' && senha !== '********') updates.senha = await bcrypt.hash(senha, 10);
             const { error } = await supabase.from('usuarios').update(updates).eq('id', req.user.id);
             if (error) throw error;
