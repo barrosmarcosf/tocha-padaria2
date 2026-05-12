@@ -648,110 +648,341 @@ function AlertasPage() {
 }
 
 /* ========== FUNIL DE VENDAS ========== */
+function FunilDonut({ segments, size, stroke, label, sub }) {
+  const s = size || 100, w = stroke || 12;
+  const r = (s - w) / 2, cx = s / 2, cy = s / 2;
+  const circ = 2 * Math.PI * r;
+  let prevPct = 0;
+  return (
+    <div style={{ position: 'relative', width: s, height: s, flexShrink: 0 }}>
+      <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{ display: 'block' }}>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--panel-3)" strokeWidth={w}/>
+        {segments && segments.map((g, i) => {
+          const sl  = (Math.min(Math.max(g.pct || 0, 0), 100) / 100) * circ;
+          const rot = -90 + prevPct / 100 * 360;
+          prevPct  += Math.min(Math.max(g.pct || 0, 0), 100);
+          return sl > 0 ? (
+            <circle key={i} cx={cx} cy={cy} r={r} fill="none"
+              stroke={g.color} strokeWidth={w}
+              strokeDasharray={`${sl} ${circ}`}
+              strokeLinecap="butt"
+              style={{ transform: `rotate(${rot}deg)`, transformOrigin: `${cx}px ${cy}px` }}
+            />
+          ) : null;
+        })}
+      </svg>
+      {label !== undefined && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', gap: 2 }}>
+          <b style={{ fontFamily: 'var(--display)', fontSize: Math.round(s * 0.19), color: 'var(--ink)', fontWeight: 400, lineHeight: 1 }}>{label}</b>
+          {sub && <small style={{ fontSize: Math.round(s * 0.1), color: 'var(--ink-4)' }}>{sub}</small>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const _FUNIL_MOCK_STEPS = [
+  { key: 'site_enter',        label: 'Visitantes',    count: 2840, icon: 'site_enter' },
+  { key: 'view_product',      label: 'Viram Produto', count: 1920, icon: 'view_product' },
+  { key: 'cart_created',      label: 'Carrinho',      count: 862,  icon: 'cart_created' },
+  { key: 'checkout_started',  label: 'Checkout',      count: 412,  icon: 'checkout_started' },
+  { key: 'payment_attempted', label: 'Pag. Tentado',  count: 298,  icon: 'payment_attempted' },
+  { key: 'payment_success',   label: 'Converteu',     count: 247,  icon: 'payment_success' },
+];
+const _FUNIL_MOCK_ADV  = [67.6, 44.8, 47.8, 72.3, 82.9];
+const _FUNIL_MOCK_KPIS = { conv_rate: 8.7, avg_ticket: 42.50, total_revenue: 10497.50, abandoned_value: 24810.00, recovery_rate: 12.3 };
+const _FUNIL_MOCK_SRC  = [
+  { label: 'Orgânico', count: 1240, pct: 44 }, { label: 'Direto', count: 820, pct: 29 },
+  { label: 'WhatsApp', count: 480,  pct: 17 }, { label: 'Instagram', count: 300, pct: 10 },
+];
+const _FUNIL_MOCK_DEV  = [
+  { label: 'Mobile', count: 2100, pct: 74 }, { label: 'Desktop', count: 600, pct: 21 }, { label: 'Tablet', count: 140, pct: 5 },
+];
+const _FUNIL_MOCK_PAY  = [
+  { label: 'PIX', count: 148, pct: 60 }, { label: 'Crédito', count: 74, pct: 30 }, { label: 'Débito', count: 25, pct: 10 },
+];
+const _FUNIL_MOCK_PROD = {
+  most_added: [
+    { name: 'Pão Francês', count: 342, conv: 78 }, { name: 'Croissant', count: 215, conv: 65 },
+    { name: 'Bolo de Chocolate', count: 189, conv: 71 }, { name: 'Rosca Doce', count: 134, conv: 58 }, { name: 'Pão Integral', count: 98, conv: 82 },
+  ],
+  worst_conversion: [
+    { name: 'Bolo Recheado', count: 45, conv: 12 }, { name: 'Torta de Limão', count: 67, conv: 18 },
+    { name: 'Empada', count: 89, conv: 22 }, { name: 'Quiche', count: 34, conv: 26 }, { name: 'Pão de Queijo', count: 156, conv: 31 },
+  ],
+  most_viewed: [
+    { name: 'Pão Francês', count: 1240, conv: 78 }, { name: 'Croissant', count: 890, conv: 65 },
+    { name: 'Bolo de Chocolate', count: 720, conv: 71 }, { name: 'Rosca Doce', count: 540, conv: 58 }, { name: 'Pão de Queijo', count: 420, conv: 31 },
+  ],
+};
+const _FUNIL_MOCK_INS  = [
+  { type: 'warn', title: 'Conversão abaixo da média', body: 'Taxa de 8.7% — referência do setor é 2–4%. Analise os pontos de abandono no funil.' },
+  { type: 'ok',   title: 'Abandono controlado',       body: 'Taxa de abandono em 68% — dentro do padrão para e-commerce de food delivery.' },
+  { type: 'info', title: 'Ticket médio',               body: 'R$ 42,50 por pedido — 247 conversões nos últimos 30 dias.' },
+];
+
+const _FUNIL_STEP_COLORS = [
+  'oklch(0.65 0.18 280)', 'oklch(0.68 0.17 250)', 'oklch(0.70 0.16 215)',
+  'oklch(0.72 0.15 185)', 'oklch(0.74 0.14 165)', 'oklch(0.78 0.15 148)',
+];
+const _FUNIL_DONUT_COLORS = [
+  'var(--gold)', 'oklch(0.65 0.18 280)', 'oklch(0.72 0.16 160)',
+  'oklch(0.70 0.16 215)', 'oklch(0.68 0.15 35)', 'oklch(0.75 0.14 100)',
+];
+
+function _funilStepIcon(key, color) {
+  const p = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round' };
+  if (key === 'site_enter')
+    return <svg {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+  if (key === 'view_product')
+    return <svg {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
+  if (key === 'cart_created')
+    return <svg {...p}><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>;
+  if (key === 'checkout_started')
+    return <svg {...p}><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>;
+  if (key === 'payment_success')
+    return <svg {...p}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
+  return <svg {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+}
+
+function _funilInsIcon(type) {
+  const p = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '2.5', strokeLinecap: 'round', strokeLinejoin: 'round' };
+  if (type === 'warn')
+    return <svg {...p}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
+  if (type === 'up')
+    return <svg {...p}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>;
+  if (type === 'ok')
+    return <svg {...p}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
+  return <svg {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
+}
+
 function FunilPage() {
-  const [data, setData] = useStX(null);
+  const [data, setData]       = useStX(null);
   const [loading, setLoading] = useStX(true);
+  const [days, setDays]       = useStX(30);
 
   useEffX(() => {
     let mounted = true;
-    window.apiGet('/api/admin/funnel-analytics')
-      .then(d => { if (mounted) setData(d); })
-      .catch(() => {})
-      .finally(() => { if (mounted) setLoading(false); });
+    setLoading(true);
+    window.apiGet('/api/admin/funnel-analytics?days=' + days)
+      .then(d => { if (mounted) { setData(d); setLoading(false); } })
+      .catch(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
-  }, []);
+  }, [days]);
 
-  const steps     = data?.steps     || { site_enter: 0, cart_created: 0, checkout_started: 0, payment_success: 0 };
-  const dropoff   = data?.dropoff   || { cart: 0, checkout: 0, payment: 0 };
-  const abandoned = data?.abandoned || { cart: 0, checkout: 0 };
-  const recovered = data?.recovered || { cart: 0, checkout: 0 };
-  const payOrigin = data?.pay_origin || [];
-  const convTime  = data?.conversion_time_avg ?? null;
+  const steps    = data?.steps?.length === 6 ? data.steps : _FUNIL_MOCK_STEPS;
+  const advRates = data?.advance_rates?.length === 5 ? data.advance_rates : _FUNIL_MOCK_ADV;
+  const kpis     = Object.keys(data?.kpis || {}).length ? data.kpis : _FUNIL_MOCK_KPIS;
+  const srcData  = data?.traffic_sources?.length  ? data.traffic_sources  : _FUNIL_MOCK_SRC;
+  const devData  = data?.devices?.length           ? data.devices           : _FUNIL_MOCK_DEV;
+  const payData  = data?.payment_methods?.length   ? data.payment_methods   : _FUNIL_MOCK_PAY;
+  const abd      = data?.abandonment || {};
+  const rec      = data?.recovery    || {};
+  const products = (data?.products?.most_added?.length ? data.products : _FUNIL_MOCK_PROD);
+  const insights = data?.insights?.length ? data.insights : _FUNIL_MOCK_INS;
+  const isMock   = !data;
 
-  const pct = (v, base) => base > 0 ? ((v / base) * 100).toFixed(1) : '0.0';
-  const maxOriginPct = payOrigin.length > 0 ? Math.max(...payOrigin.map(r => r.pct), 1) : 1;
-
-  const FUNIL = [
-    { label: 'VISITANTES',            v: steps.site_enter,       pctVal: 100,                                                   tone: 'c1' },
-    { label: 'CARRINHOS CRIADOS',     v: steps.cart_created,     pctVal: parseFloat(pct(steps.cart_created,     steps.site_enter)), tone: 'c1' },
-    { label: 'CHECKOUTS INICIADOS',   v: steps.checkout_started, pctVal: parseFloat(pct(steps.checkout_started, steps.site_enter)), tone: 'c1' },
-    { label: 'PAGAMENTOS CONCLUÍDOS', v: steps.payment_success,  pctVal: parseFloat(pct(steps.payment_success,  steps.site_enter)), tone: 'c2' },
-  ];
+  const baseCount   = steps[0]?.count || 1;
+  const advPillCls  = r => r >= 50 ? 'ok' : r >= 20 ? 'warn' : 'crit';
+  const fBrl        = v => brl(+(v || 0));
 
   return (
     <div className="page">
-      <PH title="Funil de Vendas" subtitle="Onde os clientes entram — e onde saem."/>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 16, flexWrap: 'wrap' }}>
+        <PH title="Funil de Vendas" subtitle="Rastreie a jornada do cliente — do acesso ao pagamento."/>
+        <div className="funil-period-row" style={{ paddingTop: 8 }}>
+          {[7, 14, 30, 90].map(d =>
+            <button key={d} className={'funil-period-btn' + (days === d ? ' on' : '')} onClick={() => setDays(d)}>{d}d</button>
+          )}
+        </div>
+      </div>
+
       {loading ? (
         <div className="empty-state" style={{ height: 200 }}><Ic.clock/><div>Carregando métricas…</div></div>
       ) : (
-        <>
-          <div className="card">
-            <div className="funnel">
-              {FUNIL.map((s, i) => (
-                <React.Fragment key={i}>
-                  <div className={`funnel-step t${s.tone}`} style={{ marginLeft: `${i * 6}%`, marginRight: `${i * 2}%` }}>
-                    <span className="funnel-chip"/>
-                    <div className="funnel-meta">
-                      <small>{s.label}</small>
-                      <b>{s.v}</b>
-                    </div>
-                    <div className="funnel-pct">
-                      <b>{s.pctVal.toFixed(1)}%</b>
-                      <small>de conversão</small>
+        <React.Fragment>
+
+          {/* 1. HORIZONTAL FUNNEL */}
+          <div className="card" style={{ marginBottom: 14, padding: '18px 16px' }}>
+            {isMock && <div className="funil-mock-badge">DADOS DEMONSTRATIVOS</div>}
+            <div className="funil-h">
+              {steps.map((step, i) => (
+                <React.Fragment key={step.key}>
+                  <div className="funil-step-card" style={{ borderColor: _FUNIL_STEP_COLORS[i] + '55' }}>
+                    <div className="funil-step-icon">{_funilStepIcon(step.icon || step.key, _FUNIL_STEP_COLORS[i])}</div>
+                    <div className="funil-step-label">{step.label}</div>
+                    <div className="funil-step-count">{(step.count || 0).toLocaleString('pt-BR')}</div>
+                    <div className="funil-step-pct">
+                      {i === 0 ? '100%' : ((step.count / baseCount) * 100).toFixed(1) + '%'}
                     </div>
                   </div>
-                  {i < FUNIL.length - 1 && <div className="funnel-arrow">↓</div>}
+                  {i < steps.length - 1 && (
+                    <div className="funil-arrow-col">
+                      <div className={'funil-adv-pill ' + advPillCls(advRates[i] || 0)}>{advRates[i] || 0}%</div>
+                      <div className="funil-arrow-line"/>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="9 18 15 12 9 6"/>
+                      </svg>
+                    </div>
+                  )}
                 </React.Fragment>
               ))}
             </div>
           </div>
 
-          <div className="grid row-2 mt">
+          {/* 2. KPIs ROW */}
+          <div className="funil-kpi-row" style={{ marginBottom: 14 }}>
+            <div className="funil-kpi">
+              <small>TAXA DE CONVERSÃO</small>
+              <b>{(kpis.conv_rate || 0).toFixed(1)}%</b>
+              <span className="funil-kpi-delta nt">ref. 2–4% do setor</span>
+            </div>
+            <div className="funil-kpi">
+              <small>TICKET MÉDIO</small>
+              <b style={{ fontSize: 20 }}>{fBrl(kpis.avg_ticket || 0)}</b>
+              <span className="funil-kpi-delta nt">por pedido</span>
+            </div>
+            <div className="funil-kpi">
+              <small>RECEITA TOTAL</small>
+              <b style={{ fontSize: 18 }}>{fBrl(kpis.total_revenue || 0)}</b>
+              <span className="funil-kpi-delta nt">no período</span>
+            </div>
+            <div className="funil-kpi">
+              <small>VALOR ABANDONADO</small>
+              <b style={{ fontSize: 18 }}>{fBrl(kpis.abandoned_value || 0)}</b>
+              <span className="funil-kpi-delta dn">potencial perdido</span>
+            </div>
+            <div className="funil-kpi">
+              <small>RECUPERAÇÃO</small>
+              <b>{(kpis.recovery_rate || 0).toFixed(1)}%</b>
+              <span className={'funil-kpi-delta ' + ((kpis.recovery_rate || 0) >= 10 ? 'up' : 'nt')}>
+                {(kpis.recovery_rate || 0) >= 10 ? '↑ acima da média' : 'abaixo da média'}
+              </span>
+            </div>
+          </div>
+
+          {/* 3. ANALYSIS GRID */}
+          <div className="funil-analysis-grid" style={{ marginBottom: 14 }}>
+            {[
+              { title: 'ORIGEM DE TRÁFEGO',   aData: srcData },
+              { title: 'DISPOSITIVOS',         aData: devData },
+              { title: 'MÉTODOS DE PAGAMENTO', aData: payData },
+            ].map(({ title, aData }, gi) => {
+              const segs = aData.slice(0, 6).map((r, i) => ({ pct: r.pct, color: _FUNIL_DONUT_COLORS[i] }));
+              return (
+                <div key={gi} className="funil-analysis-card">
+                  <div className="funil-analysis-title">{title}</div>
+                  {aData.length === 0 ? (
+                    <div style={{ color: 'var(--ink-4)', fontSize: 12, padding: '20px 0', textAlign: 'center' }}>Sem dados disponíveis</div>
+                  ) : (
+                    <React.Fragment>
+                      <div className="funil-donut-center">
+                        <FunilDonut segments={segs} size={100} stroke={12}
+                          label={aData[0].pct + '%'}
+                          sub={aData[0].label.split(' ')[0]}
+                        />
+                      </div>
+                      {aData.map((row, i) => (
+                        <div key={i} className="funil-tbl-row">
+                          <div className="funil-tbl-dot" style={{ background: _FUNIL_DONUT_COLORS[i] }}/>
+                          <div className="funil-tbl-label">{row.label}</div>
+                          <div className="funil-tbl-pct">{row.pct}%</div>
+                          <div className="funil-tbl-count">{row.count}</div>
+                        </div>
+                      ))}
+                    </React.Fragment>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 4. ABANDONO / RECUPERAÇÃO */}
+          <div className="funil-abd-grid" style={{ marginBottom: 14 }}>
             <div className="card">
-              <div className="section-title">ABANDONO</div>
-              <div className="abandon-row down">
-                <div><b>Carrinhos abandonados</b><small>{dropoff.cart}% drop-off</small></div>
-                <b className="abandon-v">{abandoned.cart}</b>
+              <div className="section-title" style={{ marginBottom: 16 }}>ABANDONO</div>
+              <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginBottom: 18 }}>
+                <FunilDonut
+                  segments={[{ pct: abd.rate || 0, color: 'var(--down)' }]}
+                  size={80} stroke={10} label={(abd.rate || 0) + '%'}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.12em', marginBottom: 6 }}>TAXA DE ABANDONO</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 3 }}>Carrinho: <b style={{ color: 'var(--ink)' }}>{abd.cart || 0}</b></div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Checkout: <b style={{ color: 'var(--ink)' }}>{abd.checkout || 0}</b></div>
+                </div>
               </div>
-              <div className="abandon-row down">
-                <div><b>Checkouts abandonados</b><small>{dropoff.checkout}% drop-off</small></div>
-                <b className="abandon-v">{abandoned.checkout}</b>
-              </div>
+              {abd.reasons?.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 10, letterSpacing: '0.14em', color: 'var(--ink-4)', marginBottom: 8 }}>MOTIVOS PRINCIPAIS</div>
+                  {abd.reasons.map((r, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 }}>
+                      <div style={{ fontSize: 12, color: 'var(--ink-3)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</div>
+                      <div style={{ height: 4, width: 80, background: 'var(--panel-3)', borderRadius: 999, overflow: 'hidden', flexShrink: 0 }}>
+                        <div style={{ height: '100%', width: r.pct + '%', background: 'var(--down)', borderRadius: 999 }}/>
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--mono)', width: 28, textAlign: 'right' }}>{r.pct}%</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="card">
-              <div className="section-title">RECUPERAÇÃO</div>
-              <div className="abandon-row up">
-                <div><b>Carrinhos recuperados</b><small>{pct(recovered.cart, abandoned.cart)}% dos abandonados</small></div>
-                <b className="abandon-v">{recovered.cart}</b>
+              <div className="section-title" style={{ marginBottom: 16 }}>RECUPERAÇÃO</div>
+              <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginBottom: 18 }}>
+                <FunilDonut
+                  segments={[{ pct: rec.rate || 0, color: 'var(--up)' }]}
+                  size={80} stroke={10} label={(rec.rate || 0) + '%'}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.12em', marginBottom: 6 }}>TAXA DE RECUPERAÇÃO</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 3 }}>Sessões: <b style={{ color: 'var(--ink)' }}>{rec.count || 0}</b></div>
+                  {rec.value > 0 && <div style={{ fontSize: 12, color: 'var(--up)' }}>Valor: <b>{fBrl(rec.value)}</b></div>}
+                </div>
               </div>
-              <div className="abandon-row up">
-                <div><b>Checkouts recuperados</b><small>{pct(recovered.checkout, abandoned.checkout)}% dos abandonados</small></div>
-                <b className="abandon-v">{recovered.checkout}</b>
+              <div style={{ padding: '14px 16px', borderRadius: 8, background: 'color-mix(in oklch, var(--up) 6%, transparent)', border: '1px solid color-mix(in oklch, var(--up) 20%, var(--line))' }}>
+                <div style={{ fontSize: 10, letterSpacing: '0.14em', color: 'var(--ink-4)', marginBottom: 6 }}>POTENCIAL RECUPERÁVEL</div>
+                <div style={{ fontFamily: 'var(--display)', fontSize: 26, color: 'var(--up)', fontWeight: 400, lineHeight: 1 }}>{fBrl(kpis.abandoned_value || 0)}</div>
+                <div style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 4 }}>em carrinhos e checkouts abandonados</div>
               </div>
             </div>
           </div>
 
-          <div className="grid row-2 mt">
-            <div className="card">
-              <div className="section-title">ORIGEM DO PAGAMENTO</div>
-              {payOrigin.length === 0 ? (
-                <div style={{ color: 'var(--ink-4)', fontSize: 13, padding: '12px 0' }}>Sem dados de pagamento disponíveis.</div>
-              ) : payOrigin.map((r, i) => (
-                <div className="origin-row" key={i}>
-                  <span className="origin-lbl">{r.l}</span>
-                  <div className="origin-bar"><div className="origin-fill" style={{ width: `${Math.round(r.pct / maxOriginPct * 100)}%` }}/></div>
-                  <span className="origin-v"><b>{r.v}</b> pedidos <span>{r.pct}%</span></span>
-                </div>
-              ))}
-            </div>
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-              <span className="insight-chip tc1" style={{ width: 28, height: 28, marginBottom: 12 }}/>
-              <small className="section-title" style={{ margin: 0 }}>TEMPO MÉDIO DE CONVERSÃO</small>
-              <b style={{ fontFamily: 'var(--display)', fontSize: 40, fontWeight: 400, color: convTime ? 'var(--ink)' : 'var(--ink-4)', margin: '8px 0' }}>{convTime || 'Sem dados'}</b>
-              <small style={{ color: 'var(--ink-4)' }}>do carrinho ao pagamento</small>
-            </div>
+          {/* 5. PERFORMANCE DE PRODUTOS */}
+          <div className="funil-prod-grid" style={{ marginBottom: 14 }}>
+            {[
+              { title: 'MAIS ADICIONADOS',  items: products.most_added       || [] },
+              { title: 'PIOR CONVERSÃO',    items: products.worst_conversion || [] },
+              { title: 'MAIS VISUALIZADOS', items: products.most_viewed      || [] },
+            ].map(({ title, items }, gi) => (
+              <div key={gi} className="funil-prod-card">
+                <div className="funil-prod-title">{title}</div>
+                {items.length === 0 ? (
+                  <div style={{ fontSize: 12, color: 'var(--ink-4)', padding: '12px 0', textAlign: 'center' }}>Sem dados</div>
+                ) : items.map((item, i) => (
+                  <div key={i} className="funil-prod-row">
+                    <div className="funil-prod-num">{i + 1}</div>
+                    <div className="funil-prod-name" title={item.name}>{item.name}</div>
+                    <div className="funil-prod-cnt">{item.count}</div>
+                    <div className={'funil-prod-conv ' + (item.conv < 30 ? 'bad' : 'ok')}>{item.conv}%</div>
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
-        </>
+
+          {/* 6. INSIGHTS */}
+          <div className="funil-insights-row">
+            {insights.map((ins, i) => (
+              <div key={i} className="funil-insight-card">
+                <div className={'funil-insight-icon ' + (ins.type || 'info')}>{_funilInsIcon(ins.type)}</div>
+                <div className="funil-insight-title">{ins.title}</div>
+                <div className="funil-insight-body">{ins.body}</div>
+              </div>
+            ))}
+          </div>
+
+        </React.Fragment>
       )}
     </div>
   );

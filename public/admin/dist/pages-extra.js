@@ -909,180 +909,796 @@ function AlertasPage() {
 }
 
 /* ========== FUNIL DE VENDAS ========== */
+function FunilDonut({
+  segments,
+  size,
+  stroke,
+  label,
+  sub
+}) {
+  const s = size || 100,
+    w = stroke || 12;
+  const r = (s - w) / 2,
+    cx = s / 2,
+    cy = s / 2;
+  const circ = 2 * Math.PI * r;
+  let prevPct = 0;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'relative',
+      width: s,
+      height: s,
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: s,
+    height: s,
+    viewBox: `0 0 ${s} ${s}`,
+    style: {
+      display: 'block'
+    }
+  }, /*#__PURE__*/React.createElement("circle", {
+    cx: cx,
+    cy: cy,
+    r: r,
+    fill: "none",
+    stroke: "var(--panel-3)",
+    strokeWidth: w
+  }), segments && segments.map((g, i) => {
+    const sl = Math.min(Math.max(g.pct || 0, 0), 100) / 100 * circ;
+    const rot = -90 + prevPct / 100 * 360;
+    prevPct += Math.min(Math.max(g.pct || 0, 0), 100);
+    return sl > 0 ? /*#__PURE__*/React.createElement("circle", {
+      key: i,
+      cx: cx,
+      cy: cy,
+      r: r,
+      fill: "none",
+      stroke: g.color,
+      strokeWidth: w,
+      strokeDasharray: `${sl} ${circ}`,
+      strokeLinecap: "butt",
+      style: {
+        transform: `rotate(${rot}deg)`,
+        transformOrigin: `${cx}px ${cy}px`
+      }
+    }) : null;
+  })), label !== undefined && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      inset: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      pointerEvents: 'none',
+      gap: 2
+    }
+  }, /*#__PURE__*/React.createElement("b", {
+    style: {
+      fontFamily: 'var(--display)',
+      fontSize: Math.round(s * 0.19),
+      color: 'var(--ink)',
+      fontWeight: 400,
+      lineHeight: 1
+    }
+  }, label), sub && /*#__PURE__*/React.createElement("small", {
+    style: {
+      fontSize: Math.round(s * 0.1),
+      color: 'var(--ink-4)'
+    }
+  }, sub)));
+}
+const _FUNIL_MOCK_STEPS = [{
+  key: 'site_enter',
+  label: 'Visitantes',
+  count: 2840,
+  icon: 'site_enter'
+}, {
+  key: 'view_product',
+  label: 'Viram Produto',
+  count: 1920,
+  icon: 'view_product'
+}, {
+  key: 'cart_created',
+  label: 'Carrinho',
+  count: 862,
+  icon: 'cart_created'
+}, {
+  key: 'checkout_started',
+  label: 'Checkout',
+  count: 412,
+  icon: 'checkout_started'
+}, {
+  key: 'payment_attempted',
+  label: 'Pag. Tentado',
+  count: 298,
+  icon: 'payment_attempted'
+}, {
+  key: 'payment_success',
+  label: 'Converteu',
+  count: 247,
+  icon: 'payment_success'
+}];
+const _FUNIL_MOCK_ADV = [67.6, 44.8, 47.8, 72.3, 82.9];
+const _FUNIL_MOCK_KPIS = {
+  conv_rate: 8.7,
+  avg_ticket: 42.50,
+  total_revenue: 10497.50,
+  abandoned_value: 24810.00,
+  recovery_rate: 12.3
+};
+const _FUNIL_MOCK_SRC = [{
+  label: 'Orgânico',
+  count: 1240,
+  pct: 44
+}, {
+  label: 'Direto',
+  count: 820,
+  pct: 29
+}, {
+  label: 'WhatsApp',
+  count: 480,
+  pct: 17
+}, {
+  label: 'Instagram',
+  count: 300,
+  pct: 10
+}];
+const _FUNIL_MOCK_DEV = [{
+  label: 'Mobile',
+  count: 2100,
+  pct: 74
+}, {
+  label: 'Desktop',
+  count: 600,
+  pct: 21
+}, {
+  label: 'Tablet',
+  count: 140,
+  pct: 5
+}];
+const _FUNIL_MOCK_PAY = [{
+  label: 'PIX',
+  count: 148,
+  pct: 60
+}, {
+  label: 'Crédito',
+  count: 74,
+  pct: 30
+}, {
+  label: 'Débito',
+  count: 25,
+  pct: 10
+}];
+const _FUNIL_MOCK_PROD = {
+  most_added: [{
+    name: 'Pão Francês',
+    count: 342,
+    conv: 78
+  }, {
+    name: 'Croissant',
+    count: 215,
+    conv: 65
+  }, {
+    name: 'Bolo de Chocolate',
+    count: 189,
+    conv: 71
+  }, {
+    name: 'Rosca Doce',
+    count: 134,
+    conv: 58
+  }, {
+    name: 'Pão Integral',
+    count: 98,
+    conv: 82
+  }],
+  worst_conversion: [{
+    name: 'Bolo Recheado',
+    count: 45,
+    conv: 12
+  }, {
+    name: 'Torta de Limão',
+    count: 67,
+    conv: 18
+  }, {
+    name: 'Empada',
+    count: 89,
+    conv: 22
+  }, {
+    name: 'Quiche',
+    count: 34,
+    conv: 26
+  }, {
+    name: 'Pão de Queijo',
+    count: 156,
+    conv: 31
+  }],
+  most_viewed: [{
+    name: 'Pão Francês',
+    count: 1240,
+    conv: 78
+  }, {
+    name: 'Croissant',
+    count: 890,
+    conv: 65
+  }, {
+    name: 'Bolo de Chocolate',
+    count: 720,
+    conv: 71
+  }, {
+    name: 'Rosca Doce',
+    count: 540,
+    conv: 58
+  }, {
+    name: 'Pão de Queijo',
+    count: 420,
+    conv: 31
+  }]
+};
+const _FUNIL_MOCK_INS = [{
+  type: 'warn',
+  title: 'Conversão abaixo da média',
+  body: 'Taxa de 8.7% — referência do setor é 2–4%. Analise os pontos de abandono no funil.'
+}, {
+  type: 'ok',
+  title: 'Abandono controlado',
+  body: 'Taxa de abandono em 68% — dentro do padrão para e-commerce de food delivery.'
+}, {
+  type: 'info',
+  title: 'Ticket médio',
+  body: 'R$ 42,50 por pedido — 247 conversões nos últimos 30 dias.'
+}];
+const _FUNIL_STEP_COLORS = ['oklch(0.65 0.18 280)', 'oklch(0.68 0.17 250)', 'oklch(0.70 0.16 215)', 'oklch(0.72 0.15 185)', 'oklch(0.74 0.14 165)', 'oklch(0.78 0.15 148)'];
+const _FUNIL_DONUT_COLORS = ['var(--gold)', 'oklch(0.65 0.18 280)', 'oklch(0.72 0.16 160)', 'oklch(0.70 0.16 215)', 'oklch(0.68 0.15 35)', 'oklch(0.75 0.14 100)'];
+function _funilStepIcon(key, color) {
+  const p = {
+    width: 20,
+    height: 20,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: color,
+    strokeWidth: '2',
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round'
+  };
+  if (key === 'site_enter') return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
+    d: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "9",
+    cy: "7",
+    r: "4"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M23 21v-2a4 4 0 0 0-3-3.87"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M16 3.13a4 4 0 0 1 0 7.75"
+  }));
+  if (key === 'view_product') return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
+    d: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "3"
+  }));
+  if (key === 'cart_created') return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("circle", {
+    cx: "9",
+    cy: "21",
+    r: "1"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "20",
+    cy: "21",
+    r: "1"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
+  }));
+  if (key === 'checkout_started') return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("rect", {
+    x: "1",
+    y: "4",
+    width: "22",
+    height: "16",
+    rx: "2",
+    ry: "2"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "1",
+    y1: "10",
+    x2: "23",
+    y2: "10"
+  }));
+  if (key === 'payment_success') return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
+    d: "M22 11.08V12a10 10 0 1 1-5.93-9.14"
+  }), /*#__PURE__*/React.createElement("polyline", {
+    points: "22 4 12 14.01 9 11.01"
+  }));
+  return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "10"
+  }), /*#__PURE__*/React.createElement("polyline", {
+    points: "12 6 12 12 16 14"
+  }));
+}
+function _funilInsIcon(type) {
+  const p = {
+    width: 16,
+    height: 16,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: '2.5',
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round'
+  };
+  if (type === 'warn') return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
+    d: "M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "12",
+    y1: "9",
+    x2: "12",
+    y2: "13"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "12",
+    y1: "17",
+    x2: "12.01",
+    y2: "17"
+  }));
+  if (type === 'up') return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("polyline", {
+    points: "23 6 13.5 15.5 8.5 10.5 1 18"
+  }), /*#__PURE__*/React.createElement("polyline", {
+    points: "17 6 23 6 23 12"
+  }));
+  if (type === 'ok') return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
+    d: "M22 11.08V12a10 10 0 1 1-5.93-9.14"
+  }), /*#__PURE__*/React.createElement("polyline", {
+    points: "22 4 12 14.01 9 11.01"
+  }));
+  return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "10"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "12",
+    y1: "8",
+    x2: "12",
+    y2: "12"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "12",
+    y1: "16",
+    x2: "12.01",
+    y2: "16"
+  }));
+}
 function FunilPage() {
   const [data, setData] = useStX(null);
   const [loading, setLoading] = useStX(true);
+  const [days, setDays] = useStX(30);
   useEffX(() => {
     let mounted = true;
-    window.apiGet('/api/admin/funnel-analytics').then(d => {
-      if (mounted) setData(d);
-    }).catch(() => {}).finally(() => {
+    setLoading(true);
+    window.apiGet('/api/admin/funnel-analytics?days=' + days).then(d => {
+      if (mounted) {
+        setData(d);
+        setLoading(false);
+      }
+    }).catch(() => {
       if (mounted) setLoading(false);
     });
     return () => {
       mounted = false;
     };
-  }, []);
-  const steps = data?.steps || {
-    site_enter: 0,
-    cart_created: 0,
-    checkout_started: 0,
-    payment_success: 0
-  };
-  const dropoff = data?.dropoff || {
-    cart: 0,
-    checkout: 0,
-    payment: 0
-  };
-  const abandoned = data?.abandoned || {
-    cart: 0,
-    checkout: 0
-  };
-  const recovered = data?.recovered || {
-    cart: 0,
-    checkout: 0
-  };
-  const payOrigin = data?.pay_origin || [];
-  const convTime = data?.conversion_time_avg ?? null;
-  const pct = (v, base) => base > 0 ? (v / base * 100).toFixed(1) : '0.0';
-  const maxOriginPct = payOrigin.length > 0 ? Math.max(...payOrigin.map(r => r.pct), 1) : 1;
-  const FUNIL = [{
-    label: 'VISITANTES',
-    v: steps.site_enter,
-    pctVal: 100,
-    tone: 'c1'
-  }, {
-    label: 'CARRINHOS CRIADOS',
-    v: steps.cart_created,
-    pctVal: parseFloat(pct(steps.cart_created, steps.site_enter)),
-    tone: 'c1'
-  }, {
-    label: 'CHECKOUTS INICIADOS',
-    v: steps.checkout_started,
-    pctVal: parseFloat(pct(steps.checkout_started, steps.site_enter)),
-    tone: 'c1'
-  }, {
-    label: 'PAGAMENTOS CONCLUÍDOS',
-    v: steps.payment_success,
-    pctVal: parseFloat(pct(steps.payment_success, steps.site_enter)),
-    tone: 'c2'
-  }];
+  }, [days]);
+  const steps = data?.steps?.length === 6 ? data.steps : _FUNIL_MOCK_STEPS;
+  const advRates = data?.advance_rates?.length === 5 ? data.advance_rates : _FUNIL_MOCK_ADV;
+  const kpis = Object.keys(data?.kpis || {}).length ? data.kpis : _FUNIL_MOCK_KPIS;
+  const srcData = data?.traffic_sources?.length ? data.traffic_sources : _FUNIL_MOCK_SRC;
+  const devData = data?.devices?.length ? data.devices : _FUNIL_MOCK_DEV;
+  const payData = data?.payment_methods?.length ? data.payment_methods : _FUNIL_MOCK_PAY;
+  const abd = data?.abandonment || {};
+  const rec = data?.recovery || {};
+  const products = data?.products?.most_added?.length ? data.products : _FUNIL_MOCK_PROD;
+  const insights = data?.insights?.length ? data.insights : _FUNIL_MOCK_INS;
+  const isMock = !data;
+  const baseCount = steps[0]?.count || 1;
+  const advPillCls = r => r >= 50 ? 'ok' : r >= 20 ? 'warn' : 'crit';
+  const fBrl = v => brl(+(v || 0));
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      marginBottom: 24,
+      gap: 16,
+      flexWrap: 'wrap'
+    }
   }, /*#__PURE__*/React.createElement(PH, {
     title: "Funil de Vendas",
-    subtitle: "Onde os clientes entram \u2014 e onde saem."
-  }), loading ? /*#__PURE__*/React.createElement("div", {
+    subtitle: "Rastreie a jornada do cliente \u2014 do acesso ao pagamento."
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "funil-period-row",
+    style: {
+      paddingTop: 8
+    }
+  }, [7, 14, 30, 90].map(d => /*#__PURE__*/React.createElement("button", {
+    key: d,
+    className: 'funil-period-btn' + (days === d ? ' on' : ''),
+    onClick: () => setDays(d)
+  }, d, "d")))), loading ? /*#__PURE__*/React.createElement("div", {
     className: "empty-state",
     style: {
       height: 200
     }
   }, /*#__PURE__*/React.createElement(Ic.clock, null), /*#__PURE__*/React.createElement("div", null, "Carregando m\xE9tricas\u2026")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    className: "card"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "funnel"
-  }, FUNIL.map((s, i) => /*#__PURE__*/React.createElement(React.Fragment, {
-    key: i
-  }, /*#__PURE__*/React.createElement("div", {
-    className: `funnel-step t${s.tone}`,
-    style: {
-      marginLeft: `${i * 6}%`,
-      marginRight: `${i * 2}%`
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "funnel-chip"
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "funnel-meta"
-  }, /*#__PURE__*/React.createElement("small", null, s.label), /*#__PURE__*/React.createElement("b", null, s.v)), /*#__PURE__*/React.createElement("div", {
-    className: "funnel-pct"
-  }, /*#__PURE__*/React.createElement("b", null, s.pctVal.toFixed(1), "%"), /*#__PURE__*/React.createElement("small", null, "de convers\xE3o"))), i < FUNIL.length - 1 && /*#__PURE__*/React.createElement("div", {
-    className: "funnel-arrow"
-  }, "\u2193"))))), /*#__PURE__*/React.createElement("div", {
-    className: "grid row-2 mt"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "card"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "section-title"
-  }, "ABANDONO"), /*#__PURE__*/React.createElement("div", {
-    className: "abandon-row down"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Carrinhos abandonados"), /*#__PURE__*/React.createElement("small", null, dropoff.cart, "% drop-off")), /*#__PURE__*/React.createElement("b", {
-    className: "abandon-v"
-  }, abandoned.cart)), /*#__PURE__*/React.createElement("div", {
-    className: "abandon-row down"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Checkouts abandonados"), /*#__PURE__*/React.createElement("small", null, dropoff.checkout, "% drop-off")), /*#__PURE__*/React.createElement("b", {
-    className: "abandon-v"
-  }, abandoned.checkout))), /*#__PURE__*/React.createElement("div", {
-    className: "card"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "section-title"
-  }, "RECUPERA\xC7\xC3O"), /*#__PURE__*/React.createElement("div", {
-    className: "abandon-row up"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Carrinhos recuperados"), /*#__PURE__*/React.createElement("small", null, pct(recovered.cart, abandoned.cart), "% dos abandonados")), /*#__PURE__*/React.createElement("b", {
-    className: "abandon-v"
-  }, recovered.cart)), /*#__PURE__*/React.createElement("div", {
-    className: "abandon-row up"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Checkouts recuperados"), /*#__PURE__*/React.createElement("small", null, pct(recovered.checkout, abandoned.checkout), "% dos abandonados")), /*#__PURE__*/React.createElement("b", {
-    className: "abandon-v"
-  }, recovered.checkout)))), /*#__PURE__*/React.createElement("div", {
-    className: "grid row-2 mt"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "card"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "section-title"
-  }, "ORIGEM DO PAGAMENTO"), payOrigin.length === 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      color: 'var(--ink-4)',
-      fontSize: 13,
-      padding: '12px 0'
-    }
-  }, "Sem dados de pagamento dispon\xEDveis.") : payOrigin.map((r, i) => /*#__PURE__*/React.createElement("div", {
-    className: "origin-row",
-    key: i
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "origin-lbl"
-  }, r.l), /*#__PURE__*/React.createElement("div", {
-    className: "origin-bar"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "origin-fill",
-    style: {
-      width: `${Math.round(r.pct / maxOriginPct * 100)}%`
-    }
-  })), /*#__PURE__*/React.createElement("span", {
-    className: "origin-v"
-  }, /*#__PURE__*/React.createElement("b", null, r.v), " pedidos ", /*#__PURE__*/React.createElement("span", null, r.pct, "%"))))), /*#__PURE__*/React.createElement("div", {
     className: "card",
     style: {
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      textAlign: 'center'
+      marginBottom: 14,
+      padding: '18px 16px'
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "insight-chip tc1",
+  }, isMock && /*#__PURE__*/React.createElement("div", {
+    className: "funil-mock-badge"
+  }, "DADOS DEMONSTRATIVOS"), /*#__PURE__*/React.createElement("div", {
+    className: "funil-h"
+  }, steps.map((step, i) => /*#__PURE__*/React.createElement(React.Fragment, {
+    key: step.key
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "funil-step-card",
     style: {
-      width: 28,
-      height: 28,
-      marginBottom: 12
+      borderColor: _FUNIL_STEP_COLORS[i] + '55'
     }
-  }), /*#__PURE__*/React.createElement("small", {
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "funil-step-icon"
+  }, _funilStepIcon(step.icon || step.key, _FUNIL_STEP_COLORS[i])), /*#__PURE__*/React.createElement("div", {
+    className: "funil-step-label"
+  }, step.label), /*#__PURE__*/React.createElement("div", {
+    className: "funil-step-count"
+  }, (step.count || 0).toLocaleString('pt-BR')), /*#__PURE__*/React.createElement("div", {
+    className: "funil-step-pct"
+  }, i === 0 ? '100%' : (step.count / baseCount * 100).toFixed(1) + '%')), i < steps.length - 1 && /*#__PURE__*/React.createElement("div", {
+    className: "funil-arrow-col"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: 'funil-adv-pill ' + advPillCls(advRates[i] || 0)
+  }, advRates[i] || 0, "%"), /*#__PURE__*/React.createElement("div", {
+    className: "funil-arrow-line"
+  }), /*#__PURE__*/React.createElement("svg", {
+    width: "12",
+    height: "12",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "var(--ink-4)",
+    strokeWidth: "2.5",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: "9 18 15 12 9 6"
+  }))))))), /*#__PURE__*/React.createElement("div", {
+    className: "funil-kpi-row",
+    style: {
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "funil-kpi"
+  }, /*#__PURE__*/React.createElement("small", null, "TAXA DE CONVERS\xC3O"), /*#__PURE__*/React.createElement("b", null, (kpis.conv_rate || 0).toFixed(1), "%"), /*#__PURE__*/React.createElement("span", {
+    className: "funil-kpi-delta nt"
+  }, "ref. 2\u20134% do setor")), /*#__PURE__*/React.createElement("div", {
+    className: "funil-kpi"
+  }, /*#__PURE__*/React.createElement("small", null, "TICKET M\xC9DIO"), /*#__PURE__*/React.createElement("b", {
+    style: {
+      fontSize: 20
+    }
+  }, fBrl(kpis.avg_ticket || 0)), /*#__PURE__*/React.createElement("span", {
+    className: "funil-kpi-delta nt"
+  }, "por pedido")), /*#__PURE__*/React.createElement("div", {
+    className: "funil-kpi"
+  }, /*#__PURE__*/React.createElement("small", null, "RECEITA TOTAL"), /*#__PURE__*/React.createElement("b", {
+    style: {
+      fontSize: 18
+    }
+  }, fBrl(kpis.total_revenue || 0)), /*#__PURE__*/React.createElement("span", {
+    className: "funil-kpi-delta nt"
+  }, "no per\xEDodo")), /*#__PURE__*/React.createElement("div", {
+    className: "funil-kpi"
+  }, /*#__PURE__*/React.createElement("small", null, "VALOR ABANDONADO"), /*#__PURE__*/React.createElement("b", {
+    style: {
+      fontSize: 18
+    }
+  }, fBrl(kpis.abandoned_value || 0)), /*#__PURE__*/React.createElement("span", {
+    className: "funil-kpi-delta dn"
+  }, "potencial perdido")), /*#__PURE__*/React.createElement("div", {
+    className: "funil-kpi"
+  }, /*#__PURE__*/React.createElement("small", null, "RECUPERA\xC7\xC3O"), /*#__PURE__*/React.createElement("b", null, (kpis.recovery_rate || 0).toFixed(1), "%"), /*#__PURE__*/React.createElement("span", {
+    className: 'funil-kpi-delta ' + ((kpis.recovery_rate || 0) >= 10 ? 'up' : 'nt')
+  }, (kpis.recovery_rate || 0) >= 10 ? '↑ acima da média' : 'abaixo da média'))), /*#__PURE__*/React.createElement("div", {
+    className: "funil-analysis-grid",
+    style: {
+      marginBottom: 14
+    }
+  }, [{
+    title: 'ORIGEM DE TRÁFEGO',
+    aData: srcData
+  }, {
+    title: 'DISPOSITIVOS',
+    aData: devData
+  }, {
+    title: 'MÉTODOS DE PAGAMENTO',
+    aData: payData
+  }].map(({
+    title,
+    aData
+  }, gi) => {
+    const segs = aData.slice(0, 6).map((r, i) => ({
+      pct: r.pct,
+      color: _FUNIL_DONUT_COLORS[i]
+    }));
+    return /*#__PURE__*/React.createElement("div", {
+      key: gi,
+      className: "funil-analysis-card"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "funil-analysis-title"
+    }, title), aData.length === 0 ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        color: 'var(--ink-4)',
+        fontSize: 12,
+        padding: '20px 0',
+        textAlign: 'center'
+      }
+    }, "Sem dados dispon\xEDveis") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+      className: "funil-donut-center"
+    }, /*#__PURE__*/React.createElement(FunilDonut, {
+      segments: segs,
+      size: 100,
+      stroke: 12,
+      label: aData[0].pct + '%',
+      sub: aData[0].label.split(' ')[0]
+    })), aData.map((row, i) => /*#__PURE__*/React.createElement("div", {
+      key: i,
+      className: "funil-tbl-row"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "funil-tbl-dot",
+      style: {
+        background: _FUNIL_DONUT_COLORS[i]
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "funil-tbl-label"
+    }, row.label), /*#__PURE__*/React.createElement("div", {
+      className: "funil-tbl-pct"
+    }, row.pct, "%"), /*#__PURE__*/React.createElement("div", {
+      className: "funil-tbl-count"
+    }, row.count)))));
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "funil-abd-grid",
+    style: {
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card"
+  }, /*#__PURE__*/React.createElement("div", {
     className: "section-title",
     style: {
-      margin: 0
+      marginBottom: 16
     }
-  }, "TEMPO M\xC9DIO DE CONVERS\xC3O"), /*#__PURE__*/React.createElement("b", {
+  }, "ABANDONO"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 20,
+      alignItems: 'center',
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement(FunilDonut, {
+    segments: [{
+      pct: abd.rate || 0,
+      color: 'var(--down)'
+    }],
+    size: 80,
+    stroke: 10,
+    label: (abd.rate || 0) + '%'
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: 'var(--ink-4)',
+      letterSpacing: '0.12em',
+      marginBottom: 6
+    }
+  }, "TAXA DE ABANDONO"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: 'var(--ink-3)',
+      marginBottom: 3
+    }
+  }, "Carrinho: ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: 'var(--ink)'
+    }
+  }, abd.cart || 0)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: 'var(--ink-3)'
+    }
+  }, "Checkout: ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: 'var(--ink)'
+    }
+  }, abd.checkout || 0)))), abd.reasons?.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      letterSpacing: '0.14em',
+      color: 'var(--ink-4)',
+      marginBottom: 8
+    }
+  }, "MOTIVOS PRINCIPAIS"), abd.reasons.map((r, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 7
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: 'var(--ink-3)',
+      flex: 1,
+      minWidth: 0,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    }
+  }, r.label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 4,
+      width: 80,
+      background: 'var(--panel-3)',
+      borderRadius: 999,
+      overflow: 'hidden',
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: '100%',
+      width: r.pct + '%',
+      background: 'var(--down)',
+      borderRadius: 999
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--ink-3)',
+      fontFamily: 'var(--mono)',
+      width: 28,
+      textAlign: 'right'
+    }
+  }, r.pct, "%"))))), /*#__PURE__*/React.createElement("div", {
+    className: "card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "section-title",
+    style: {
+      marginBottom: 16
+    }
+  }, "RECUPERA\xC7\xC3O"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 20,
+      alignItems: 'center',
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement(FunilDonut, {
+    segments: [{
+      pct: rec.rate || 0,
+      color: 'var(--up)'
+    }],
+    size: 80,
+    stroke: 10,
+    label: (rec.rate || 0) + '%'
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: 'var(--ink-4)',
+      letterSpacing: '0.12em',
+      marginBottom: 6
+    }
+  }, "TAXA DE RECUPERA\xC7\xC3O"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: 'var(--ink-3)',
+      marginBottom: 3
+    }
+  }, "Sess\xF5es: ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: 'var(--ink)'
+    }
+  }, rec.count || 0)), rec.value > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: 'var(--up)'
+    }
+  }, "Valor: ", /*#__PURE__*/React.createElement("b", null, fBrl(rec.value))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '14px 16px',
+      borderRadius: 8,
+      background: 'color-mix(in oklch, var(--up) 6%, transparent)',
+      border: '1px solid color-mix(in oklch, var(--up) 20%, var(--line))'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      letterSpacing: '0.14em',
+      color: 'var(--ink-4)',
+      marginBottom: 6
+    }
+  }, "POTENCIAL RECUPER\xC1VEL"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: 'var(--display)',
-      fontSize: 40,
+      fontSize: 26,
+      color: 'var(--up)',
       fontWeight: 400,
-      color: convTime ? 'var(--ink)' : 'var(--ink-4)',
-      margin: '8px 0'
+      lineHeight: 1
     }
-  }, convTime || 'Sem dados'), /*#__PURE__*/React.createElement("small", {
+  }, fBrl(kpis.abandoned_value || 0)), /*#__PURE__*/React.createElement("div", {
     style: {
-      color: 'var(--ink-4)'
+      fontSize: 11,
+      color: 'var(--ink-3)',
+      marginTop: 4
     }
-  }, "do carrinho ao pagamento")))));
+  }, "em carrinhos e checkouts abandonados")))), /*#__PURE__*/React.createElement("div", {
+    className: "funil-prod-grid",
+    style: {
+      marginBottom: 14
+    }
+  }, [{
+    title: 'MAIS ADICIONADOS',
+    items: products.most_added || []
+  }, {
+    title: 'PIOR CONVERSÃO',
+    items: products.worst_conversion || []
+  }, {
+    title: 'MAIS VISUALIZADOS',
+    items: products.most_viewed || []
+  }].map(({
+    title,
+    items
+  }, gi) => /*#__PURE__*/React.createElement("div", {
+    key: gi,
+    className: "funil-prod-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "funil-prod-title"
+  }, title), items.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: 'var(--ink-4)',
+      padding: '12px 0',
+      textAlign: 'center'
+    }
+  }, "Sem dados") : items.map((item, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    className: "funil-prod-row"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "funil-prod-num"
+  }, i + 1), /*#__PURE__*/React.createElement("div", {
+    className: "funil-prod-name",
+    title: item.name
+  }, item.name), /*#__PURE__*/React.createElement("div", {
+    className: "funil-prod-cnt"
+  }, item.count), /*#__PURE__*/React.createElement("div", {
+    className: 'funil-prod-conv ' + (item.conv < 30 ? 'bad' : 'ok')
+  }, item.conv, "%")))))), /*#__PURE__*/React.createElement("div", {
+    className: "funil-insights-row"
+  }, insights.map((ins, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    className: "funil-insight-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: 'funil-insight-icon ' + (ins.type || 'info')
+  }, _funilInsIcon(ins.type)), /*#__PURE__*/React.createElement("div", {
+    className: "funil-insight-title"
+  }, ins.title), /*#__PURE__*/React.createElement("div", {
+    className: "funil-insight-body"
+  }, ins.body))))));
 }
 
 /* ========== PAINEL DE PAGAMENTOS ========== */
