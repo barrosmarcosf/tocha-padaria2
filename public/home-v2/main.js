@@ -214,6 +214,20 @@
       return '<span class="marquee-item">' + item +
              '<span class="marquee-star" aria-hidden="true">✦</span></span>';
     }).join('');
+
+    // Start animation only after content AND fonts are ready so widths are correct.
+    // (Animation on empty track gives wrong translateX percentage; fallback fonts
+    //  give wrong widths before web fonts load.)
+    function startMarquee() {
+      track.offsetWidth; // force reflow — ensures max-content width is computed
+      track.classList.add('running');
+    }
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(startMarquee);
+    } else {
+      requestAnimationFrame(startMarquee);
+    }
   }
 
   // ──────────────────────────────────────────────

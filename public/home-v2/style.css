@@ -372,8 +372,10 @@ button { font-family: var(--font-sans); }
 }
 .marquee-track {
   display: flex; gap: 64px;
-  animation: marquee 30s linear infinite;
   white-space: nowrap; width: max-content;
+}
+.marquee-track.running {
+  animation: marquee 30s linear infinite;
 }
 .marquee-item {
   font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
