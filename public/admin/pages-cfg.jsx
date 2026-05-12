@@ -47,6 +47,33 @@ function PagamentoPage() {
   const [stripePix, setStripePix] = useStC(false);
   const [mpCC, setMpCC] = useStC(true);
   const [mpPix, setMpPix] = useStC(true);
+  const [loading, setLoading] = useStC(true);
+  const [saving, setSaving] = useStC(false);
+  const [msg, setMsg] = useStC('');
+
+  useEffC(() => {
+    window.apiGet('/api/admin/config')
+      .then(d => {
+        const pm = d?.siteContent?.payment_methods;
+        if (pm && typeof pm === 'object') {
+          setStripeCC(pm.stripe_card !== false && !!pm.stripe_card);
+          setStripePix(pm.stripe_pix !== false && !!pm.stripe_pix);
+          setMpCC(pm.mp_card !== false);
+          setMpPix(pm.mp_pix !== false);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = () => {
+    setSaving(true); setMsg('');
+    const value = { stripe_card: stripeCC, stripe_pix: stripePix, mp_card: mpCC, mp_pix: mpPix };
+    window.apiPost('/api/admin/save-content', { key: 'payment_methods', value })
+      .then(() => setMsg('Configurações salvas! Aplicadas imediatamente no checkout.'))
+      .catch(e => setMsg('Erro: ' + e.message))
+      .finally(() => setSaving(false));
+  };
 
   return (
     <div className="page">
@@ -70,7 +97,7 @@ function PagamentoPage() {
           <MethodRow icon={<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2 22 12 12 22 2 12Z"/></svg>} title="PIX Instantâneo" desc="Transferências diretas · Aprovação rápida" on={stripePix} set={setStripePix}/>
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-          <button className="btn-primary">Salvar configurações</button>
+          <button className="btn-primary" onClick={handleSave} disabled={saving || loading}>{saving ? 'Salvando…' : 'Salvar configurações'}</button>
         </div>
       </div>
 
@@ -105,7 +132,17 @@ function PagamentoPage() {
             <b>Aplicação Imediata & Segura.</b> O nosso backend se conecta com o Stripe e injeta os métodos na criação da sessão. Se você desabilitar um método aqui, <b>ele sequer será enviado para o processador de pagamento</b>, tornando qualquer injeção forçada impossível na camada de frontend.
           </div>
         </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+          <button className="btn-primary" onClick={handleSave} disabled={saving || loading}>{saving ? 'Salvando…' : 'Salvar configurações'}</button>
+        </div>
       </div>
+
+      {msg && (
+        <div style={{ textAlign: 'center', fontSize: 13, marginTop: 12, color: msg.startsWith('Erro') ? 'var(--down)' : 'var(--up)' }}>
+          {msg}
+        </div>
+      )}
     </div>
   );
 }

@@ -64,6 +64,34 @@ function PagamentoPage() {
   const [stripePix, setStripePix] = useStC(false);
   const [mpCC, setMpCC] = useStC(true);
   const [mpPix, setMpPix] = useStC(true);
+  const [loading, setLoading] = useStC(true);
+  const [saving, setSaving] = useStC(false);
+  const [msg, setMsg] = useStC('');
+  useEffC(() => {
+    window.apiGet('/api/admin/config').then(d => {
+      const pm = d?.siteContent?.payment_methods;
+      if (pm && typeof pm === 'object') {
+        setStripeCC(pm.stripe_card !== false && !!pm.stripe_card);
+        setStripePix(pm.stripe_pix !== false && !!pm.stripe_pix);
+        setMpCC(pm.mp_card !== false);
+        setMpPix(pm.mp_pix !== false);
+      }
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+  const handleSave = () => {
+    setSaving(true);
+    setMsg('');
+    const value = {
+      stripe_card: stripeCC,
+      stripe_pix: stripePix,
+      mp_card: mpCC,
+      mp_pix: mpPix
+    };
+    window.apiPost('/api/admin/save-content', {
+      key: 'payment_methods',
+      value
+    }).then(() => setMsg('Configurações salvas! Aplicadas imediatamente no checkout.')).catch(e => setMsg('Erro: ' + e.message)).finally(() => setSaving(false));
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement(PageHead2, {
@@ -124,8 +152,10 @@ function PagamentoPage() {
       marginTop: 16
     }
   }, /*#__PURE__*/React.createElement("button", {
-    className: "btn-primary"
-  }, "Salvar configura\xE7\xF5es"))), /*#__PURE__*/React.createElement("div", {
+    className: "btn-primary",
+    onClick: handleSave,
+    disabled: saving || loading
+  }, saving ? 'Salvando…' : 'Salvar configurações'))), /*#__PURE__*/React.createElement("div", {
     className: "card gateway-card mt",
     style: {
       '--gateway-accent': 'oklch(0.72 0.13 220)'
@@ -189,7 +219,24 @@ function PagamentoPage() {
     className: "info-box"
   }, /*#__PURE__*/React.createElement(Ic.info, null), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Cart\xE3o MP e Stripe s\xE3o mutuamente exclusivos"), " \u2014 ativar um desativa o outro automaticamente. PIX usa QR Code gerado pelo Mercado Pago.")), /*#__PURE__*/React.createElement("div", {
     className: "info-box muted mt-sm"
-  }, /*#__PURE__*/React.createElement(Ic.shield, null), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Aplica\xE7\xE3o Imediata & Segura."), " O nosso backend se conecta com o Stripe e injeta os m\xE9todos na cria\xE7\xE3o da sess\xE3o. Se voc\xEA desabilitar um m\xE9todo aqui, ", /*#__PURE__*/React.createElement("b", null, "ele sequer ser\xE1 enviado para o processador de pagamento"), ", tornando qualquer inje\xE7\xE3o for\xE7ada imposs\xEDvel na camada de frontend."))));
+  }, /*#__PURE__*/React.createElement(Ic.shield, null), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "Aplica\xE7\xE3o Imediata & Segura."), " O nosso backend se conecta com o Stripe e injeta os m\xE9todos na cria\xE7\xE3o da sess\xE3o. Se voc\xEA desabilitar um m\xE9todo aqui, ", /*#__PURE__*/React.createElement("b", null, "ele sequer ser\xE1 enviado para o processador de pagamento"), ", tornando qualquer inje\xE7\xE3o for\xE7ada imposs\xEDvel na camada de frontend.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'flex-end',
+      marginTop: 16
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn-primary",
+    onClick: handleSave,
+    disabled: saving || loading
+  }, saving ? 'Salvando…' : 'Salvar configurações'))), msg && /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      fontSize: 13,
+      marginTop: 12,
+      color: msg.startsWith('Erro') ? 'var(--down)' : 'var(--up)'
+    }
+  }, msg));
 }
 
 /* ========== HORÁRIO / CICLOS DE VENDA ========== */

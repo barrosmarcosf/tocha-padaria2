@@ -290,6 +290,10 @@ function ClienteModal({
   const summary = data?.summary || {};
   const total = summary.totalOrders || client.crm_count || 0;
   const spent = summary.totalSpent || client.crm_total || 0;
+  const avgTicket = total > 0 ? spent / total : 0;
+  const lastDate = summary.lastOrderDate || client.crm_last;
+  const recLabel = total >= 3 ? 'Prioritário' : total >= 2 ? 'Recorrente' : 'Ocasional';
+  const recClass = total >= 3 ? 'gold' : total >= 2 ? 'up' : '';
   return /*#__PURE__*/React.createElement("div", {
     className: "modal-veil",
     onClick: onClose
@@ -304,7 +308,7 @@ function ClienteModal({
       display: 'flex',
       gap: 14,
       alignItems: 'center',
-      marginBottom: 22
+      marginBottom: 16
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "sb-avatar",
@@ -328,17 +332,33 @@ function ClienteModal({
       marginTop: 4
     }
   }, fmtPhone(client.whatsapp), " \xB7 ", client.email))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      alignItems: 'center',
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: `tag ${recClass}`
+  }, recLabel), lastDate && /*#__PURE__*/React.createElement("small", {
+    style: {
+      color: 'var(--ink-4)',
+      fontSize: 11
+    }
+  }, "\xDAltimo pedido ", fmtDate(lastDate))), /*#__PURE__*/React.createElement("div", {
     className: "grid",
     style: {
-      gridTemplateColumns: '1fr 1fr',
+      gridTemplateColumns: '1fr 1fr 1fr',
       gap: 12,
       marginBottom: 22
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "mini-card"
-  }, /*#__PURE__*/React.createElement("small", null, "Total de pedidos"), /*#__PURE__*/React.createElement("b", null, total)), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "Pedidos"), /*#__PURE__*/React.createElement("b", null, total)), /*#__PURE__*/React.createElement("div", {
     className: "mini-card hl"
-  }, /*#__PURE__*/React.createElement("small", null, "Total investido"), /*#__PURE__*/React.createElement("b", null, brl(spent)))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("small", null, "Total investido"), /*#__PURE__*/React.createElement("b", null, brl(spent))), /*#__PURE__*/React.createElement("div", {
+    className: "mini-card"
+  }, /*#__PURE__*/React.createElement("small", null, "Ticket m\xE9dio"), /*#__PURE__*/React.createElement("b", null, brl(avgTicket)))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 10,
       textTransform: 'uppercase',
@@ -351,7 +371,7 @@ function ClienteModal({
       display: 'flex',
       flexDirection: 'column',
       gap: 8,
-      maxHeight: 260,
+      maxHeight: 300,
       overflowY: 'auto',
       paddingRight: 4
     }
@@ -370,6 +390,8 @@ function ClienteModal({
   }, "Nenhum pedido registrado."), orders.map((o, i) => {
     const [tagLabel, tagClass] = orderStatusTag(o.status);
     const amount = Number(o.total_amount || 0);
+    const itemsArr = Array.isArray(o.items) ? o.items.filter(x => x && typeof x === 'object' && x.name) : [];
+    const itemsLabel = itemsArr.length > 0 ? itemsArr.map(it => `${it.qty || it.quantity || 1}x ${it.name}`).join(' · ') : `${parseItems(o).length || 1} item`;
     return /*#__PURE__*/React.createElement("div", {
       key: o.id || i,
       className: "order-row-mini"
@@ -386,7 +408,7 @@ function ClienteModal({
         color: 'var(--ink-4)',
         fontSize: 11
       }
-    }, parseItems(o).length, "x Item \xB7 ", fmtDate(o.created_at))), /*#__PURE__*/React.createElement("div", {
+    }, itemsLabel, " \xB7 ", fmtDate(o.created_at))), /*#__PURE__*/React.createElement("div", {
       className: "num",
       style: {
         color: 'var(--ink)',
@@ -1042,7 +1064,9 @@ function PrevendaPage() {
   const [orders, setOrders] = useStP([]);
   const [loading, setLoading] = useStP(true);
   const [config, setConfig] = useStP(null);
-  useEffP(() => {
+  const [open, setOpen] = useStP(null);
+  const load = useCbP(() => {
+    setLoading(true);
     let mounted = true;
     Promise.all([window.apiGet('/api/admin/pre-orders'), window.apiGet('/api/admin/config')]).then(([ords, cfg]) => {
       if (!mounted) return;
@@ -1055,6 +1079,9 @@ function PrevendaPage() {
       mounted = false;
     };
   }, []);
+  useEffP(() => {
+    load();
+  }, [load]);
   const nextBakeDate = config?.nextBatch?.bakeDate;
   const nextLabel = nextBakeDate ? fmtDate(nextBakeDate + 'T12:00:00') : '—';
   const totalItems = orders.reduce((s, o) => s + parseItems(o).reduce((a, i) => a + (i.qty || i.quantity || 1), 0), 0);
@@ -1108,72 +1135,87 @@ function PrevendaPage() {
       fontFamily: 'var(--mono)'
     }
   }, nextLabel))), /*#__PURE__*/React.createElement("div", {
-    className: "grid row-2 mt"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "card"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "card-head"
-  }, /*#__PURE__*/React.createElement("h3", null, /*#__PURE__*/React.createElement(Ic.list, null), "Lista de encomendas")), loading ? /*#__PURE__*/React.createElement("div", {
-    className: "empty-state",
-    style: {
-      height: 240
-    }
-  }, /*#__PURE__*/React.createElement(Ic.cart, null), /*#__PURE__*/React.createElement("div", null, "Carregando\u2026")) : orders.length === 0 ? /*#__PURE__*/React.createElement("div", {
-    className: "empty-state",
-    style: {
-      height: 240
-    }
-  }, /*#__PURE__*/React.createElement(Ic.cart, null), /*#__PURE__*/React.createElement("div", null, "Nenhum pedido de pr\xE9-venda encontrado.")) : /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
-      flexDirection: 'column',
-      gap: 8,
-      paddingTop: 8
+      justifyContent: 'flex-end',
+      marginTop: 18,
+      marginBottom: 4
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn-ghost",
+    style: {
+      padding: '6px 12px',
+      fontSize: 12
+    },
+    onClick: load
+  }, "\u21BB Atualizar")), loading ? /*#__PURE__*/React.createElement("div", {
+    className: "empty-state"
+  }, /*#__PURE__*/React.createElement(Ic.list, null), /*#__PURE__*/React.createElement("div", null, "Carregando pedidos\u2026")) : orders.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "empty-state"
+  }, /*#__PURE__*/React.createElement(Ic.cart, null), /*#__PURE__*/React.createElement("div", null, "Nenhum pedido de pr\xE9-venda encontrado.")) : /*#__PURE__*/React.createElement("div", {
+    className: "grid",
+    style: {
+      gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+      gap: 14
     }
   }, orders.map((o, i) => {
+    const [tagLabel] = orderStatusTag(o.status);
     const clientName = o.customer_name || o.clientes?.name || '—';
-    const itemsArr = parseItems(o);
+    const total = Number(o.total_amount || 0);
+    const dt = o.created_at ? new Date(o.created_at) : null;
+    const timeStr = dt ? `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}` : '—';
+    const dateStr = dt ? fmtDate(o.created_at) : '—';
     return /*#__PURE__*/React.createElement("div", {
       key: o.id || i,
-      className: "order-row-mini"
-    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      className: "order-card",
+      onClick: () => setOpen(o)
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "order-card-strip"
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "order-card-head"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "tag"
+    }, orderId(o)), /*#__PURE__*/React.createElement("span", {
+      className: "tag up"
+    }, tagLabel)), /*#__PURE__*/React.createElement("div", {
+      className: "order-card-body"
+    }, /*#__PURE__*/React.createElement("b", null, clientName.length > 22 ? clientName.slice(0, 22) + '…' : clientName), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
-        alignItems: 'center',
-        gap: 8
+        justifyContent: 'space-between',
+        fontSize: 12,
+        color: 'var(--ink-3)',
+        marginTop: 8
       }
-    }, /*#__PURE__*/React.createElement("b", null, orderId(o)), /*#__PURE__*/React.createElement("span", {
-      className: "tag"
-    }, clientName.slice(0, 18), clientName.length > 18 ? '…' : '')), /*#__PURE__*/React.createElement("small", {
+    }, /*#__PURE__*/React.createElement("span", null, timeStr), /*#__PURE__*/React.createElement("span", null, dateStr))), /*#__PURE__*/React.createElement("div", {
+      className: "order-card-foot"
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("small", {
       style: {
-        color: 'var(--ink-4)',
-        fontSize: 11
+        fontSize: 9.5,
+        textTransform: 'uppercase',
+        letterSpacing: '0.14em',
+        color: 'var(--ink-4)'
       }
-    }, itemsArr.map(i => `${i.qty || 1}x ${i.name}`).join(', ') || 'Sem itens', " \xB7 ", fmtDate(o.created_at))), /*#__PURE__*/React.createElement("div", {
-      className: "num",
+    }, "Total gasto"), /*#__PURE__*/React.createElement("b", {
       style: {
+        display: 'block',
         color: 'var(--gold)',
-        fontWeight: 500
+        fontWeight: 500,
+        fontSize: 16
       }
-    }, brl(o.total_amount || 0)));
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "card"
+    }, brl(total)))));
+  })), prodList.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "card mt"
   }, /*#__PURE__*/React.createElement("div", {
     className: "card-head"
-  }, /*#__PURE__*/React.createElement("h3", null, /*#__PURE__*/React.createElement(Ic.bread, null), "Resumo de produ\xE7\xE3o")), loading ? /*#__PURE__*/React.createElement("div", {
-    className: "empty-state",
-    style: {
-      height: 240
-    }
-  }, /*#__PURE__*/React.createElement(Ic.flame, null), /*#__PURE__*/React.createElement("div", null, "Carregando\u2026")) : prodList.length === 0 ? /*#__PURE__*/React.createElement("div", {
-    className: "empty-state",
-    style: {
-      height: 240
-    }
-  }, /*#__PURE__*/React.createElement(Ic.flame, null), /*#__PURE__*/React.createElement("div", null, "Nenhum item para produzir.")) : prodList.map(([name, qty]) => /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("h3", null, /*#__PURE__*/React.createElement(Ic.bread, null), "Resumo de produ\xE7\xE3o")), prodList.map(([name, qty]) => /*#__PURE__*/React.createElement("div", {
     key: name,
     className: "prod-row"
-  }, /*#__PURE__*/React.createElement("span", null, name), /*#__PURE__*/React.createElement("b", null, qty))))));
+  }, /*#__PURE__*/React.createElement("span", null, name), /*#__PURE__*/React.createElement("b", null, qty)))), open && /*#__PURE__*/React.createElement(OrderModal, {
+    order: open,
+    variant: "history",
+    onClose: () => setOpen(null)
+  }));
 }
 
 /* ========== RESUMO DE PEDIDOS ========== */

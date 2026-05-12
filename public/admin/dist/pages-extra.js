@@ -2,8 +2,23 @@
 const {
   useState: useStX,
   useEffect: useEffX,
-  useCallback: useCbX
+  useCallback: useCbX,
+  useRef: useRefX
 } = React;
+async function _uploadImage(file) {
+  const fd = new FormData();
+  fd.append('image', file);
+  const token = localStorage.getItem('tocha_admin_token');
+  const r = await fetch('/api/admin/upload', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + token
+    },
+    body: fd
+  });
+  if (!r.ok) throw new Error('Upload falhou');
+  return (await r.json()).url;
+}
 function PH({
   title,
   subtitle,
@@ -1223,15 +1238,31 @@ function CategoriaModal({
   const [slug, setSlug] = useStX(cat?.slug || '');
   const [desc, setDesc] = useStX(cat?.description || '');
   const [visible, setVisible] = useStX(cat?.is_active !== false);
+  const [imageUrl, setImageUrl] = useStX(cat?.image_url || '');
+  const [uploading, setUploading] = useStX(false);
   const [saving, setSaving] = useStX(false);
+  const imgRef = useRefX(null);
   const isNew = !cat?.id;
+  const handleImg = async e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      setImageUrl(await _uploadImage(file));
+    } catch (err) {
+      alert('Erro no upload: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
   const handleSave = () => {
     setSaving(true);
     const payload = {
       slug,
       name,
       description: desc,
-      is_active: visible
+      is_active: visible,
+      image_url: imageUrl
     };
     if (cat?.id) payload.id = cat.id;
     window.apiPost('/api/admin/save-category', payload).then(() => onSave({
@@ -1291,10 +1322,33 @@ function CategoriaModal({
   }, /*#__PURE__*/React.createElement("label", {
     className: "field"
   }, /*#__PURE__*/React.createElement("span", null, "Foto de vitrine"), /*#__PURE__*/React.createElement("div", {
-    className: "img-slot"
-  }, /*#__PURE__*/React.createElement("div", {
+    className: "img-slot",
+    style: {
+      cursor: 'pointer'
+    },
+    onClick: () => imgRef.current?.click(),
+    title: "Clique para escolher imagem"
+  }, uploading ? /*#__PURE__*/React.createElement("div", {
     className: "img-empty"
-  }, "Escolher Foto"))), /*#__PURE__*/React.createElement("div", {
+  }, "Enviando\u2026") : imageUrl ? /*#__PURE__*/React.createElement("img", {
+    src: `/${imageUrl}`,
+    style: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      borderRadius: 4
+    }
+  }) : /*#__PURE__*/React.createElement("div", {
+    className: "img-empty"
+  }, "Escolher Foto")), /*#__PURE__*/React.createElement("input", {
+    ref: imgRef,
+    type: "file",
+    accept: "image/*",
+    style: {
+      display: 'none'
+    },
+    onChange: handleImg
+  })), /*#__PURE__*/React.createElement("div", {
     className: "field"
   }, /*#__PURE__*/React.createElement("span", {
     style: {
@@ -1320,7 +1374,7 @@ function CategoriaModal({
   }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
     className: "btn-primary",
     onClick: handleSave,
-    disabled: saving
+    disabled: saving || uploading
   }, saving ? 'Salvando…' : 'Salvar Categoria'))));
 }
 function ProdutoModal({
@@ -1333,11 +1387,26 @@ function ProdutoModal({
   const [desc, setDesc] = useStX(prod?.description || '');
   const [estoque, setEstoque] = useStX(prod?.initial_stock ?? prod?.stock_quantity ?? 0);
   const [active, setActive] = useStX(prod?.is_active !== false);
+  const [imageUrl, setImageUrl] = useStX(prod?.image_url || '');
+  const [uploading, setUploading] = useStX(false);
   const [saving, setSaving] = useStX(false);
+  const imgRef = useRefX(null);
   const vendidos = prod?.vendidos || 0;
   const disp = Math.max(0, estoque - vendidos);
   const fillPct = estoque ? Math.min(100, disp / estoque * 100) : 0;
   const isNew = !prod?.id;
+  const handleImg = async e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      setImageUrl(await _uploadImage(file));
+    } catch (err) {
+      alert('Erro no upload: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
   const handleSave = () => {
     setSaving(true);
     const payload = {
@@ -1346,7 +1415,8 @@ function ProdutoModal({
       description: desc,
       is_active: active,
       initial_stock: parseInt(estoque) || 0,
-      category_slug: prod?.category_slug || ''
+      category_slug: prod?.category_slug || '',
+      image_url: imageUrl
     };
     if (prod?.id) payload.id = prod.id;
     window.apiPost('/api/admin/save-product', payload).then(() => onSave({
@@ -1407,9 +1477,16 @@ function ProdutoModal({
   }, /*#__PURE__*/React.createElement("label", {
     className: "field"
   }, /*#__PURE__*/React.createElement("span", null, "Foto do Produto"), /*#__PURE__*/React.createElement("div", {
-    className: "img-slot"
-  }, prod?.image_url ? /*#__PURE__*/React.createElement("img", {
-    src: `/${prod.image_url}`,
+    className: "img-slot",
+    style: {
+      cursor: 'pointer'
+    },
+    onClick: () => imgRef.current?.click(),
+    title: "Clique para trocar imagem"
+  }, uploading ? /*#__PURE__*/React.createElement("div", {
+    className: "img-empty"
+  }, "Enviando\u2026") : imageUrl ? /*#__PURE__*/React.createElement("img", {
+    src: `/${imageUrl}`,
     style: {
       width: '100%',
       height: '100%',
@@ -1418,7 +1495,15 @@ function ProdutoModal({
     }
   }) : /*#__PURE__*/React.createElement("div", {
     className: "img-empty"
-  }, "Escolher Foto"))), /*#__PURE__*/React.createElement("div", {
+  }, "Escolher Foto")), /*#__PURE__*/React.createElement("input", {
+    ref: imgRef,
+    type: "file",
+    accept: "image/*",
+    style: {
+      display: 'none'
+    },
+    onChange: handleImg
+  })), /*#__PURE__*/React.createElement("div", {
     className: "field"
   }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDD25 Estoque Base (Fornada)"), /*#__PURE__*/React.createElement("input", {
     className: "inp",
@@ -1470,7 +1555,7 @@ function ProdutoModal({
   }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
     className: "btn-primary",
     onClick: handleSave,
-    disabled: saving
+    disabled: saving || uploading
   }, saving ? 'Salvando…' : 'Salvar Produto'))));
 }
 function CardapioPage() {

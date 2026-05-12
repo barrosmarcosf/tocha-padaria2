@@ -1094,12 +1094,12 @@ module.exports = function (supabase) {
             const { data: rawOrders, error: ordErr } = await supabase.from('pedidos').select('*').eq('customer_id', id).neq('status', 'pending').order('created_at', { ascending: false });
             if (ordErr) throw ordErr;
             
-            // Garantir que items venha de forma consistente
+            // Garantir que items venha de forma consistente como array plano de {name,qty,price}
             const orders = (rawOrders || []).map(o => {
                 let parsedItems = [];
                 try {
-                    parsedItems = typeof o.items === 'string' ? JSON.parse(o.items) : (o.items || []);
-                    if (!Array.isArray(parsedItems)) parsedItems = Object.values(parsedItems);
+                    const raw = typeof o.items === 'string' ? JSON.parse(o.items) : (o.items || {});
+                    parsedItems = Array.isArray(raw) ? raw : (raw.actual_items || []);
                 } catch (e) { parsedItems = []; }
                 return { ...o, items: parsedItems };
             });

@@ -1,5 +1,18 @@
 /* global React, Ic, brl, SafeIcon */
-const { useState: useStX, useEffect: useEffX, useCallback: useCbX } = React;
+const { useState: useStX, useEffect: useEffX, useCallback: useCbX, useRef: useRefX } = React;
+
+async function _uploadImage(file) {
+  const fd = new FormData();
+  fd.append('image', file);
+  const token = localStorage.getItem('tocha_admin_token');
+  const r = await fetch('/api/admin/upload', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token },
+    body: fd,
+  });
+  if (!r.ok) throw new Error('Upload falhou');
+  return (await r.json()).url;
+}
 
 function PH({ title, subtitle, badge }) {
   return (
@@ -823,12 +836,24 @@ function CategoriaModal({ cat, onClose, onSave }) {
   const [slug, setSlug] = useStX(cat?.slug || '');
   const [desc, setDesc] = useStX(cat?.description || '');
   const [visible, setVisible] = useStX(cat?.is_active !== false);
+  const [imageUrl, setImageUrl] = useStX(cat?.image_url || '');
+  const [uploading, setUploading] = useStX(false);
   const [saving, setSaving] = useStX(false);
+  const imgRef = useRefX(null);
   const isNew = !cat?.id;
+
+  const handleImg = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try { setImageUrl(await _uploadImage(file)); }
+    catch (err) { alert('Erro no upload: ' + err.message); }
+    finally { setUploading(false); }
+  };
 
   const handleSave = () => {
     setSaving(true);
-    const payload = { slug, name, description: desc, is_active: visible };
+    const payload = { slug, name, description: desc, is_active: visible, image_url: imageUrl };
     if (cat?.id) payload.id = cat.id;
     window.apiPost('/api/admin/save-category', payload)
       .then(() => onSave({ ...payload }))
@@ -862,9 +887,21 @@ function CategoriaModal({ cat, onClose, onSave }) {
         <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 12 }}>
           <label className="field">
             <span>Foto de vitrine</span>
-            <div className="img-slot">
-              <div className="img-empty">Escolher Foto</div>
+            <div
+              className="img-slot"
+              style={{ cursor: 'pointer' }}
+              onClick={() => imgRef.current?.click()}
+              title="Clique para escolher imagem"
+            >
+              {uploading ? (
+                <div className="img-empty">Enviando…</div>
+              ) : imageUrl ? (
+                <img src={`/${imageUrl}`} style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:4 }}/>
+              ) : (
+                <div className="img-empty">Escolher Foto</div>
+              )}
             </div>
+            <input ref={imgRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleImg}/>
           </label>
           <div className="field">
             <span style={{ visibility: 'hidden' }}>.</span>
@@ -883,7 +920,7 @@ function CategoriaModal({ cat, onClose, onSave }) {
 
         <div className="modal-actions">
           <button className="btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Salvando…' : 'Salvar Categoria'}</button>
+          <button className="btn-primary" onClick={handleSave} disabled={saving || uploading}>{saving ? 'Salvando…' : 'Salvar Categoria'}</button>
         </div>
       </div>
     </div>
@@ -896,11 +933,23 @@ function ProdutoModal({ prod, onClose, onSave }) {
   const [desc, setDesc] = useStX(prod?.description || '');
   const [estoque, setEstoque] = useStX(prod?.initial_stock ?? prod?.stock_quantity ?? 0);
   const [active, setActive] = useStX(prod?.is_active !== false);
+  const [imageUrl, setImageUrl] = useStX(prod?.image_url || '');
+  const [uploading, setUploading] = useStX(false);
   const [saving, setSaving] = useStX(false);
+  const imgRef = useRefX(null);
   const vendidos = prod?.vendidos || 0;
   const disp = Math.max(0, estoque - vendidos);
   const fillPct = estoque ? Math.min(100, (disp / estoque) * 100) : 0;
   const isNew = !prod?.id;
+
+  const handleImg = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try { setImageUrl(await _uploadImage(file)); }
+    catch (err) { alert('Erro no upload: ' + err.message); }
+    finally { setUploading(false); }
+  };
 
   const handleSave = () => {
     setSaving(true);
@@ -908,6 +957,7 @@ function ProdutoModal({ prod, onClose, onSave }) {
       name, price: parseFloat(price) || 0, description: desc,
       is_active: active, initial_stock: parseInt(estoque) || 0,
       category_slug: prod?.category_slug || '',
+      image_url: imageUrl,
     };
     if (prod?.id) payload.id = prod.id;
     window.apiPost('/api/admin/save-product', payload)
@@ -942,11 +992,21 @@ function ProdutoModal({ prod, onClose, onSave }) {
         <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 12 }}>
           <label className="field">
             <span>Foto do Produto</span>
-            <div className="img-slot">
-              {prod?.image_url
-                ? <img src={`/${prod.image_url}`} style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:4 }}/>
-                : <div className="img-empty">Escolher Foto</div>}
+            <div
+              className="img-slot"
+              style={{ cursor: 'pointer' }}
+              onClick={() => imgRef.current?.click()}
+              title="Clique para trocar imagem"
+            >
+              {uploading ? (
+                <div className="img-empty">Enviando…</div>
+              ) : imageUrl ? (
+                <img src={`/${imageUrl}`} style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:4 }}/>
+              ) : (
+                <div className="img-empty">Escolher Foto</div>
+              )}
             </div>
+            <input ref={imgRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleImg}/>
           </label>
 
           <div className="field">
@@ -976,7 +1036,7 @@ function ProdutoModal({ prod, onClose, onSave }) {
 
         <div className="modal-actions">
           <button className="btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Salvando…' : 'Salvar Produto'}</button>
+          <button className="btn-primary" onClick={handleSave} disabled={saving || uploading}>{saving ? 'Salvando…' : 'Salvar Produto'}</button>
         </div>
       </div>
     </div>

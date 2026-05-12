@@ -104,6 +104,17 @@ module.exports = function (supabase, stripe) {
                 return res.status(400).json({ tipo: 'error_generic', error: `Método inválido: ${method}` });
             }
 
+            // Verifica se o método está habilitado pelo admin
+            const { data: pmRow } = await supabase
+                .from('site_content').select('value').eq('key', 'payment_methods').maybeSingle();
+            if (pmRow?.value && typeof pmRow.value === 'object') {
+                const methodKey = method === 'stripe_card' ? 'stripe_card'
+                    : method === 'mp_pix' ? 'mp_pix' : 'mp_card';
+                if (pmRow.value[methodKey] === false) {
+                    return res.status(400).json({ error: 'Esta forma de pagamento não está disponível no momento.' });
+                }
+            }
+
             const customerErr = validateCustomer(customer);
             if (customerErr) return res.status(400).json({ error: customerErr });
             const cartErr = validateCart(cart);

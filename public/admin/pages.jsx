@@ -225,12 +225,17 @@ function ClienteModal({ client, onClose }) {
   const summary = data?.summary || {};
   const total   = summary.totalOrders || client.crm_count || 0;
   const spent   = summary.totalSpent  || client.crm_total || 0;
+  const avgTicket = total > 0 ? spent / total : 0;
+  const lastDate  = summary.lastOrderDate || client.crm_last;
+
+  const recLabel = total >= 3 ? 'Prioritário' : total >= 2 ? 'Recorrente' : 'Ocasional';
+  const recClass = total >= 3 ? 'gold' : total >= 2 ? 'up' : '';
 
   return (
     <div className="modal-veil" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose}>×</button>
-        <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 22 }}>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 16 }}>
           <div className="sb-avatar" style={{ width: 52, height: 52, fontSize: 17 }}>
             {(client.name || '?').split(' ').map(s => s[0]).slice(0, 2).join('')}
           </div>
@@ -239,18 +244,26 @@ function ClienteModal({ client, onClose }) {
             <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>{fmtPhone(client.whatsapp)} · {client.email}</div>
           </div>
         </div>
-        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 22 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16 }}>
+          <span className={`tag ${recClass}`}>{recLabel}</span>
+          {lastDate && <small style={{ color: 'var(--ink-4)', fontSize: 11 }}>Último pedido {fmtDate(lastDate)}</small>}
+        </div>
+        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 22 }}>
           <div className="mini-card">
-            <small>Total de pedidos</small>
+            <small>Pedidos</small>
             <b>{total}</b>
           </div>
           <div className="mini-card hl">
             <small>Total investido</small>
             <b>{brl(spent)}</b>
           </div>
+          <div className="mini-card">
+            <small>Ticket médio</small>
+            <b>{brl(avgTicket)}</b>
+          </div>
         </div>
         <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ink-4)', marginBottom: 10 }}>Histórico cronológico</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 260, overflowY: 'auto', paddingRight: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 300, overflowY: 'auto', paddingRight: 4 }}>
           {loading && <div style={{ color: 'var(--ink-4)', fontSize: 13, padding: 8 }}>Carregando…</div>}
           {!loading && orders.length === 0 && (
             <div style={{ color: 'var(--ink-4)', fontSize: 13, padding: 8 }}>Nenhum pedido registrado.</div>
@@ -258,6 +271,10 @@ function ClienteModal({ client, onClose }) {
           {orders.map((o, i) => {
             const [tagLabel, tagClass] = orderStatusTag(o.status);
             const amount = Number(o.total_amount || 0);
+            const itemsArr = Array.isArray(o.items) ? o.items.filter(x => x && typeof x === 'object' && x.name) : [];
+            const itemsLabel = itemsArr.length > 0
+              ? itemsArr.map(it => `${it.qty || it.quantity || 1}x ${it.name}`).join(' · ')
+              : `${parseItems(o).length || 1} item`;
             return (
               <div key={o.id || i} className="order-row-mini">
                 <div>
@@ -266,7 +283,7 @@ function ClienteModal({ client, onClose }) {
                     <span className={`tag ${tagClass}`}>{tagLabel.toUpperCase()}</span>
                   </div>
                   <small style={{ color: 'var(--ink-4)', fontSize: 11 }}>
-                    {parseItems(o).length}x Item · {fmtDate(o.created_at)}
+                    {itemsLabel} · {fmtDate(o.created_at)}
                   </small>
                 </div>
                 <div className="num" style={{ color: 'var(--ink)', fontWeight: 500 }}>{brl(amount)}</div>
@@ -725,8 +742,10 @@ function PrevendaPage() {
   const [orders, setOrders] = useStP([]);
   const [loading, setLoading] = useStP(true);
   const [config, setConfig] = useStP(null);
+  const [open, setOpen] = useStP(null);
 
-  useEffP(() => {
+  const load = useCbP(() => {
+    setLoading(true);
     let mounted = true;
     Promise.all([
       window.apiGet('/api/admin/pre-orders'),
@@ -738,6 +757,8 @@ function PrevendaPage() {
     }).catch(() => {}).finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, []);
+
+  useEffP(() => { load(); }, [load]);
 
   const nextBakeDate = config?.nextBatch?.bakeDate;
   const nextLabel = nextBakeDate ? fmtDate(nextBakeDate + 'T12:00:00') : '—';
@@ -758,7 +779,11 @@ function PrevendaPage() {
 
   return (
     <div className="page">
-      <PageHead title="Pré-venda" badge="PRÓXIMA FORNADA" subtitle={`Fila de pedidos agendados para a fornada de ${nextLabel}.`}/>
+      <PageHead
+        title="Pré-venda"
+        badge="PRÓXIMA FORNADA"
+        subtitle={`Fila de pedidos agendados para a fornada de ${nextLabel}.`}
+      />
       <div className="grid kpi-row">
         <div className="card kpi"><div className="kpi-label">Total pedidos</div><div className="kpi-value">{loading ? '—' : orders.length}</div></div>
         <div className="card kpi"><div className="kpi-label">Total de itens</div><div className="kpi-value">{loading ? '—' : totalItems}</div></div>
@@ -766,47 +791,59 @@ function PrevendaPage() {
         <div className="card kpi"><div className="kpi-label">Data produção</div><div className="kpi-value" style={{ fontSize: 22, fontFamily: 'var(--mono)' }}>{nextLabel}</div></div>
       </div>
 
-      <div className="grid row-2 mt">
-        <div className="card">
-          <div className="card-head"><h3><Ic.list/>Lista de encomendas</h3></div>
-          {loading ? (
-            <div className="empty-state" style={{ height: 240 }}><Ic.cart/><div>Carregando…</div></div>
-          ) : orders.length === 0 ? (
-            <div className="empty-state" style={{ height: 240 }}><Ic.cart/><div>Nenhum pedido de pré-venda encontrado.</div></div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 8 }}>
-              {orders.map((o, i) => {
-                const clientName = o.customer_name || o.clientes?.name || '—';
-                const itemsArr = parseItems(o);
-                return (
-                  <div key={o.id || i} className="order-row-mini">
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <b>{orderId(o)}</b>
-                        <span className="tag">{clientName.slice(0,18)}{clientName.length > 18 ? '…' : ''}</span>
-                      </div>
-                      <small style={{ color: 'var(--ink-4)', fontSize: 11 }}>
-                        {itemsArr.map(i => `${i.qty||1}x ${i.name}`).join(', ') || 'Sem itens'} · {fmtDate(o.created_at)}
-                      </small>
-                    </div>
-                    <div className="num" style={{ color: 'var(--gold)', fontWeight: 500 }}>{brl(o.total_amount || 0)}</div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18, marginBottom: 4 }}>
+        <button className="btn-ghost" style={{ padding: '6px 12px', fontSize: 12 }} onClick={load}>↻ Atualizar</button>
+      </div>
+
+      {loading ? (
+        <div className="empty-state"><Ic.list/><div>Carregando pedidos…</div></div>
+      ) : orders.length === 0 ? (
+        <div className="empty-state"><Ic.cart/><div>Nenhum pedido de pré-venda encontrado.</div></div>
+      ) : (
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
+          {orders.map((o, i) => {
+            const [tagLabel] = orderStatusTag(o.status);
+            const clientName = o.customer_name || o.clientes?.name || '—';
+            const total = Number(o.total_amount || 0);
+            const dt = o.created_at ? new Date(o.created_at) : null;
+            const timeStr = dt ? `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}` : '—';
+            const dateStr = dt ? fmtDate(o.created_at) : '—';
+            return (
+              <div key={o.id || i} className="order-card" onClick={() => setOpen(o)}>
+                <div className="order-card-strip"/>
+                <div className="order-card-head">
+                  <span className="tag">{orderId(o)}</span>
+                  <span className="tag up">{tagLabel}</span>
+                </div>
+                <div className="order-card-body">
+                  <b>{clientName.length > 22 ? clientName.slice(0,22) + '…' : clientName}</b>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink-3)', marginTop: 8 }}>
+                    <span>{timeStr}</span>
+                    <span>{dateStr}</span>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                </div>
+                <div className="order-card-foot">
+                  <div>
+                    <small style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ink-4)' }}>Total gasto</small>
+                    <b style={{ display: 'block', color: 'var(--gold)', fontWeight: 500, fontSize: 16 }}>{brl(total)}</b>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
-        <div className="card">
+      )}
+
+      {prodList.length > 0 && (
+        <div className="card mt">
           <div className="card-head"><h3><Ic.bread/>Resumo de produção</h3></div>
-          {loading ? (
-            <div className="empty-state" style={{ height: 240 }}><Ic.flame/><div>Carregando…</div></div>
-          ) : prodList.length === 0 ? (
-            <div className="empty-state" style={{ height: 240 }}><Ic.flame/><div>Nenhum item para produzir.</div></div>
-          ) : prodList.map(([name, qty]) => (
+          {prodList.map(([name, qty]) => (
             <div key={name} className="prod-row"><span>{name}</span><b>{qty}</b></div>
           ))}
         </div>
-      </div>
+      )}
+
+      {open && <OrderModal order={open} variant="history" onClose={() => setOpen(null)}/>}
     </div>
   );
 }
