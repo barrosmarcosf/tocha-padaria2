@@ -336,8 +336,10 @@ function InteligenciaPage() {
 
   const fetchMonthDetail = useCbX((value) => {
     const mo = MONTHS.find(m => m.value === value) || currentMonth;
-    const from = new Date(mo.year, mo.month - 1, 1).toISOString();
-    const to   = new Date(mo.year, mo.month, 0, 23, 59, 59).toISOString();
+    const mm = String(mo.month).padStart(2, '0');
+    const lastDay = new Date(mo.year, mo.month, 0).getDate();
+    const from = `${mo.year}-${mm}-01`;
+    const to   = `${mo.year}-${mm}-${String(lastDay).padStart(2, '0')}`;
     setLoadingCal(true);
     let mounted = true;
     window.apiGet(`/api/admin/detailed-analytics?period=custom&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&tzOffset=180`)
