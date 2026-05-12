@@ -784,74 +784,51 @@ function PagtoPainelPage() {
     return () => { mounted = false; };
   }, []);
 
-  const h = health || { pending: 0, paid: 0, failed: 0, refunded: 0, stale_locks: 0, fila_reprocessamento: 0 };
-  const s = analytics?.summary || { total: 0, paid: 0, pending: 0, failed: 0, refunded: 0, chargebacks: 0, recovered: 0, approval_rate: 0, refund_rate: 0 };
-  const motivos  = analytics?.rejection_reasons || [];
-  const methods  = analytics?.method_split      || [];
-  const failures = analytics?.recent_failures   || [];
-
-  const REFUND_LABEL = { refunded: 'Reembolsado', partially_refunded: 'Parcial', chargeback: 'Chargeback' };
+  const h = health    || { pending: 0, paid: 0, failed: 0, refunded: 0 };
+  const s = analytics?.summary || {
+    total: 0, paid: 0, pending: 0, failed: 0, refunded: 0,
+    paid_revenue: 0, pending_revenue: 0, refund_amount_total: 0,
+    approval_rate: 0, failure_rate: 0
+  };
+  const motivos = analytics?.rejection_reasons || [];
 
   return (
     <div className="page">
-      <PH title="Painel de Pagamentos" subtitle="Visão consolidada de aprovações, rejeições, estornos e retentativas — PIX + Crédito + Débito."/>
+      <PH title="Painel de Pagamentos" subtitle="Visão geral de aprovações, rejeições e estornos."/>
       {loading ? (
         <div className="empty-state" style={{ height: 200 }}><Ic.clock/><div>Carregando dados…</div></div>
       ) : (
         <>
-          {/* KPIs principais */}
           <div className="grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
             <div className="pay-stat k-up">
               <small>APROVADOS</small>
               <b>{h.paid}</b>
-              <span>{s.approval_rate}% do total</span>
+              <span>{s.approval_rate}% do total{s.paid_revenue > 0 ? ` — ${brl(s.paid_revenue)}` : ''}</span>
             </div>
             <div className="pay-stat k-warn">
               <small>PENDENTES</small>
               <b>{h.pending}</b>
-              <span>Aguardando confirmação</span>
+              <span>{s.pending_revenue > 0 ? brl(s.pending_revenue) : 'Aguardando confirmação'}</span>
             </div>
             <div className="pay-stat k-down">
               <small>REJEITADOS</small>
               <b>{h.failed}</b>
-              <span>{s.total > 0 ? ((h.failed / s.total) * 100).toFixed(1) : '0'}% do total</span>
+              <span>{s.failure_rate}% do total</span>
             </div>
           </div>
 
-          {/* Estornos + Recuperados + Total */}
-          <div className="grid" style={{ gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginTop: 14 }}>
-            <div className="card pay-stat" style={{ background: 'transparent', border: '1px solid var(--line-2)' }}>
+          <div className="grid row-2 mt">
+            <div className="card">
+              <small className="kv-l">TOTAL DE TRANSAÇÕES</small>
+              <b style={{ fontFamily: 'var(--display)', fontWeight: 400, fontSize: 38, color: 'var(--ink)' }}>{s.total}</b>
+            </div>
+            <div className="card pay-stat k-c1" style={{ background: 'transparent', border: '1px solid var(--line-2)' }}>
               <small className="kv-l">ESTORNADOS</small>
               <b style={{ fontFamily: 'var(--display)', fontWeight: 400, fontSize: 38, color: 'var(--ink)' }}>{h.refunded}</b>
-              <span style={{ color: 'var(--ink-3)' }}>{s.chargebacks > 0 ? `${s.chargebacks} chargeback${s.chargebacks > 1 ? 's' : ''}` : 'Reembolsos + chargebacks'}</span>
-            </div>
-            <div className="card pay-stat" style={{ background: 'transparent', border: '1px solid var(--line-2)' }}>
-              <small className="kv-l">RECUPERADOS</small>
-              <b style={{ fontFamily: 'var(--display)', fontWeight: 400, fontSize: 38, color: 'var(--ink)' }}>{s.recovered}</b>
-              <span style={{ color: 'var(--ink-3)' }}>Aprovados após retentativa</span>
-            </div>
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-              <small className="section-title" style={{ margin: 0 }}>TAXA DE APROVAÇÃO</small>
-              <b style={{ fontFamily: 'var(--display)', fontSize: 38, fontWeight: 400, color: 'var(--ink)', margin: '8px 0' }}>{s.approval_rate}%</b>
-              <small style={{ color: 'var(--ink-4)' }}>{s.total} transações · últimos 30 dias</small>
+              <span style={{ color: 'var(--ink-3)' }}>{s.refund_amount_total > 0 ? brl(s.refund_amount_total) : 'Reembolsos + chargebacks'}</span>
             </div>
           </div>
 
-          {/* Split por método */}
-          {methods.length > 0 && (
-            <div className="card mt">
-              <div className="section-title">SPLIT PIX / CRÉDITO / DÉBITO</div>
-              {methods.map((m, i) => (
-                <div className="origin-row" key={i}>
-                  <span className="origin-lbl">{m.method}</span>
-                  <div className="origin-bar"><div className="origin-fill" style={{ width: `${m.pct}%` }}/></div>
-                  <span className="origin-v"><b>{m.count}</b> pedidos <span>{m.pct}%</span></span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Motivos de rejeição reais */}
           {motivos.length > 0 && (
             <div className="card mt">
               <div className="section-title">MOTIVOS DE REJEIÇÃO</div>
@@ -862,41 +839,6 @@ function PagtoPainelPage() {
                   <span className="origin-v"><b>{m.count}</b> ocorrências <em style={{ color: 'var(--down)' }}>{m.pct}%</em></span>
                 </div>
               ))}
-            </div>
-          )}
-
-          {/* Últimas falhas */}
-          {failures.length > 0 && (
-            <div className="card mt">
-              <div className="section-title">ÚLTIMAS FALHAS</div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ color: 'var(--ink-3)', borderBottom: '1px solid var(--line-2)' }}>
-                    <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: 500 }}>Cliente</th>
-                    <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: 500 }}>Método</th>
-                    <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: 500 }}>Motivo</th>
-                    <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: 500 }}>Tipo</th>
-                    <th style={{ textAlign: 'right', padding: '6px 8px', fontWeight: 500 }}>Horário</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {failures.map((f, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid var(--line-1)' }}>
-                      <td style={{ padding: '6px 8px' }}>{f.customer}</td>
-                      <td style={{ padding: '6px 8px', color: 'var(--ink-3)' }}>{f.method || '—'}</td>
-                      <td style={{ padding: '6px 8px', color: 'var(--down)' }}>{f.reason}</td>
-                      <td style={{ padding: '6px 8px' }}>
-                        {f.refund_status
-                          ? <span style={{ color: 'var(--warn)', fontWeight: 600 }}>{REFUND_LABEL[f.refund_status] || f.refund_status}</span>
-                          : <span style={{ color: 'var(--down)' }}>Recusado</span>}
-                      </td>
-                      <td style={{ padding: '6px 8px', textAlign: 'right', color: 'var(--ink-3)' }}>
-                        {new Date(f.created_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           )}
         </>

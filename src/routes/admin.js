@@ -1289,7 +1289,7 @@ module.exports = function (supabase) {
 
             const [summaryRes, recentFailuresRes] = await Promise.all([
                 supabase.from('pedidos')
-                    .select('id, status, items, refund_status, rejection_reason, rejection_raw_code, payment_attempts')
+                    .select('id, status, total_amount, items, refund_status, refund_amount, rejection_reason, rejection_raw_code, payment_attempts')
                     .gte('created_at', since),
                 supabase.from('pedidos')
                     .select('id, created_at, rejection_reason, rejection_raw_code, refund_status, items, clientes(name)')
@@ -1307,6 +1307,12 @@ module.exports = function (supabase) {
             const refunded   = orders.filter(o => o.refund_status === 'refunded' || o.refund_status === 'partially_refunded').length;
             const chargebacks= orders.filter(o => o.refund_status === 'chargeback').length;
             const total      = orders.length;
+
+            // Receitas por status
+            const sum = (arr, fn) => arr.reduce((acc, o) => acc + (fn(o) || 0), 0);
+            const paidRevenue    = sum(orders.filter(o => o.status === 'paid'),    o => Number(o.total_amount));
+            const pendingRevenue = sum(orders.filter(o => o.status === 'pending'), o => Number(o.total_amount));
+            const refundTotal    = sum(orders.filter(o => o.refund_amount),        o => Number(o.refund_amount));
 
             // Pedidos que tiveram rejeição mas depois foram aprovados (retries bem-sucedidos)
             const recovered = orders.filter(o => {
@@ -1352,12 +1358,21 @@ module.exports = function (supabase) {
                 }))
                 .sort((a, b) => b.count - a.count);
 
-            const approvalRate = total > 0 ? Math.round((paid / total) * 100) : 0;
+            const approvalRate = total > 0 ? Math.round((paid / total) * 1000) / 10 : 0;
+            const failureRate  = total > 0 ? Math.round((failed / total) * 1000) / 10 : 0;
             const refundRate   = paid  > 0 ? Math.round(((refunded + chargebacks) / paid) * 100) : 0;
 
             res.json({
                 period_days: days,
-                summary: { total, paid, pending, failed, refunded, chargebacks, recovered, approval_rate: approvalRate, refund_rate: refundRate },
+                summary: {
+                    total, paid, pending, failed, refunded, chargebacks, recovered,
+                    paid_revenue: paidRevenue,
+                    pending_revenue: pendingRevenue,
+                    refund_amount_total: refundTotal,
+                    approval_rate: approvalRate,
+                    failure_rate: failureRate,
+                    refund_rate: refundRate
+                },
                 rejection_reasons: rejectionReasons,
                 method_split: methodSplit,
                 recent_failures: (recentFailuresRes.data || []).map(o => {
