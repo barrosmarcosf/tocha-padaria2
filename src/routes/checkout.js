@@ -554,6 +554,9 @@ async function processPaidSession(supabase, stripe, session) {
 
         console.log(`✅ [UPDATE] Pedido ${orderUpdate.id} marcado como pago.`);
 
+        // Registrar evento de aprovação em payment_events
+        recordStripeApproval(supabase, orderUpdate, session).catch(() => {});
+
         const { data: customer, error: custErr } = await supabase
             .from('clientes').select('*').eq('id', orderUpdate.customer_id).single();
 
@@ -640,15 +643,13 @@ async function processStripeSessionExpired(supabase, session) {
     if (!order) return;
 
     const { normalizePaymentFailure } = require('../utils/paymentNormalizer');
+    const { recordPaymentEvent } = require('../services/paymentEvents');
     const normalized = normalizePaymentFailure('stripe', 'session_expired');
     const attempts = Array.isArray(order.payment_attempts) ? order.payment_attempts : [];
     const method = session.payment_method_types?.[0] === 'pix' ? 'pix' : 'card';
     attempts.push({
-        status: 'rejected',
-        provider: 'stripe',
-        method,
-        reason: normalized.category,
-        raw_code: 'session_expired',
+        status: 'rejected', provider: 'stripe', method,
+        reason: normalized.category, raw_code: 'session_expired',
         created_at: new Date().toISOString()
     });
 
@@ -658,6 +659,17 @@ async function processStripeSessionExpired(supabase, session) {
         payment_attempts: attempts
     }).eq('id', order.id)
       .catch(e => console.warn('[Stripe] Falha ao persistir sessão expirada:', e.message));
+
+    await recordPaymentEvent(supabase, {
+        order_id: order.id,
+        event_type: 'decline',
+        status: 'expired',
+        provider: 'stripe',
+        method,
+        reason: normalized.category,
+        raw_code: 'session_expired',
+        metadata: { stripe_session_id: session.id }
+    });
 
     console.log(`[Stripe] Sessão expirada: pedido ${order.id}`);
 }
@@ -671,17 +683,15 @@ async function processStripePaymentFailed(supabase, paymentIntent) {
     if (!order) return;
 
     const { normalizePaymentFailure } = require('../utils/paymentNormalizer');
+    const { recordPaymentEvent } = require('../services/paymentEvents');
     const rawCode = paymentIntent.last_payment_error?.decline_code ||
                     paymentIntent.last_payment_error?.code || 'unknown';
     const normalized = normalizePaymentFailure('stripe', rawCode);
 
     const attempts = Array.isArray(order.payment_attempts) ? order.payment_attempts : [];
     attempts.push({
-        status: 'rejected',
-        provider: 'stripe',
-        method: 'credit_card',
-        reason: normalized.category,
-        raw_code: normalized.raw_code,
+        status: 'rejected', provider: 'stripe', method: 'credit_card',
+        reason: normalized.category, raw_code: normalized.raw_code,
         created_at: new Date().toISOString()
     });
 
@@ -692,6 +702,18 @@ async function processStripePaymentFailed(supabase, paymentIntent) {
         payment_attempts: attempts
     }).eq('id', order.id)
       .catch(e => console.warn('[Stripe] Falha ao persistir rejeição:', e.message));
+
+    await recordPaymentEvent(supabase, {
+        order_id: order.id,
+        event_type: 'decline',
+        status: 'failed',
+        provider: 'stripe',
+        method: 'credit_card',
+        reason: normalized.category,
+        raw_code: normalized.raw_code,
+        amount: paymentIntent.amount ? paymentIntent.amount / 100 : null,
+        metadata: { stripe_payment_intent: paymentIntent.id, decline_code: rawCode }
+    });
 
     console.log(`[Stripe] Pagamento recusado: pedido ${order.id} — ${normalized.category} (${rawCode})`);
 }
@@ -704,6 +726,7 @@ async function processStripeRefund(supabase, charge) {
         .maybeSingle();
     if (!order) return;
 
+    const { recordPaymentEvent } = require('../services/paymentEvents');
     const refundAmount = charge.amount_refunded / 100;
     const isPartial = charge.amount_refunded < charge.amount;
 
@@ -714,6 +737,15 @@ async function processStripeRefund(supabase, charge) {
         refund_at: new Date().toISOString()
     }).eq('id', order.id)
       .catch(e => console.warn('[Stripe] Falha ao persistir reembolso:', e.message));
+
+    await recordPaymentEvent(supabase, {
+        order_id: order.id,
+        event_type: 'refund',
+        status: isPartial ? 'partially_refunded' : 'refunded',
+        provider: 'stripe',
+        amount: refundAmount,
+        metadata: { stripe_payment_intent: charge.payment_intent, is_partial: isPartial }
+    });
 
     console.log(`[Stripe] Reembolso: pedido ${order.id}, valor R$${refundAmount}`);
 }
@@ -726,13 +758,42 @@ async function processStripeChargeback(supabase, dispute) {
         .maybeSingle();
     if (!order) return;
 
+    const { recordPaymentEvent } = require('../services/paymentEvents');
+    const disputeAmount = dispute.amount / 100;
+
     await supabase.from('pedidos').update({
         refund_status: 'chargeback',
-        refund_amount: dispute.amount / 100,
+        refund_amount: disputeAmount,
         refund_reason: `Chargeback Stripe: ${dispute.reason || 'não especificado'}`,
         refund_at: new Date().toISOString()
     }).eq('id', order.id)
       .catch(e => console.warn('[Stripe] Falha ao persistir chargeback:', e.message));
 
+    await recordPaymentEvent(supabase, {
+        order_id: order.id,
+        event_type: 'chargeback',
+        status: 'chargeback',
+        provider: 'stripe',
+        amount: disputeAmount,
+        metadata: { stripe_payment_intent: dispute.payment_intent, reason: dispute.reason }
+    });
+
     console.log(`[Stripe] Chargeback: pedido ${order.id}, motivo: ${dispute.reason}`);
+}
+
+// Stripe: pagamento aprovado — registra evento de approval
+async function recordStripeApproval(supabase, order, session) {
+    const { recordPaymentEvent } = require('../services/paymentEvents');
+    const method = session.payment_method_types?.[0] === 'pix' ? 'Pix (Stripe)'
+        : session.payment_method_types?.[0] === 'card' ? 'Crédito (Stripe)'
+        : 'Stripe';
+    await recordPaymentEvent(supabase, {
+        order_id: order.id,
+        event_type: 'approval',
+        status: 'approved',
+        provider: 'stripe',
+        method,
+        amount: session.amount_total ? session.amount_total / 100 : Number(order.total_amount),
+        metadata: { stripe_session_id: session.id, stripe_payment_intent: session.payment_intent }
+    });
 }

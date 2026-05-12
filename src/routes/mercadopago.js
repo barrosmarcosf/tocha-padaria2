@@ -934,6 +934,19 @@ module.exports = function (supabase) {
                         .eq('id', order_id)
                         .in('status', ['pending', 'payment_failed'])
                         .catch(e => console.warn('[MP Card] Falha ao persistir rejeição:', e.message));
+
+                    const { recordPaymentEvent } = require('../services/paymentEvents');
+                    await recordPaymentEvent(supabase, {
+                        order_id,
+                        event_type: 'decline',
+                        status: responseData.status,
+                        provider: 'mercadopago',
+                        method: responseData.payment_type_id || 'credit_card',
+                        reason: normalized.category,
+                        raw_code: normalized.raw_code,
+                        amount: responseData.transaction_amount || null,
+                        metadata: { mp_payment_id: mpId, status_detail: rawCode }
+                    });
                 }
             }
 
@@ -1081,6 +1094,7 @@ async function recalcularTotal(supabase, cart) {
 // Persiste rejeição de pagamento MP e registra tentativa no histórico
 async function processMPRejection(supabase, mpId, mpPayment) {
     const { normalizePaymentFailure } = require('../utils/paymentNormalizer');
+    const { recordPaymentEvent } = require('../services/paymentEvents');
     const rawCode = mpPayment.status_detail || 'unknown';
     const normalized = normalizePaymentFailure('mercadopago', rawCode);
 
@@ -1112,11 +1126,24 @@ async function processMPRejection(supabase, mpId, mpPayment) {
         payment_attempts: attempts
     }).eq('id', order.id);
 
+    await recordPaymentEvent(supabase, {
+        order_id: order.id,
+        event_type: 'decline',
+        status: 'rejected',
+        provider: 'mercadopago',
+        method: mpPayment.payment_type_id || null,
+        reason: normalized.category,
+        raw_code: normalized.raw_code,
+        amount: mpPayment.transaction_amount || null,
+        metadata: { mp_payment_id: mpId, status_detail: rawCode }
+    });
+
     console.log(`[MP Reject] Pedido ${order.id} rejeitado: ${normalized.category} (${rawCode})`);
 }
 
 // Persiste estorno/reembolso via Mercado Pago
 async function processMPRefund(supabase, mpId, mpPayment) {
+    const { recordPaymentEvent } = require('../services/paymentEvents');
     const externalId = `mp_${mpId}`;
     const { data: order } = await supabase.from('pedidos')
         .select('id')
@@ -1139,11 +1166,21 @@ async function processMPRefund(supabase, mpId, mpPayment) {
         refund_at: new Date().toISOString()
     }).eq('id', order.id);
 
+    await recordPaymentEvent(supabase, {
+        order_id: order.id,
+        event_type: 'refund',
+        status: isPartial ? 'partially_refunded' : 'refunded',
+        provider: 'mercadopago',
+        amount: totalRefunded,
+        metadata: { mp_payment_id: mpId, is_partial: isPartial }
+    });
+
     console.log(`[MP Refund] Pedido ${order.id} estornado. Valor: R$${totalRefunded}`);
 }
 
 // Persiste chargeback via Mercado Pago
 async function processMPChargeback(supabase, mpId, mpPayment) {
+    const { recordPaymentEvent } = require('../services/paymentEvents');
     const externalId = `mp_${mpId}`;
     const { data: order } = await supabase.from('pedidos')
         .select('id')
@@ -1161,6 +1198,15 @@ async function processMPChargeback(supabase, mpId, mpPayment) {
         refund_reason: 'Chargeback iniciado pelo portador do cartão',
         refund_at: new Date().toISOString()
     }).eq('id', order.id);
+
+    await recordPaymentEvent(supabase, {
+        order_id: order.id,
+        event_type: 'chargeback',
+        status: 'chargeback',
+        provider: 'mercadopago',
+        amount: mpPayment.transaction_amount || null,
+        metadata: { mp_payment_id: mpId }
+    });
 
     console.log(`[MP Chargeback] Pedido ${order.id} com chargeback registrado.`);
 }
@@ -1296,6 +1342,18 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
         sendOrderEmails(supabase, order, notificationCustomer, paymentMethod),
         sendOrderWhatsApp(supabase, order, notificationCustomer, paymentMethod)
     ]);
+
+    // Registrar evento de aprovação
+    const { recordPaymentEvent } = require('../services/paymentEvents');
+    await recordPaymentEvent(supabase, {
+        order_id: order.id,
+        event_type: 'approval',
+        status: 'approved',
+        provider: 'mercadopago',
+        method: _mpPayment?.payment_type_id || resolvedMethod,
+        amount: Number(_mpPayment?.transaction_amount || order.total_amount),
+        metadata: { mp_payment_id: mpId, payment_type_id: _mpPayment?.payment_type_id }
+    });
 
     console.log(`✅ [MP] Pedido ${order.id} processado com sucesso.`);
 }

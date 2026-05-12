@@ -1393,11 +1393,22 @@ module.exports = function (supabase) {
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
-    // Métricas de negócio das últimas 24h
+    // Métricas de negócio das últimas 24h (legacy — mantido para compatibilidade)
     router.get('/payment-metrics', adminAuth, async (req, res) => {
         try {
             const { getPaymentMetrics } = require('../../metrics/payments_metrics');
             res.json(await getPaymentMetrics(supabase));
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // Métricas baseadas em payment_events: approval_rate_24h, rejection_top_reasons, refund_rate, total_events_by_type
+    router.get('/payment-events-metrics', adminAuth, async (req, res) => {
+        try {
+            const hours = Math.min(Math.max(parseInt(req.query.hours || '24', 10), 1), 720);
+            const { getPaymentEventMetrics } = require('../services/paymentEvents');
+            const metrics = await getPaymentEventMetrics(supabase, hours);
+            if (!metrics) return res.status(500).json({ error: 'Falha ao agregar métricas' });
+            res.json(metrics);
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
