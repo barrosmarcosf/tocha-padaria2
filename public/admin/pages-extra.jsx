@@ -782,22 +782,36 @@ const _REJECT_CODES = {
 
 const _MOCK_REJ = {
   card_credit: [
-    { label: 'Saldo insuficiente', count: 6, pct: 40 },
-    { label: 'Cartão expirado',    count: 3, pct: 20 },
-    { label: 'Dados inválidos',    count: 2, pct: 13 },
-    { label: 'Limite excedido',    count: 2, pct: 13 },
-    { label: 'Outros',             count: 2, pct: 13 },
+    { label: 'Saldo insuficiente',       count: 6, pct: 40 },
+    { label: 'Cartão expirado',          count: 3, pct: 20 },
+    { label: 'Dados inválidos',          count: 2, pct: 13 },
+    { label: 'Limite excedido',          count: 2, pct: 13 },
+    { label: 'Cartão bloqueado',         count: 0, pct: 0  },
+    { label: 'Suspeita de fraude',       count: 0, pct: 0  },
+    { label: 'Transação não permitida',  count: 0, pct: 0  },
+    { label: 'Emissor indisponível',     count: 0, pct: 0  },
+    { label: 'Outros',                   count: 2, pct: 13 },
   ],
   card_debit: [
-    { label: 'Saldo insuficiente', count: 4, pct: 44 },
-    { label: 'Dados inválidos',    count: 2, pct: 22 },
-    { label: 'Cartão bloqueado',   count: 2, pct: 22 },
-    { label: 'Outros',             count: 1, pct: 11 },
+    { label: 'Saldo insuficiente',       count: 4, pct: 44 },
+    { label: 'Dados inválidos',          count: 2, pct: 22 },
+    { label: 'Cartão bloqueado',         count: 2, pct: 22 },
+    { label: 'Transação não permitida',  count: 0, pct: 0  },
+    { label: 'Limite diário excedido',   count: 0, pct: 0  },
+    { label: 'PIN incorreto',            count: 0, pct: 0  },
+    { label: 'Banco indisponível',       count: 0, pct: 0  },
+    { label: 'Outros',                   count: 1, pct: 11 },
   ],
   pix: [
-    { label: 'Saldo insuficiente',         count: 3, pct: 50 },
-    { label: 'Chave PIX inválida',         count: 2, pct: 33 },
-    { label: 'Conta do recebedor inativa', count: 1, pct: 17 },
+    { label: 'Saldo insuficiente',           count: 3, pct: 50 },
+    { label: 'Chave PIX inválida',           count: 2, pct: 33 },
+    { label: 'Conta do recebedor inativa',   count: 1, pct: 17 },
+    { label: 'Tempo expirado (timeout)',     count: 0, pct: 0  },
+    { label: 'Limite PIX excedido',         count: 0, pct: 0  },
+    { label: 'Banco fora do ar',            count: 0, pct: 0  },
+    { label: 'QR Code expirado',            count: 0, pct: 0  },
+    { label: 'Erro na API do provedor',     count: 0, pct: 0  },
+    { label: 'Outros',                      count: 0, pct: 0  },
   ],
 };
 
@@ -889,9 +903,17 @@ function PagtoPainelPage() {
   ];
 
   const getMethodData = (method) => {
-    const real = mrej[method];
-    return real && real.length > 0
-      ? { data: real, isMock: false }
+    const bucket = mrej[method];
+    // Novo formato: { total, reasons: [{ code, label, count, pct }] }
+    if (bucket && typeof bucket.total === 'number') {
+      return bucket.total > 0
+        ? { data: bucket.reasons, isMock: false }
+        : { data: _MOCK_REJ[method] || [], isMock: true };
+    }
+    // Formato legado (array) — compatibilidade retroativa
+    const arr = Array.isArray(bucket) ? bucket : [];
+    return arr.length > 0
+      ? { data: arr, isMock: false }
       : { data: _MOCK_REJ[method] || [], isMock: true };
   };
 

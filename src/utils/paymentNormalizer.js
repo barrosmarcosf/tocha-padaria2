@@ -136,4 +136,82 @@ function getCategoryLabel(category) {
     return CATEGORY_LABELS[category] || category || 'Outros';
 }
 
-module.exports = { normalizePaymentFailure, getCategoryLabel, CATEGORY_LABELS };
+// Motivos canônicos por método — exibidos SEMPRE, mesmo com count = 0
+const METHOD_REASONS = {
+    card_credit: [
+        { code: 'saldo_insuficiente',      label: 'Saldo insuficiente' },
+        { code: 'limite_excedido',          label: 'Limite excedido' },
+        { code: 'cartao_expirado',          label: 'Cartão expirado' },
+        { code: 'dados_invalidos',          label: 'Dados inválidos' },
+        { code: 'cartao_bloqueado',         label: 'Cartão bloqueado' },
+        { code: 'antifraude',               label: 'Suspeita de fraude' },
+        { code: 'transacao_nao_permitida',  label: 'Transação não permitida' },
+        { code: 'emissor_indisponivel',     label: 'Emissor indisponível' },
+        { code: 'outros',                   label: 'Outros' },
+    ],
+    card_debit: [
+        { code: 'saldo_insuficiente',       label: 'Saldo insuficiente' },
+        { code: 'cartao_bloqueado',         label: 'Cartão bloqueado' },
+        { code: 'dados_invalidos',          label: 'Dados inválidos' },
+        { code: 'transacao_nao_permitida',  label: 'Transação não permitida' },
+        { code: 'limite_diario_excedido',   label: 'Limite diário excedido' },
+        { code: 'pin_incorreto',            label: 'PIN incorreto' },
+        { code: 'banco_indisponivel',       label: 'Banco indisponível' },
+        { code: 'outros',                   label: 'Outros' },
+    ],
+    pix: [
+        { code: 'saldo_insuficiente',       label: 'Saldo insuficiente' },
+        { code: 'chave_pix_invalida',       label: 'Chave PIX inválida' },
+        { code: 'conta_recebedor_invalida', label: 'Conta do recebedor inativa' },
+        { code: 'tempo_expirado',           label: 'Tempo expirado (timeout)' },
+        { code: 'limite_pix_excedido',      label: 'Limite PIX excedido' },
+        { code: 'banco_fora_do_ar',         label: 'Banco fora do ar' },
+        { code: 'qr_code_expirado',         label: 'QR Code expirado' },
+        { code: 'erro_provedor',            label: 'Erro na API do provedor' },
+        { code: 'outros',                   label: 'Outros' },
+    ],
+};
+
+/**
+ * Agrega um countMap por método no array canônico completo.
+ * Todos os motivos aparecem, mesmo com count = 0.
+ * Motivos fora do canônico são absorvidos em 'outros' com log.
+ * @param {Object<string,number>} countMap  - { reason_code: count }
+ * @param {'card_credit'|'card_debit'|'pix'} method
+ * @returns {{ total: number, reasons: Array<{code,label,count,pct}> }}
+ */
+function buildMethodReasons(countMap, method) {
+    const canonical = METHOD_REASONS[method] || [];
+    const canonicalCodes = new Set(canonical.map(r => r.code));
+    const total = Object.values(countMap).reduce((s, n) => s + n, 0);
+
+    let othersExtra = 0;
+    for (const [code, count] of Object.entries(countMap)) {
+        if (!canonicalCodes.has(code) && code !== 'outros') {
+            console.warn('UNMAPPED_REJECTION', { status_detail: code, payment_method_id: method, count });
+            othersExtra += count;
+        }
+    }
+
+    const reasons = canonical.map(r => {
+        const count = r.code === 'outros'
+            ? (countMap['outros'] || 0) + othersExtra
+            : (countMap[r.code] || 0);
+        return {
+            code:  r.code,
+            label: r.label,
+            count,
+            pct: total > 0 ? Math.round((count / total) * 100) : 0,
+        };
+    });
+
+    reasons.sort((a, b) => {
+        if (a.code === 'outros') return 1;
+        if (b.code === 'outros') return -1;
+        return b.count - a.count;
+    });
+
+    return { total, reasons };
+}
+
+module.exports = { normalizePaymentFailure, getCategoryLabel, CATEGORY_LABELS, METHOD_REASONS, buildMethodReasons };

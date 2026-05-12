@@ -1125,6 +1125,22 @@ const _MOCK_REJ = {
     count: 2,
     pct: 13
   }, {
+    label: 'Cartão bloqueado',
+    count: 0,
+    pct: 0
+  }, {
+    label: 'Suspeita de fraude',
+    count: 0,
+    pct: 0
+  }, {
+    label: 'Transação não permitida',
+    count: 0,
+    pct: 0
+  }, {
+    label: 'Emissor indisponível',
+    count: 0,
+    pct: 0
+  }, {
     label: 'Outros',
     count: 2,
     pct: 13
@@ -1142,6 +1158,22 @@ const _MOCK_REJ = {
     count: 2,
     pct: 22
   }, {
+    label: 'Transação não permitida',
+    count: 0,
+    pct: 0
+  }, {
+    label: 'Limite diário excedido',
+    count: 0,
+    pct: 0
+  }, {
+    label: 'PIN incorreto',
+    count: 0,
+    pct: 0
+  }, {
+    label: 'Banco indisponível',
+    count: 0,
+    pct: 0
+  }, {
     label: 'Outros',
     count: 1,
     pct: 11
@@ -1158,6 +1190,30 @@ const _MOCK_REJ = {
     label: 'Conta do recebedor inativa',
     count: 1,
     pct: 17
+  }, {
+    label: 'Tempo expirado (timeout)',
+    count: 0,
+    pct: 0
+  }, {
+    label: 'Limite PIX excedido',
+    count: 0,
+    pct: 0
+  }, {
+    label: 'Banco fora do ar',
+    count: 0,
+    pct: 0
+  }, {
+    label: 'QR Code expirado',
+    count: 0,
+    pct: 0
+  }, {
+    label: 'Erro na API do provedor',
+    count: 0,
+    pct: 0
+  }, {
+    label: 'Outros',
+    count: 0,
+    pct: 0
   }]
 };
 const _METHOD_CFG = {
@@ -1364,9 +1420,21 @@ function PagtoPainelPage() {
     label: 'Pix'
   }];
   const getMethodData = method => {
-    const real = mrej[method];
-    return real && real.length > 0 ? {
-      data: real,
+    const bucket = mrej[method];
+    // Novo formato: { total, reasons: [{ code, label, count, pct }] }
+    if (bucket && typeof bucket.total === 'number') {
+      return bucket.total > 0 ? {
+        data: bucket.reasons,
+        isMock: false
+      } : {
+        data: _MOCK_REJ[method] || [],
+        isMock: true
+      };
+    }
+    // Formato legado (array) — compatibilidade retroativa
+    const arr = Array.isArray(bucket) ? bucket : [];
+    return arr.length > 0 ? {
+      data: arr,
       isMock: false
     } : {
       data: _MOCK_REJ[method] || [],

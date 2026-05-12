@@ -1364,7 +1364,7 @@ module.exports = function (supabase) {
             const chargebackRate = paid  > 0 ? Math.round((chargebacks / paid) * 1000) / 10 : 0;
 
             // Motivos de rejeição — sort determinístico: count DESC, reason ASC
-            const { getCategoryLabel } = require('../utils/paymentNormalizer');
+            const { getCategoryLabel, buildMethodReasons } = require('../utils/paymentNormalizer');
             const rejectionMap = {};
             orders.forEach(o => {
                 if (o.rejection_reason) rejectionMap[o.rejection_reason] = (rejectionMap[o.rejection_reason] || 0) + 1;
@@ -1422,21 +1422,11 @@ module.exports = function (supabase) {
                 }
             });
 
-            function _bucketToArray(map) {
-                const tot = Object.values(map).reduce((s, n) => s + n, 0);
-                return Object.entries(map)
-                    .map(([reason, count]) => ({
-                        reason, label: getCategoryLabel(reason), count,
-                        pct: tot > 0 ? Math.round((count / tot) * 100) : 0
-                    }))
-                    .sort((a, b) => b.count - a.count || a.reason.localeCompare(b.reason));
-            }
-
             const method_rejections = {
                 all:         rejectionReasons,
-                card_credit: _bucketToArray(mBuckets.card_credit),
-                card_debit:  _bucketToArray(mBuckets.card_debit),
-                pix:         _bucketToArray(mBuckets.pix),
+                card_credit: buildMethodReasons(mBuckets.card_credit, 'card_credit'),
+                card_debit:  buildMethodReasons(mBuckets.card_debit,  'card_debit'),
+                pix:         buildMethodReasons(mBuckets.pix,         'pix'),
             };
 
             const result = {
