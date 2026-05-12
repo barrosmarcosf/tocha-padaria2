@@ -220,11 +220,16 @@
           id="menu-search"
           class="menu-search"
           type="text"
-          placeholder="Buscar produto..."
+          placeholder="Buscar"
           aria-label="Buscar produto"
           autocomplete="off"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls="search-suggestions"
+          aria-expanded="false"
         >
         <button id="search-clear" class="search-clear" aria-label="Limpar busca">×</button>
+        <div id="search-suggestions" class="search-suggestions" role="listbox" aria-label="Sugestões"></div>
       </div>
     </div>
 

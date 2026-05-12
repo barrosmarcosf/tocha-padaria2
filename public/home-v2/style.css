@@ -523,6 +523,31 @@ button { font-family: var(--font-sans); }
   display: none;
 }
 .search-clear.visible { display: block; }
+.search-suggestions {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: oklch(16% 0.02 48);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 28px oklch(0% 0 0 / 0.45);
+  z-index: 60; overflow: hidden; display: none;
+}
+.search-suggestions.open { display: block; }
+.search-suggestion {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 10px 14px;
+  background: none; border: none;
+  border-bottom: 1px solid oklch(18% 0.018 48);
+  color: var(--text-muted); font-size: 13px; font-family: var(--font-sans);
+  cursor: pointer; text-align: left;
+  transition: background var(--t-fast), color var(--t-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+.search-suggestion:last-child { border-bottom: none; }
+.search-suggestion:hover,
+.search-suggestion:focus { background: oklch(20% 0.025 48); color: var(--cream); outline: none; }
+.search-suggestion-icon { font-size: 14px; line-height: 1; flex-shrink: 0; }
+.search-suggestion-name { flex: 1; }
+.search-suggestion em { color: var(--amber); font-style: normal; font-weight: 600; }
 .menu-layout {
   display: grid; grid-template-columns: 220px 1fr;
   gap: 48px; align-items: start;

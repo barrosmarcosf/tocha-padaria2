@@ -380,14 +380,84 @@
       });
     }
 
-    // ── Search ──
+    // ── Search + Suggestions ──
+    const suggestionsEl = qs('#search-suggestions');
+
+    // Build a flat list of { name, icon } from MENU_DATA for fast suggestion lookup
+    const SUGGESTION_POOL = [];
+    Object.entries(MENU_DATA).forEach(function (entry) {
+      const catName = entry[0], cat = entry[1];
+      cat.items.forEach(function (item) {
+        SUGGESTION_POOL.push({ name: item.name, icon: cat.icon });
+      });
+    });
+
+    function highlightMatch(text, q) {
+      var idx = text.toLowerCase().indexOf(q.toLowerCase());
+      if (idx === -1) return escHtml(text);
+      return escHtml(text.slice(0, idx)) +
+        '<em>' + escHtml(text.slice(idx, idx + q.length)) + '</em>' +
+        escHtml(text.slice(idx + q.length));
+    }
+
+    function closeSuggestions() {
+      if (suggestionsEl) {
+        suggestionsEl.classList.remove('open');
+        suggestionsEl.innerHTML = '';
+      }
+      searchInput.setAttribute('aria-expanded', 'false');
+    }
+
+    function updateSuggestions(q) {
+      if (!suggestionsEl) return;
+      if (!q) { closeSuggestions(); return; }
+      var matches = SUGGESTION_POOL.filter(function (s) {
+        return s.name.toLowerCase().includes(q.toLowerCase());
+      }).slice(0, 6);
+      if (!matches.length) { closeSuggestions(); return; }
+      suggestionsEl.innerHTML = matches.map(function (s) {
+        return '<button class="search-suggestion" type="button" role="option" data-name="' +
+          escHtml(s.name) + '">' +
+          '<span class="search-suggestion-icon" aria-hidden="true">' + s.icon + '</span>' +
+          '<span class="search-suggestion-name">' + highlightMatch(s.name, q) + '</span>' +
+          '</button>';
+      }).join('');
+      suggestionsEl.classList.add('open');
+      searchInput.setAttribute('aria-expanded', 'true');
+    }
+
+    if (suggestionsEl) {
+      suggestionsEl.addEventListener('mousedown', function (e) {
+        var btn = e.target.closest('.search-suggestion');
+        if (!btn) return;
+        e.preventDefault(); // prevent input blur before click
+        var name = btn.dataset.name;
+        searchInput.value = name;
+        state.search = name;
+        searchInput.classList.add('has-value');
+        searchClear.classList.add('visible');
+        menuLayout.classList.add('search-active');
+        closeSuggestions();
+        renderProducts();
+      });
+    }
+
     searchInput.addEventListener('input', function () {
       state.search = searchInput.value;
       const hasValue = !!state.search.trim();
       searchInput.classList.toggle('has-value', hasValue);
       searchClear.classList.toggle('visible', hasValue);
       menuLayout.classList.toggle('search-active', hasValue);
+      updateSuggestions(state.search.trim());
       renderProducts();
+    });
+
+    searchInput.addEventListener('blur', function () {
+      setTimeout(closeSuggestions, 150);
+    });
+
+    searchInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { closeSuggestions(); searchInput.blur(); }
     });
 
     searchClear.addEventListener('click', function () {
@@ -396,6 +466,7 @@
       searchInput.classList.remove('has-value');
       searchClear.classList.remove('visible');
       menuLayout.classList.remove('search-active');
+      closeSuggestions();
       renderProducts();
     });
 
