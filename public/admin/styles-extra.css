@@ -211,7 +211,7 @@
 .prod-row-full:hover { background: var(--panel-2); }
 .prod-thumb {
   width: 44px; height: 44px; border-radius: 8px;
-  background: var(--panel-3); flex: none;
+  background: var(--panel-3); flex: none; overflow: hidden;
 }
 .prod-text { flex: 1; min-width: 0; }
 .prod-text b { display: block; font-size: 13px; color: var(--ink); margin-bottom: 2px; }

@@ -120,7 +120,8 @@ function PagamentoPage() {
   }, /*#__PURE__*/React.createElement("span", {
     className: "dot-up"
   }), " Gateway conectado")), /*#__PURE__*/React.createElement("button", {
-    className: "btn-ghost btn-narrow"
+    className: "btn-ghost btn-narrow",
+    onClick: () => window.open('https://dashboard.stripe.com/', '_blank')
   }, "Ajustes no Stripe")), /*#__PURE__*/React.createElement("div", {
     className: "section-title"
   }, "Controle de m\xE9todos"), /*#__PURE__*/React.createElement("div", {
@@ -188,7 +189,8 @@ function PagamentoPage() {
   }, /*#__PURE__*/React.createElement("span", {
     className: "dot-up"
   }), " Gateway conectado")), /*#__PURE__*/React.createElement("button", {
-    className: "btn-ghost btn-narrow"
+    className: "btn-ghost btn-narrow",
+    onClick: () => window.open('https://www.mercadopago.com.br/settings/account', '_blank')
   }, "Ajustes no MP")), /*#__PURE__*/React.createElement("div", {
     className: "section-title"
   }, "M\xE9todos Mercado Pago"), /*#__PURE__*/React.createElement("div", {

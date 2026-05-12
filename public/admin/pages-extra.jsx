@@ -885,12 +885,12 @@ function CategoriaModal({ cat, onClose, onSave }) {
         </label>
 
         <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 12 }}>
-          <label className="field">
+          <div className="field">
             <span>Foto de vitrine</span>
             <div
               className="img-slot"
               style={{ cursor: 'pointer' }}
-              onClick={(e) => { e.stopPropagation(); imgRef.current?.click(); }}
+              onClick={() => imgRef.current?.click()}
               title="Clique para escolher imagem"
             >
               {uploading ? (
@@ -902,7 +902,7 @@ function CategoriaModal({ cat, onClose, onSave }) {
               )}
             </div>
             <input ref={imgRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleImg}/>
-          </label>
+          </div>
           <div className="field">
             <span style={{ visibility: 'hidden' }}>.</span>
             <div className="toggle-card">
@@ -990,12 +990,12 @@ function ProdutoModal({ prod, onClose, onSave }) {
         </label>
 
         <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 12 }}>
-          <label className="field">
+          <div className="field">
             <span>Foto do Produto</span>
             <div
               className="img-slot"
               style={{ cursor: 'pointer' }}
-              onClick={(e) => { e.stopPropagation(); imgRef.current?.click(); }}
+              onClick={() => imgRef.current?.click()}
               title="Clique para trocar imagem"
             >
               {uploading ? (
@@ -1007,7 +1007,7 @@ function ProdutoModal({ prod, onClose, onSave }) {
               )}
             </div>
             <input ref={imgRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleImg}/>
-          </label>
+          </div>
 
           <div className="field">
             <span>🔥 Estoque Base (Fornada)</span>

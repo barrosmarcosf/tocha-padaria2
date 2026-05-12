@@ -1319,17 +1319,14 @@ function CategoriaModal({
       gap: 14,
       marginTop: 12
     }
-  }, /*#__PURE__*/React.createElement("label", {
+  }, /*#__PURE__*/React.createElement("div", {
     className: "field"
   }, /*#__PURE__*/React.createElement("span", null, "Foto de vitrine"), /*#__PURE__*/React.createElement("div", {
     className: "img-slot",
     style: {
       cursor: 'pointer'
     },
-    onClick: e => {
-      e.stopPropagation();
-      imgRef.current?.click();
-    },
+    onClick: () => imgRef.current?.click(),
     title: "Clique para escolher imagem"
   }, uploading ? /*#__PURE__*/React.createElement("div", {
     className: "img-empty"
@@ -1477,17 +1474,14 @@ function ProdutoModal({
       gap: 14,
       marginTop: 12
     }
-  }, /*#__PURE__*/React.createElement("label", {
+  }, /*#__PURE__*/React.createElement("div", {
     className: "field"
   }, /*#__PURE__*/React.createElement("span", null, "Foto do Produto"), /*#__PURE__*/React.createElement("div", {
     className: "img-slot",
     style: {
       cursor: 'pointer'
     },
-    onClick: e => {
-      e.stopPropagation();
-      imgRef.current?.click();
-    },
+    onClick: () => imgRef.current?.click(),
     title: "Clique para trocar imagem"
   }, uploading ? /*#__PURE__*/React.createElement("div", {
     className: "img-empty"

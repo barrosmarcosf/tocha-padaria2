@@ -89,7 +89,7 @@ function PagamentoPage() {
             <h3>Stripe Business</h3>
             <span className="gw-status"><span className="dot-up"/> Gateway conectado</span>
           </div>
-          <button className="btn-ghost btn-narrow">Ajustes no Stripe</button>
+          <button className="btn-ghost btn-narrow" onClick={() => window.open('https://dashboard.stripe.com/', '_blank')}>Ajustes no Stripe</button>
         </div>
         <div className="section-title">Controle de métodos</div>
         <div className="method-list">
@@ -111,7 +111,7 @@ function PagamentoPage() {
             <h3>Mercado Pago</h3>
             <span className="gw-status"><span className="dot-up"/> Gateway conectado</span>
           </div>
-          <button className="btn-ghost btn-narrow">Ajustes no MP</button>
+          <button className="btn-ghost btn-narrow" onClick={() => window.open('https://www.mercadopago.com.br/settings/account', '_blank')}>Ajustes no MP</button>
         </div>
         <div className="section-title">Métodos Mercado Pago</div>
         <div className="method-list">
