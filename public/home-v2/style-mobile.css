@@ -282,6 +282,8 @@
     flex-direction: row;
     align-items: flex-end;
     gap: 10px;
+    position: relative;
+    z-index: 20;
   }
   .menu-h2 { font-size: clamp(18px, 5vw, 26px); }
   .menu-search-wrap { width: 40%; min-width: unset; flex-shrink: 0; }
