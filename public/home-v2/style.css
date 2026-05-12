@@ -58,6 +58,8 @@ body {
   font-family: var(--font-sans);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 ::-webkit-scrollbar { width: 4px; }
@@ -252,6 +254,7 @@ button { font-family: var(--font-sans); }
    ============================================================ */
 #hero {
   min-height: 100vh;
+  min-height: 100dvh;
   position: relative;
   display: flex;
   align-items: center;
@@ -412,6 +415,7 @@ button { font-family: var(--font-sans); }
 .steps-grid {
   display: grid; grid-template-columns: repeat(4, 1fr);
   gap: 32px; margin-bottom: 32px; width: 100%;
+  align-items: stretch;
 }
 .step-wrap {
   opacity: 0; transform: translateY(28px);
@@ -613,6 +617,7 @@ button { font-family: var(--font-sans); }
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 20px;
+  align-items: stretch;
 }
 .no-results {
   text-align: center; padding: 60px 20px;
