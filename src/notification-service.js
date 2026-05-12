@@ -659,12 +659,19 @@ async function sendPaymentRecovery(supabase, customer, order, recoveryUrl, step,
     const totalStr = `R$ ${Number(order.total_amount).toFixed(2).replace('.', ',')}`;
     const methodLabel = method === 'card' ? 'Cartão' : 'PIX';
 
-    // Busca template do banco; fallback inline se não configurado
-    let waTemplate = `{nome}, seu pedido de {total} via {metodo} ainda está aguardando pagamento. 🍞\n\nFinalize agora para garantir sua fornada:\n{link}`;
+    // Busca template específico por método; fallback para chave genérica, depois inline
+    const templateKey = method === 'card' ? 'whatsapp_card_abandoned' : 'whatsapp_pix_abandoned';
+    const fallbackInline = `{nome}, seu pedido de {total} via ${methodLabel} ainda está aguardando pagamento. 🍞\n\nFinalize agora para garantir sua fornada:\n{link}`;
+    let waTemplate = fallbackInline;
     if (supabase) {
         try {
-            const { data } = await supabase.from('site_content').select('value').eq('key', 'msg_wa_payment_recovery').maybeSingle();
-            if (data?.value) waTemplate = data.value;
+            const { data: specific } = await supabase.from('site_content').select('value').eq('key', templateKey).maybeSingle();
+            if (specific?.value) {
+                waTemplate = specific.value;
+            } else {
+                const { data: generic } = await supabase.from('site_content').select('value').eq('key', 'msg_wa_payment_recovery').maybeSingle();
+                if (generic?.value) waTemplate = generic.value;
+            }
         } catch (_) {}
     }
 

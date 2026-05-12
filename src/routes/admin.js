@@ -873,9 +873,11 @@ module.exports = function (supabase) {
                     try {
                         const { data: order } = await supabase.from('pedidos').select('*, clientes(*)').eq('id', id).single();
                         if (!order?.clientes?.whatsapp) return;
-                        const name = order.clientes.name || 'Cliente';
+                        const name = (order.clientes.name || 'Cliente').split(' ')[0];
                         const phone = String(order.clientes.whatsapp).replace(/\D/g, '');
-                        const msg = `🍞 *${name}, seu pedido está pronto!*\n\nSeu pedido já está pronto para retirada.\n\n📍 *Retirada*\nAv. Presidente Kennedy, 627 — Vila Jurandir\n(Em frente à Tetraforma)\n\nObrigado por escolher a Padaria! 🤍`;
+                        const fallback = `🍞 *{nome}, seu pedido está pronto!*\n\nSeu pedido já está pronto para retirada.\n\n📍 *Retirada*\nAv. Presidente Kennedy, 627 — Vila Jurandir\n(Em frente à Tetraforma)\n\nObrigado por escolher a Padaria! 🤍`;
+                        const { data: tpl } = await supabase.from('site_content').select('value').eq('key', 'whatsapp_ready_for_pickup').maybeSingle().catch(() => ({ data: null }));
+                        const msg = (tpl?.value || fallback).replace(/{nome}/g, name);
                         await sendWhatsAppMessage(phone, msg);
                     } catch (e) {
                         console.warn('[WA-PRONTO] Falha ao notificar cliente:', e.message);
@@ -897,14 +899,16 @@ module.exports = function (supabase) {
             if (status === 'retirada') {
                 (async () => {
                     try {
+                        const fallback = `🍞 *{nome}, seu pedido está pronto!*\n\nSeu pedido já está pronto para retirada.\n\n📍 *Retirada*\nAv. Presidente Kennedy, 627 — Vila Jurandir\n(Em frente à Tetraforma)\n\nObrigado por escolher a Padaria! 🤍`;
+                        const { data: tpl } = await supabase.from('site_content').select('value').eq('key', 'whatsapp_ready_for_pickup').maybeSingle().catch(() => ({ data: null }));
+                        const template = tpl?.value || fallback;
                         const { data: orders } = await supabase.from('pedidos').select('*, clientes(*)').in('id', ids);
                         for (const order of (orders || [])) {
                             if (!order?.clientes?.whatsapp) continue;
                             try {
-                                const name = order.clientes.name || 'Cliente';
+                                const name = (order.clientes.name || 'Cliente').split(' ')[0];
                                 const phone = String(order.clientes.whatsapp).replace(/\D/g, '');
-                                const msg = `🍞 *${name}, seu pedido está pronto!*\n\nSeu pedido já está pronto para retirada.\n\n📍 *Retirada*\nAv. Presidente Kennedy, 627 — Vila Jurandir\n(Em frente à Tetraforma)\n\nObrigado por escolher a Padaria! 🤍`;
-                                await sendWhatsAppMessage(phone, msg);
+                                await sendWhatsAppMessage(phone, template.replace(/{nome}/g, name));
                             } catch (e) {
                                 console.warn('[WA-PRONTO-BULK] Falha ao notificar:', order.id, e.message);
                             }

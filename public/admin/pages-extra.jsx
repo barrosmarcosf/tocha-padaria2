@@ -1392,24 +1392,80 @@ function CentralMsgPage() {
 
 /* ========== CONFIGURAÇÕES DE MENSAGEM (estático — templates de notificação) ========== */
 const TEMPLATES = [
-  { title: 'Email confirmação compra',
-    desc: 'Mensagem enviada automaticamente para o cliente no e-mail cadastrado assim que o pagamento é confirmado.',
+  { key: 'msg_email_confirm',
+    title: 'Email confirmação de compra',
+    desc: 'Mensagem enviada por e-mail ao cliente após confirmação do pagamento.',
     vars: ['{nome}','{itens}','{total}','{pagamento}'],
-    body: '✅ Pedido confirmado — {nome}\n\n📍 Retirada\nAv. Presidente Kennedy, 627 — Vila Jurandir\n(Em frente à Tetraforma)\n\n📅 Quando\nSábado, a partir das 15h',
+    fallback: '✅ Pedido confirmado — {nome}\n\n📍 Retirada\nAv. Presidente Kennedy, 627 — Vila Jurandir\n(Em frente à Tetraforma)\n\n📅 Quando\nSábado, a partir das 15h',
   },
-  { title: 'WhatsApp confirmação compra',
-    desc: 'Notificação instantânea enviada via WhatsApp para o cliente confirmando a compra e informando os próximos passos.',
+  { key: 'msg_wa_confirm',
+    title: 'WhatsApp confirmação de compra',
+    desc: 'Notificação via WhatsApp confirmando a compra e informando os próximos passos.',
     vars: ['{nome}','{itens}','{total}','{pagamento}'],
-    body: '✅ *Pedido confirmado — {nome}*\n\n📍 *Retirada*\nAv. Presidente Kennedy, 627 — Vila Jurandir\n(Em frente à Tetraforma)\n\n📅 *Quando*\nSábado, a partir das 15h',
+    fallback: '✅ *Pedido confirmado — {nome}*\n\n📍 *Retirada*\nAv. Presidente Kennedy, 627 — Vila Jurandir\n(Em frente à Tetraforma)\n\n📅 *Quando*\nSábado, a partir das 15h',
   },
-  { title: 'WhatsApp carrinho abandonado',
-    desc: 'Mensagem de recuperação enviada para carrinhos iniciados que não foram finalizados após 1 hora.',
+  { key: 'msg_wa_abandoned',
+    title: 'WhatsApp carrinho abandonado',
+    desc: 'Recuperação enviada para carrinhos iniciados e não finalizados após 1 hora.',
     vars: ['{nome}','{itens}','{link}'],
-    body: '{nome}, tudo bem? 🥖\n\nVimos que você selecionou alguns produtos, bom gosto!\n\nGaranta essas delícias — finalize seu carrinho antes que esgotem!\n\n🛒\n{itens}',
+    fallback: '{nome}, tudo bem? 🥖\n\nVimos que você selecionou alguns produtos, bom gosto!\n\nGaranta essas delícias — finalize seu carrinho antes que esgotem!\n\n🛒\n{itens}',
+  },
+  { key: 'whatsapp_pix_abandoned',
+    title: 'WhatsApp PIX não finalizado',
+    desc: 'Enviado quando um pagamento via PIX é iniciado mas não confirmado dentro do prazo.',
+    vars: ['{nome}','{total}','{link}'],
+    fallback: '{nome}, seu pedido de {total} via PIX ainda está aguardando pagamento. 🍞\n\nFinalize agora para garantir sua fornada:\n{link}',
+  },
+  { key: 'whatsapp_card_abandoned',
+    title: 'WhatsApp Cartão não finalizado',
+    desc: 'Enviado quando um pagamento via Cartão é iniciado mas não confirmado.',
+    vars: ['{nome}','{total}','{link}'],
+    fallback: '{nome}, seu pedido de {total} via Cartão ainda está aguardando pagamento. 🍞\n\nFinalize agora para garantir sua fornada:\n{link}',
+  },
+  { key: 'whatsapp_ready_for_pickup',
+    title: 'WhatsApp pronto p/ retirada',
+    desc: 'Enviado automaticamente quando um pedido é marcado como Pronto para Retirada na fila de produção.',
+    vars: ['{nome}'],
+    fallback: '🍞 *{nome}, seu pedido está pronto!*\n\nSeu pedido já está pronto para retirada.\n\n📍 *Retirada*\nAv. Presidente Kennedy, 627 — Vila Jurandir\n(Em frente à Tetraforma)\n\nObrigado por escolher a Padaria! 🤍',
   },
 ];
 
 function CfgMsgPage() {
+  const [texts, setTexts] = useStX({});
+  const [saving, setSaving] = useStX({});
+  const [msgs, setMsgs] = useStX({});
+  const [loaded, setLoaded] = useStX(false);
+
+  useEffX(() => {
+    let mounted = true;
+    window.apiGet('/api/admin/config')
+      .then(d => {
+        if (!mounted) return;
+        const sc = d?.siteContent || {};
+        const initial = {};
+        TEMPLATES.forEach(t => { initial[t.key] = sc[t.key] != null ? sc[t.key] : t.fallback; });
+        setTexts(initial);
+        setLoaded(true);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        const initial = {};
+        TEMPLATES.forEach(t => { initial[t.key] = t.fallback; });
+        setTexts(initial);
+        setLoaded(true);
+      });
+    return () => { mounted = false; };
+  }, []);
+
+  const handleSave = (key) => {
+    setSaving(prev => ({ ...prev, [key]: true }));
+    setMsgs(prev => ({ ...prev, [key]: '' }));
+    window.apiPost('/api/admin/save-content', { key, value: texts[key] })
+      .then(() => setMsgs(prev => ({ ...prev, [key]: 'Salvo com sucesso!' })))
+      .catch(e => setMsgs(prev => ({ ...prev, [key]: 'Erro: ' + e.message })))
+      .finally(() => setSaving(prev => ({ ...prev, [key]: false })));
+  };
+
   return (
     <div className="page">
       <div className="page-head">
@@ -1419,22 +1475,40 @@ function CfgMsgPage() {
           <div className="sub">Templates automáticos enviados aos clientes em cada etapa.</div>
         </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {TEMPLATES.map((t, i) => (
-          <div className="card" key={i}>
-            <h3 style={{ margin: '0 0 6px' }}>{t.title}</h3>
-            <small style={{ display: 'block', color: 'var(--ink-3)', marginBottom: 14, maxWidth: 540 }}>{t.desc}</small>
-            <small className="kv-l" style={{ display: 'block', marginBottom: 8 }}>VARIÁVEIS DISPONÍVEIS:</small>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-              {t.vars.map((v, j) => <span key={j} className="var-chip">{v}</span>)}
+      {!loaded ? (
+        <div className="empty-state"><SafeIcon icon={Ic.msg}/><div>Carregando templates…</div></div>
+      ) : (
+        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          {TEMPLATES.map(t => (
+            <div className="card" key={t.key}>
+              <h3 style={{ margin: '0 0 6px' }}>{t.title}</h3>
+              <small style={{ display: 'block', color: 'var(--ink-3)', marginBottom: 14, maxWidth: 540 }}>{t.desc}</small>
+              <small className="kv-l" style={{ display: 'block', marginBottom: 8 }}>VARIÁVEIS DISPONÍVEIS:</small>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+                {t.vars.map((v, j) => <span key={j} className="var-chip">{v}</span>)}
+              </div>
+              <textarea
+                className="inp tmpl"
+                rows={7}
+                value={texts[t.key] ?? ''}
+                onChange={e => setTexts(prev => ({ ...prev, [t.key]: e.target.value }))}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                <small style={{ color: (msgs[t.key] || '').startsWith('Erro') ? 'var(--down)' : 'var(--up)', minHeight: 18 }}>
+                  {msgs[t.key] || ''}
+                </small>
+                <button
+                  className="btn-primary"
+                  onClick={() => handleSave(t.key)}
+                  disabled={!!saving[t.key]}
+                >
+                  {saving[t.key] ? 'Salvando…' : 'Salvar Alterações'}
+                </button>
+              </div>
             </div>
-            <textarea className="inp tmpl" rows={7} defaultValue={t.body}/>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
-              <button className="btn-primary">Salvar Alterações</button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
