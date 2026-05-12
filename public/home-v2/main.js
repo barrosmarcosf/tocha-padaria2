@@ -115,14 +115,21 @@
       return sat.getTime();
     }
 
-    const target = getTarget();
+    const target   = getTarget();
+    const satDate  = new Date(target);
+    const satLabel = satDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 
     function tick() {
       const diff = Math.max(0, target - Date.now());
       const d = Math.floor(diff / 86400000);
       const h = Math.floor((diff % 86400000) / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
       el.textContent = `${d}D ${String(h).padStart(2,'0')}H ${String(m).padStart(2,'0')}M`;
+      const mobileEl = qs('#countdown-mobile');
+      if (mobileEl) {
+        mobileEl.textContent = satLabel + ' · Encerra em ' + pad(h) + ':' + pad(m) + ':' + pad(s);
+      }
       if (diff <= 0) clearInterval(id);
     }
 
@@ -214,10 +221,9 @@
   // ──────────────────────────────────────────────
   function initHowItWorks() {
     const HOW_STEPS = [
-      { n: '01', label: 'Pedido',   title: 'Peça com antecedência',      desc: 'Pedidos abertos de domingo a quinta-feira, até às 16h.',                                              meta: 'Dom – Qui · até 16h' },
-      { n: '02', label: 'Produção', title: 'Fornada de sábado',           desc: 'Produzimos sob demanda na manhã do sábado. Cada pedido recebe seu lugar no forno.',                   meta: 'Sábado · sob demanda' },
-      { n: '03', label: 'Aviso',    title: 'Mensagem no WhatsApp',        desc: 'Quando seu pedido estiver pronto, você recebe um aviso com instruções de retirada.',                   meta: 'Notificação por WhatsApp' },
-      { n: '04', label: 'Retirada', title: 'Retire a partir das 15h',     desc: 'Presencial em São João de Meriti ou via 99 / Uber Flash por sua conta.',                              meta: 'Sábado · a partir 15h' },
+      { n: '01', label: 'Peça',   icon: '🛒', title: 'Peça com antecedência', desc: 'Pedidos abertos de dom a qui, até as 16h.',              meta: 'Dom – Qui · até 16h' },
+      { n: '02', label: 'Forno',  icon: '🍞', title: 'Fornada de sábado',      desc: 'Produzimos sob demanda. Cada pedido tem lugar no forno.', meta: 'Sábado · sob demanda' },
+      { n: '03', label: 'Retire', icon: '📲', title: 'Aviso e retirada',        desc: 'WhatsApp quando pronto. Retire a partir das 15h.',        meta: 'Sábado · a partir 15h' },
     ];
 
     const grid = qs('#steps-grid');
@@ -230,6 +236,7 @@
             '<div class="step-num">' + step.n + '</div>' +
             '<div class="step-label-text">' + step.label + '</div>' +
           '</div>' +
+          (step.icon ? '<div class="step-icon" aria-hidden="true">' + step.icon + '</div>' : '') +
           '<h3 class="step-title">' + step.title + '</h3>' +
           '<p class="step-desc">' + step.desc + '</p>' +
           '<div class="step-meta">' + step.meta + '</div>' +
@@ -339,7 +346,11 @@
 
     function updateCatButtons() {
       qsa('.cat-btn', categoryNav).forEach(function (btn) {
-        btn.classList.toggle('active', btn.dataset.cat === state.activeCategory);
+        var isActive = btn.dataset.cat === state.activeCategory;
+        btn.classList.toggle('active', isActive);
+        if (isActive) {
+          btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+        }
       });
     }
 

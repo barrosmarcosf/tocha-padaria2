@@ -32,6 +32,23 @@
 .nav-hamburger.open .ham-line:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
 
 /* ──────────────────────────────────────────────
+   COUNTDOWN-MOBILE (hidden on desktop)
+   ────────────────────────────────────────────── */
+#countdown-mobile {
+  display: none;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* ──────────────────────────────────────────────
+   STEP ICON (hidden on desktop, shown on mobile)
+   ────────────────────────────────────────────── */
+.step-icon { display: none; }
+
+/* ──────────────────────────────────────────────
    MOBILE NAV MENU
    ────────────────────────────────────────────── */
 #mobile-nav {
@@ -129,19 +146,11 @@
 @media (max-width: 768px) {
 
   /* ── Announcement bar ──────────────────────── */
-  #announcement-bar { padding: 0 14px; font-size: 11px; }
-  .announcement-inner {
-    gap: 8px;
-    flex-wrap: nowrap;
-    justify-content: center;
-  }
-  /* Hide flanking labels — show only "Encerra em HH:MM" */
-  .announcement-inner > span:nth-child(1),
-  .announcement-inner > span:nth-child(2),
-  .announcement-inner > span:nth-child(5),
-  .announcement-inner > span:nth-child(6) { display: none; }
-  .announcement-label { white-space: nowrap; }
-  #countdown { white-space: nowrap; font-size: 12px; }
+  #announcement-bar { padding: 0 16px; }
+  .announcement-inner { flex-wrap: nowrap; justify-content: center; gap: 0; }
+  /* Hide everything except the mobile combined counter */
+  .announcement-inner > *:not(#countdown-mobile) { display: none !important; }
+  #countdown-mobile { display: inline !important; }
 
   /* ── Navbar ──────────────────────────────── */
   #navbar { height: 56px; }
@@ -239,15 +248,16 @@
   .step-card { padding: 16px 14px; }
   .step-num { width: 38px; height: 38px; font-size: 14px; }
   .step-label-text { font-size: 10px; }
-  .step-title { font-size: 15px; margin-top: 14px; margin-bottom: 0; }
+  .step-icon { display: block; font-size: 28px; line-height: 1; margin: 10px 0 4px; }
+  .step-title { font-size: 15px; margin-top: 6px; margin-bottom: 0; }
   .step-desc {
-    font-size: 12px; margin-top: 8px; max-width: 100%;
+    font-size: 12px; margin-top: 6px; max-width: 100%;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  .step-meta { padding-top: 12px; font-size: 10px; margin-top: auto; }
+  .step-meta { padding-top: 10px; font-size: 10px; margin-top: auto; }
 
   /* Info cards (retirada + politica) — compact */
   .info-grid { gap: 10px; }
@@ -284,8 +294,13 @@
     scrollbar-width: none; -ms-overflow-style: none;
     margin-bottom: 16px;
     flex-wrap: nowrap;
+    scroll-snap-type: x proximity;
+    /* Right-edge fade: scroll affordance without extra DOM */
+    -webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%);
+    mask-image: linear-gradient(to right, black 80%, transparent 100%);
   }
   .category-nav::-webkit-scrollbar { display: none; }
+  .cat-btn { scroll-snap-align: start; }
   .cat-btn {
     flex-direction: column; align-items: center; justify-content: center;
     padding: 8px 10px; min-width: 64px; min-height: 58px;
@@ -364,41 +379,37 @@
      CART DRAWER — bottom sheet on mobile
      ═══════════════════════════════════════════ */
   #cart-drawer {
-    align-items: flex-end; /* override stretch — sheet anchors to bottom */
+    align-items: flex-end; /* sheet anchors to bottom */
   }
   .drawer-panel {
     width: 100%;
-    height: auto;
-    max-height: 78vh;
-    border-radius: 20px 20px 0 0;
+    height: 100vh;
+    height: 100dvh; /* dynamic viewport — survives mobile browser chrome resize */
+    max-height: none;
+    border-radius: 0;
     border-left: none;
-    border-top: 1px solid var(--border);
+    border-top: none;
     box-shadow: 0 -8px 48px oklch(0% 0 0 / 0.5);
-    transform: translateY(100%); /* slide from bottom */
+    transform: translateY(100%);
+    display: flex;
+    flex-direction: column;
   }
-  /* Drag handle indicator */
-  .drawer-panel::before {
-    content: '';
-    display: block;
-    width: 40px; height: 4px;
-    background: oklch(35% 0.02 50);
-    border-radius: 2px;
-    margin: 12px auto 0;
-    flex-shrink: 0;
-  }
+  .drawer-panel::before { display: none; } /* no drag handle on full-height sheet */
   #cart-drawer.open .drawer-panel { transform: translateY(0); }
 
-  /* Allow body to scroll within max-height */
+  /* Fixed header / tabs — scrollable body — fixed footer */
+  .drawer-header { flex-shrink: 0; padding: 14px 16px 0; }
+  .drawer-tabs   { flex-shrink: 0; padding: 0 16px; margin-top: 8px; }
+  .drawer-footer { flex-shrink: 0; }
   .drawer-body {
-    min-height: 0; /* crucial for flex overflow */
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    padding: 12px 16px;
   }
-  /* Compact drawer header */
-  .drawer-header { padding: 10px 16px 0; }
   .drawer-title { font-size: 18px; }
   .drawer-close { width: 36px; height: 36px; font-size: 18px; }
-  .drawer-tabs { padding: 0 16px; margin-top: 8px; }
-  .drawer-body { padding: 12px 16px; }
 
   /* Compact cart items */
   .cart-item { padding: 8px 0; gap: 10px; }
