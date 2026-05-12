@@ -1233,10 +1233,22 @@ module.exports = function (supabase) {
             const { nome, email, senha } = req.body;
             const updates = { nome, email };
             if (senha && senha.trim() !== '' && senha !== '********') updates.senha = await bcrypt.hash(senha, 10);
-            const { error } = await supabase.from('usuarios').update(updates).eq('id', req.user.id);
-            if (error) throw error;
+
+            // Usuário via .env (id: 0) não tem linha na tabela — salvar apenas JWT implícito
+            const userId = req.user.id;
+            if (userId && userId !== 0) {
+                const { error } = await supabase.from('usuarios').update(updates).eq('id', userId);
+                if (error) {
+                    console.error('[UPDATE_PROFILE_ERROR]', error);
+                    throw error;
+                }
+            }
+
             res.json({ success: true, message: 'Perfil atualizado com sucesso!' });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) {
+            console.error('[UPDATE_PROFILE_ERROR]', e.message, e.stack);
+            res.status(500).json({ error: e.message });
+        }
     });
 
     const VALID_COUPONS = { 'TOCHA10': { type: 'percent', value: 10, label: '10% de desconto' }, 'BEM-VINDO': { type: 'percent', value: 15, label: '15% de desconto' }, 'FORNADA5': { type: 'fixed', value: 5, label: 'R$ 5,00 de desconto' } };
