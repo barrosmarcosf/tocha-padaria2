@@ -1281,69 +1281,85 @@ module.exports = function (supabase) {
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
+    // Cache em memória para /payment-analytics (TTL 60s por chave de período)
+    const _analyticsCache = new Map();
+    function _getCached(key) {
+        const e = _analyticsCache.get(key);
+        if (!e) return null;
+        if (Date.now() - e.ts > 60000) { _analyticsCache.delete(key); return null; }
+        return e.data;
+    }
+    function _setCache(key, data) { _analyticsCache.set(key, { ts: Date.now(), data }); }
+
+    // Estrutura padrão — sempre retornada, mesmo sem dados
+    function _emptyAnalytics(days) {
+        return {
+            period_days: days, total: 0,
+            approved: { count: 0, rate: 0,    revenue: 0 },
+            pending:  { count: 0, revenue: 0 },
+            rejected: { count: 0, rate: 0,    top_reason: 'Sem dados' },
+            refunds:  { count: 0, rate: 0,    amount_total: 0, chargebacks: 0 },
+            rejection_reasons: [],
+            method_split: [],
+            timestamp: new Date().toISOString()
+        };
+    }
+
     // Analytics consolidado de pagamentos (PIX + Crédito + Débito)
     router.get('/payment-analytics', adminAuth, async (req, res) => {
+        const days = Math.min(Math.max(parseInt(req.query.days || '30', 10), 1), 90);
+        const cacheKey = `payment_analytics_${days}`;
         try {
-            const days = Math.min(Math.max(parseInt(req.query.days || '30', 10), 1), 90);
+            const cached = _getCached(cacheKey);
+            if (cached) return res.json(cached);
+
             const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-            const [summaryRes, recentFailuresRes] = await Promise.all([
-                supabase.from('pedidos')
-                    .select('id, status, total_amount, items, refund_status, refund_amount, rejection_reason, rejection_raw_code, payment_attempts')
-                    .gte('created_at', since),
-                supabase.from('pedidos')
-                    .select('id, created_at, rejection_reason, rejection_raw_code, refund_status, items, clientes(name)')
-                    .or('status.in.(payment_failed,error),rejection_reason.not.is.null,refund_status.not.is.null')
-                    .gte('created_at', since)
-                    .order('created_at', { ascending: false })
-                    .limit(20)
-            ]);
+            const { data: orders, error } = await supabase.from('pedidos')
+                .select('status, total_amount, items, refund_status, refund_amount, rejection_reason, payment_attempts')
+                .gte('created_at', since);
 
-            const orders = summaryRes.data || [];
+            if (error || !orders || orders.length === 0) {
+                return res.json(_emptyAnalytics(days));
+            }
 
-            const paid       = orders.filter(o => o.status === 'paid').length;
-            const pending    = orders.filter(o => o.status === 'pending').length;
-            const failed     = orders.filter(o => ['payment_failed', 'error'].includes(o.status) || o.rejection_reason).length;
-            const refunded   = orders.filter(o => o.refund_status === 'refunded' || o.refund_status === 'partially_refunded').length;
-            const chargebacks= orders.filter(o => o.refund_status === 'chargeback').length;
-            const total      = orders.length;
+            const paid        = orders.filter(o => o.status === 'paid').length;
+            const pending     = orders.filter(o => o.status === 'pending').length;
+            const failed      = orders.filter(o => ['payment_failed', 'error'].includes(o.status) || o.rejection_reason).length;
+            const refunded    = orders.filter(o => ['refunded', 'partially_refunded'].includes(o.refund_status)).length;
+            const chargebacks = orders.filter(o => o.refund_status === 'chargeback').length;
+            const total       = orders.length;
 
-            // Receitas por status
-            const sum = (arr, fn) => arr.reduce((acc, o) => acc + (fn(o) || 0), 0);
-            const paidRevenue    = sum(orders.filter(o => o.status === 'paid'),    o => Number(o.total_amount));
-            const pendingRevenue = sum(orders.filter(o => o.status === 'pending'), o => Number(o.total_amount));
-            const refundTotal    = sum(orders.filter(o => o.refund_amount),        o => Number(o.refund_amount));
+            const _sum = (arr, fn) => arr.reduce((acc, o) => acc + (Number(fn(o)) || 0), 0);
+            const paidRevenue    = _sum(orders.filter(o => o.status === 'paid'),    o => o.total_amount);
+            const pendingRevenue = _sum(orders.filter(o => o.status === 'pending'), o => o.total_amount);
+            const refundTotal    = _sum(orders.filter(o => o.refund_amount),        o => o.refund_amount);
 
-            // Pedidos que tiveram rejeição mas depois foram aprovados (retries bem-sucedidos)
-            const recovered = orders.filter(o => {
-                if (o.status !== 'paid') return false;
-                const attempts = Array.isArray(o.payment_attempts) ? o.payment_attempts : [];
-                return attempts.some(a => a.status === 'rejected');
-            }).length;
+            const approvalRate = total > 0 ? Math.round((paid    / total) * 1000) / 10 : 0;
+            const failureRate  = total > 0 ? Math.round((failed  / total) * 1000) / 10 : 0;
+            const refundRate   = paid  > 0 ? Math.round(((refunded + chargebacks) / paid) * 1000) / 10 : 0;
 
-            // Breakdown de motivos de rejeição
+            // Motivos de rejeição — sort determinístico: count DESC, reason ASC
+            const { getCategoryLabel } = require('../utils/paymentNormalizer');
             const rejectionMap = {};
             orders.forEach(o => {
-                if (o.rejection_reason) {
-                    rejectionMap[o.rejection_reason] = (rejectionMap[o.rejection_reason] || 0) + 1;
-                }
+                if (o.rejection_reason) rejectionMap[o.rejection_reason] = (rejectionMap[o.rejection_reason] || 0) + 1;
             });
-            const { getCategoryLabel } = require('../utils/paymentNormalizer');
             const rejectionReasons = Object.entries(rejectionMap)
                 .map(([reason, count]) => ({
-                    reason,
-                    label: getCategoryLabel(reason),
-                    count,
+                    reason, label: getCategoryLabel(reason), count,
                     pct: failed > 0 ? Math.round((count / failed) * 100) : 0
                 }))
-                .sort((a, b) => b.count - a.count);
+                .sort((a, b) => b.count - a.count || a.reason.localeCompare(b.reason));
 
-            // Split por método de pagamento (pedidos aprovados)
+            const topReason = rejectionReasons[0]?.label ?? 'Sem dados';
+
+            // Split por método (pedidos aprovados) — sort determinístico: count DESC, method ASC
             const methodMap = {};
             orders.filter(o => o.status === 'paid').forEach(o => {
                 let items = o.items;
                 try { if (typeof items === 'string') items = JSON.parse(items); } catch (_) { items = {}; }
-                const raw = items?.payment_method || '';
+                const raw = items?.payment_method ?? '';
                 const method = raw.includes('Pix') ? 'PIX'
                     : raw.includes('Crédito') ? 'Crédito'
                     : raw.includes('Débito')  ? 'Débito'
@@ -1352,45 +1368,24 @@ module.exports = function (supabase) {
                 methodMap[method] = (methodMap[method] || 0) + 1;
             });
             const methodSplit = Object.entries(methodMap)
-                .map(([method, count]) => ({
-                    method, count,
-                    pct: paid > 0 ? Math.round((count / paid) * 100) : 0
-                }))
-                .sort((a, b) => b.count - a.count);
+                .map(([method, count]) => ({ method, count, pct: paid > 0 ? Math.round((count / paid) * 100) : 0 }))
+                .sort((a, b) => b.count - a.count || a.method.localeCompare(b.method));
 
-            const approvalRate = total > 0 ? Math.round((paid / total) * 1000) / 10 : 0;
-            const failureRate  = total > 0 ? Math.round((failed / total) * 1000) / 10 : 0;
-            const refundRate   = paid  > 0 ? Math.round(((refunded + chargebacks) / paid) * 100) : 0;
-
-            res.json({
+            const result = {
                 period_days: days,
-                summary: {
-                    total, paid, pending, failed, refunded, chargebacks, recovered,
-                    paid_revenue: paidRevenue,
-                    pending_revenue: pendingRevenue,
-                    refund_amount_total: refundTotal,
-                    approval_rate: approvalRate,
-                    failure_rate: failureRate,
-                    refund_rate: refundRate
-                },
+                total,
+                approved: { count: paid,    rate: approvalRate, revenue: paidRevenue },
+                pending:  { count: pending, revenue: pendingRevenue },
+                rejected: { count: failed,  rate: failureRate,  top_reason: topReason },
+                refunds:  { count: refunded + chargebacks, rate: refundRate, amount_total: refundTotal, chargebacks },
                 rejection_reasons: rejectionReasons,
                 method_split: methodSplit,
-                recent_failures: (recentFailuresRes.data || []).map(o => {
-                    let items = o.items;
-                    try { if (typeof items === 'string') items = JSON.parse(items); } catch (_) { items = {}; }
-                    return {
-                        id: o.id,
-                        customer: o.clientes?.name || 'Cliente',
-                        method: items?.payment_method || '—',
-                        reason: o.rejection_reason ? getCategoryLabel(o.rejection_reason) : (o.refund_status ? `Estorno: ${o.refund_status}` : '—'),
-                        raw_code: o.rejection_raw_code || '—',
-                        refund_status: o.refund_status || null,
-                        created_at: o.created_at
-                    };
-                }),
                 timestamp: new Date().toISOString()
-            });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+            };
+
+            _setCache(cacheKey, result);
+            res.json(result);
+        } catch (_) { res.json(_emptyAnalytics(days)); }
     });
 
     // Métricas de negócio das últimas 24h (legacy — mantido para compatibilidade)
