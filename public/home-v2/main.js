@@ -536,6 +536,13 @@
         '</div>';
       }
 
+      // Esgotados vão para o final do grid
+      items = items.slice().sort(function (a, b) {
+        var aOut = typeof a.stock === 'number' && a.stock === 0;
+        var bOut = typeof b.stock === 'number' && b.stock === 0;
+        return (aOut ? 1 : 0) - (bOut ? 1 : 0);
+      });
+
       if (items.length === 0) {
         productsArea.innerHTML = headerHTML +
           '<div class="no-results">' +
@@ -587,9 +594,6 @@
       badgeHTML = '<div class="card-tag card-tag-esgotado">Esgotado</div>';
     } else if (isPoucas) {
       badgeHTML = '<div class="card-tag card-tag-poucas">Poucas unidades</div>';
-    } else if (product.tag) {
-      var tagColor = TAG_COLORS[product.tag] || 'oklch(55% 0.015 65)';
-      badgeHTML = '<div class="card-tag" style="border-color:' + tagColor + ';color:' + tagColor + '">' + escHtml(product.tag) + '</div>';
     }
 
     var imgHTML = product.img
