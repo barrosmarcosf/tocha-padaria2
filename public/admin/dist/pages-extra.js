@@ -1102,8 +1102,18 @@ function PagtoPainelPage() {
   const [loading, setLoading] = useStX(true);
   useEffX(() => {
     let mounted = true;
-    Promise.all([window.apiGet('/api/admin/payments-health'), window.apiGet('/api/admin/payment-analytics?days=30')]).then(([h, a]) => {
+    const _freshAnalytics = () => {
+      const tok = localStorage.getItem('tocha_admin_token');
+      return fetch('/api/admin/payment-analytics?days=30&ts=' + Date.now(), {
+        cache: 'no-store',
+        headers: tok ? {
+          'Authorization': 'Bearer ' + tok
+        } : {}
+      }).then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)));
+    };
+    Promise.all([window.apiGet('/api/admin/payments-health'), _freshAnalytics()]).then(([h, a]) => {
       if (!mounted) return;
+      console.log('[ANALYTICS PAYLOAD]', a);
       setHealth(h);
       setAnalytics(a);
     }).catch(() => {}).finally(() => {
@@ -1140,7 +1150,6 @@ function PagtoPainelPage() {
     rate: 0
   };
   const total = analytics?.total ?? 0;
-  const motivos = analytics?.rejection_reasons ?? [];
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement(PH, {
@@ -1195,33 +1204,7 @@ function PagtoPainelPage() {
     style: {
       color: 'var(--ink-3)'
     }
-  }, (refunds.amount_total ?? 0) > 0 ? brl(refunds.amount_total ?? 0) : 'Reembolsos + chargebacks'))), (motivos?.length ?? 0) > 0 && /*#__PURE__*/React.createElement("div", {
-    className: "card mt"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "section-title"
-  }, "MOTIVOS DE REJEI\xC7\xC3O"), (motivos ?? []).map((m, i) => /*#__PURE__*/React.createElement("div", {
-    className: "origin-row",
-    key: i
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "origin-lbl",
-    style: {
-      color: 'var(--down)'
-    }
-  }, m?.label ?? '—'), /*#__PURE__*/React.createElement("div", {
-    className: "origin-bar"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "origin-fill",
-    style: {
-      width: `${m?.pct ?? 0}%`,
-      background: 'var(--down)'
-    }
-  })), /*#__PURE__*/React.createElement("span", {
-    className: "origin-v"
-  }, /*#__PURE__*/React.createElement("b", null, m?.count ?? 0), " ocorr\xEAncias ", /*#__PURE__*/React.createElement("em", {
-    style: {
-      color: 'var(--down)'
-    }
-  }, m?.pct ?? 0, "%")))))));
+  }, (refunds.amount_total ?? 0) > 0 ? brl(refunds.amount_total ?? 0) : 'Reembolsos + chargebacks')))));
 }
 
 /* ========== CARDÁPIO ========== */

@@ -773,11 +773,19 @@ function PagtoPainelPage() {
 
   useEffX(() => {
     let mounted = true;
+    const _freshAnalytics = () => {
+      const tok = localStorage.getItem('tocha_admin_token');
+      return fetch('/api/admin/payment-analytics?days=30&ts=' + Date.now(), {
+        cache: 'no-store',
+        headers: tok ? { 'Authorization': 'Bearer ' + tok } : {}
+      }).then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)));
+    };
     Promise.all([
       window.apiGet('/api/admin/payments-health'),
-      window.apiGet('/api/admin/payment-analytics?days=30'),
+      _freshAnalytics(),
     ]).then(([h, a]) => {
       if (!mounted) return;
+      console.log('[ANALYTICS PAYLOAD]', a);
       setHealth(h);
       setAnalytics(a);
     }).catch(() => {}).finally(() => { if (mounted) setLoading(false); });
@@ -792,7 +800,6 @@ function PagtoPainelPage() {
   const refunds       = analytics?.refunds     ?? { count: 0, rate: 0, amount_total: 0 };
   const chargebacks_d = analytics?.chargebacks ?? { count: 0, rate: 0 };
   const total         = analytics?.total       ?? 0;
-  const motivos       = analytics?.rejection_reasons ?? [];
 
   return (
     <div className="page">
@@ -831,18 +838,6 @@ function PagtoPainelPage() {
             </div>
           </div>
 
-          {(motivos?.length ?? 0) > 0 && (
-            <div className="card mt">
-              <div className="section-title">MOTIVOS DE REJEIÇÃO</div>
-              {(motivos ?? []).map((m, i) => (
-                <div className="origin-row" key={i}>
-                  <span className="origin-lbl" style={{ color: 'var(--down)' }}>{m?.label ?? '—'}</span>
-                  <div className="origin-bar"><div className="origin-fill" style={{ width: `${m?.pct ?? 0}%`, background: 'var(--down)' }}/></div>
-                  <span className="origin-v"><b>{m?.count ?? 0}</b> ocorrências <em style={{ color: 'var(--down)' }}>{m?.pct ?? 0}%</em></span>
-                </div>
-              ))}
-            </div>
-          )}
         </>
       )}
     </div>
