@@ -229,6 +229,14 @@
     </div>
 
     <div class="menu-layout" id="menu-layout">
+      <div class="cat-dropdown-wrap" id="cat-dropdown-wrap">
+        <button class="cat-dropdown-btn" id="cat-dropdown-btn" type="button"
+                aria-haspopup="listbox" aria-expanded="false">
+          <span id="cat-dropdown-label">Categorias</span>
+          <span class="cat-dropdown-arrow" aria-hidden="true">▾</span>
+        </button>
+        <div class="cat-dropdown-list" id="cat-dropdown-list" role="listbox"></div>
+      </div>
       <nav class="category-nav" id="category-nav" aria-label="Categorias do cardápio">
         <!-- Category buttons rendered by JS -->
       </nav>
@@ -450,6 +458,7 @@
       </div>
       <button class="drawer-close" id="drawer-close" aria-label="Fechar pedido">×</button>
     </div>
+    <div id="drawer-summary" class="drawer-summary" style="display:none"></div>
     <div id="drawer-tabs" class="drawer-tabs"></div>
     <div class="drawer-body" id="drawer-body">
     </div>

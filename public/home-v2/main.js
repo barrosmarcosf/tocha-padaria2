@@ -221,9 +221,10 @@
   // ──────────────────────────────────────────────
   function initHowItWorks() {
     const HOW_STEPS = [
-      { n: '01', label: 'Peça',   icon: '🛒', title: 'Peça com antecedência', desc: 'Pedidos abertos de dom a qui, até as 16h.',              meta: 'Dom – Qui · até 16h' },
-      { n: '02', label: 'Forno',  icon: '🍞', title: 'Fornada de sábado',      desc: 'Produzimos sob demanda. Cada pedido tem lugar no forno.', meta: 'Sábado · sob demanda' },
-      { n: '03', label: 'Retire', icon: '📲', title: 'Aviso e retirada',        desc: 'WhatsApp quando pronto. Retire a partir das 15h.',        meta: 'Sábado · a partir 15h' },
+      { n: '01', label: 'Peça',     icon: '🛒', title: 'Peça com antecedência',   desc: 'Pedidos abertos de dom a qui, até as 16h.',                  meta: 'Dom – Qui · até 16h'  },
+      { n: '02', label: 'Forno',    icon: '🍞', title: 'Fornada de sábado',       desc: 'Produzimos sob demanda. Cada pedido tem lugar no forno.',     meta: 'Sábado · sob demanda' },
+      { n: '03', label: 'Aviso',    icon: '📲', title: 'Aviso no WhatsApp',       desc: 'Quando pronto, você recebe mensagem com as instruções.',      meta: 'Notificação WhatsApp' },
+      { n: '04', label: 'Retirada', icon: '🏠', title: 'Retire a partir das 15h', desc: 'Presencial em São João de Meriti.',                           meta: 'Sábado · a partir 15h' },
     ];
 
     const grid = qs('#steps-grid');
@@ -308,7 +309,7 @@
              '</button>';
     }).join('');
 
-    // Category click
+    // Category click (sidebar)
     categoryNav.addEventListener('click', function (e) {
       const btn = e.target.closest('.cat-btn');
       if (!btn) return;
@@ -321,6 +322,63 @@
       renderProducts();
       updateCatButtons();
     });
+
+    // ── Mobile category dropdown ──
+    var dropdownWrap  = qs('#cat-dropdown-wrap');
+    var dropdownList  = dropdownWrap && qs('#cat-dropdown-list',  dropdownWrap);
+    var dropdownBtn   = dropdownWrap && qs('#cat-dropdown-btn',   dropdownWrap);
+    var dropdownLabel = dropdownWrap && qs('#cat-dropdown-label', dropdownWrap);
+
+    if (dropdownWrap && dropdownList) {
+      dropdownList.innerHTML = categories.map(function (entry) {
+        var key = entry[0];
+        var cat = entry[1];
+        return '<button class="cat-dropdown-item' + (key === state.activeCategory ? ' active' : '') +
+               '" data-cat="' + escHtml(key) + '" type="button" role="option"' +
+               (key === state.activeCategory ? ' aria-selected="true"' : '') + '>' +
+                 '<span class="cat-dropdown-icon" aria-hidden="true">' + cat.icon + '</span>' +
+                 '<span class="cat-dropdown-name">' + escHtml(key) + '</span>' +
+                 '<span class="cat-dropdown-count">' + cat.items.length + '</span>' +
+               '</button>';
+      }).join('');
+
+      // Inicializa label com categoria ativa
+      (function () {
+        var ae = categories.find(function (e) { return e[0] === state.activeCategory; });
+        if (ae && dropdownLabel) dropdownLabel.textContent = ae[1].icon + ' ' + ae[0];
+      }());
+
+      if (dropdownBtn) {
+        dropdownBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var isOpen = dropdownWrap.classList.toggle('open');
+          dropdownBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+      }
+
+      dropdownList.addEventListener('click', function (e) {
+        var btn = e.target.closest('.cat-dropdown-item');
+        if (!btn) return;
+        state.activeCategory = btn.dataset.cat;
+        state.search = '';
+        searchInput.value = '';
+        searchInput.classList.remove('has-value');
+        searchClear.classList.remove('visible');
+        menuLayout.classList.remove('search-active');
+        renderProducts();
+        updateCatButtons();
+        dropdownWrap.classList.remove('open');
+        if (dropdownBtn) dropdownBtn.setAttribute('aria-expanded', 'false');
+      });
+
+      // Fecha ao clicar fora
+      document.addEventListener('click', function () {
+        if (dropdownWrap.classList.contains('open')) {
+          dropdownWrap.classList.remove('open');
+          if (dropdownBtn) dropdownBtn.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
 
     // ── Search ──
     searchInput.addEventListener('input', function () {
@@ -352,6 +410,18 @@
           btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
         }
       });
+      // Sincroniza dropdown mobile
+      if (dropdownList) {
+        qsa('.cat-dropdown-item', dropdownList).forEach(function (btn) {
+          var isActive = btn.dataset.cat === state.activeCategory;
+          btn.classList.toggle('active', isActive);
+          btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+        if (dropdownLabel) {
+          var ae = categories.find(function (e) { return e[0] === state.activeCategory; });
+          if (ae) dropdownLabel.textContent = ae[1].icon + ' ' + ae[0];
+        }
+      }
     }
 
     function renderProducts() {
@@ -619,6 +689,22 @@
     greetingEl.style.display = firstName ? '' : 'none';
   }
 
+  function updateDrawerSummary() {
+    var el = qs('#drawer-summary');
+    if (!el) return;
+    var shouldShow = state.drawerView === 'cart' && state.cart && state.cart.length > 0;
+    if (!shouldShow) { el.style.display = 'none'; return; }
+    var totalItems = state.cart.reduce(function (s, i) { return s + i.qty; }, 0);
+    var totalVal   = state.cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0);
+    el.style.display = '';
+    el.innerHTML =
+      '<span class="dsumm-items">' + totalItems + ' ite' + (totalItems === 1 ? 'm' : 'ns') + '</span>' +
+      '<span class="dsumm-sep" aria-hidden="true">·</span>' +
+      '<span class="dsumm-total">Subtotal <strong>' + fmt(totalVal) + '</strong></span>' +
+      '<span class="dsumm-sep" aria-hidden="true">·</span>' +
+      '<span class="dsumm-delivery">🏠 Retirada · Sáb</span>';
+  }
+
   function updateDrawerHeader() {
     const isCheckout = ['checkout', 'pix_pending', 'success', 'error_card', 'error_generic', 'stripe_checkout', 'stripe_redirecting'].includes(state.drawerView);
     const titleEl = qs('#drawer-title');
@@ -654,6 +740,7 @@
   function renderDrawerBody() {
     updateDrawerHeader();
     updateDrawerTabs();
+    updateDrawerSummary();
     const body   = qs('#drawer-body');
     const footer = qs('#drawer-footer');
     if (!body) return;
