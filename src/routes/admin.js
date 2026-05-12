@@ -1638,23 +1638,28 @@ module.exports = function (supabase) {
                 payment_success:   uniq('payment_success'),
             };
 
+            const base = sv.site_enter || 1;
             const stepDefs = [
-                { key: 'site_enter',        label: 'Visitantes',    icon: 'site_enter' },
-                { key: 'view_product',      label: 'Viram Produto', icon: 'view_product' },
-                { key: 'cart_created',      label: 'Carrinho',      icon: 'cart_created' },
-                { key: 'checkout_started',  label: 'Checkout',      icon: 'checkout_started' },
-                { key: 'payment_attempted', label: 'Pag. Tentado',  icon: 'payment_attempted' },
-                { key: 'payment_success',   label: 'Converteu',     icon: 'payment_success' },
+                { key: 'site_enter',        label: 'Visitantes',              icon: 'site_enter' },
+                { key: 'view_product',      label: 'Visualização de Produto', icon: 'view_product' },
+                { key: 'cart_created',      label: 'Carrinho Criado',          icon: 'cart_created' },
+                { key: 'checkout_started',  label: 'Checkout',                icon: 'checkout_started' },
+                { key: 'payment_attempted', label: 'Pagamento Tentado',        icon: 'payment_attempted' },
+                { key: 'payment_success',   label: 'Pagamento Aprovado',       icon: 'payment_success' },
             ];
-            const steps = stepDefs.map(s => ({ ...s, count: sv[s.key] }));
+            const steps = stepDefs.map((s, i) => ({
+                ...s,
+                count: sv[s.key],
+                pct_total: i === 0 ? 100 : +((Math.min(sv[s.key], sv.site_enter) / base) * 100).toFixed(1),
+            }));
 
             const adv = (a, b) => a > 0 ? +((Math.min(b, a) / a) * 100).toFixed(1) : 0;
             const advance_rates = [
-                adv(sv.site_enter,        sv.view_product),
-                adv(sv.view_product,      sv.cart_created),
-                adv(sv.cart_created,      sv.checkout_started),
-                adv(sv.checkout_started,  sv.payment_attempted),
-                adv(sv.payment_attempted, sv.payment_success),
+                { label: 'Taxa de avanço',    pct: adv(sv.site_enter,        sv.view_product) },
+                { label: 'Taxa de avanço',    pct: adv(sv.view_product,      sv.cart_created) },
+                { label: 'Taxa de avanço',    pct: adv(sv.cart_created,      sv.checkout_started) },
+                { label: 'Taxa de avanço',    pct: adv(sv.checkout_started,  sv.payment_attempted) },
+                { label: 'Taxa de conversão', pct: adv(sv.payment_attempted, sv.payment_success) },
             ];
 
             // Orders
@@ -1664,9 +1669,15 @@ module.exports = function (supabase) {
             const totalRevenue = paidOrders.reduce((s, o) => s + (parseFloat(o.total_amount) || 0), 0);
             const avgTicket    = paidOrders.length > 0 ? totalRevenue / paidOrders.length : 0;
             const convRate     = sv.site_enter > 0 ? +((sv.payment_success / sv.site_enter) * 100).toFixed(2) : 0;
+            const approvalRate = sv.payment_attempted > 0 ? +((sv.payment_success / sv.payment_attempted) * 100).toFixed(1) : 0;
+
+            const srcColors = { 'Instagram':'#8b5cf6','Google':'#3b82f6','WhatsApp':'#22c55e','Direto':'#f59e0b','Orgânico':'#06b6d4' };
+            const devColors = { 'Mobile':'#22c55e','Desktop':'#8b5cf6','Tablet':'#3b82f6' };
+            const pmColors  = { 'PIX':'#22c55e','Pix':'#22c55e','Crédito':'#3b82f6','Débito':'#f59e0b' };
+            const fbColors  = ['#64748b','#94a3b8','#cbd5e1'];
 
             // Payment methods
-            const pmCount = {};
+            const pmCount = {}, pmApproved = {};
             orders.forEach(o => {
                 const raw = (o.payment_method || '').toLowerCase();
                 let label = 'Outros';
@@ -1674,11 +1685,27 @@ module.exports = function (supabase) {
                 else if (raw.includes('debito') || raw.includes('débito') || raw.includes('debit')) label = 'Débito';
                 else if (raw.includes('credito') || raw.includes('crédito') || raw.includes('credit') || raw.includes('card') || raw.includes('cartao') || raw.includes('cartão')) label = 'Crédito';
                 pmCount[label] = (pmCount[label] || 0) + 1;
+                if (PAID_SET.has((o.status || '').toLowerCase().trim()))
+                    pmApproved[label] = (pmApproved[label] || 0) + 1;
             });
             const pmTotal = Object.values(pmCount).reduce((s, n) => s + n, 0);
-            const payment_methods = Object.entries(pmCount)
-                .map(([label, count]) => ({ label, count, pct: pmTotal > 0 ? Math.round(count / pmTotal * 100) : 0 }))
-                .sort((a, b) => b.count - a.count);
+            const pmRows = Object.entries(pmCount)
+                .map(([label, cnt], i) => ({
+                    label,
+                    color: pmColors[label] || fbColors[i] || '#64748b',
+                    attempts: cnt,
+                    pct: pmTotal > 0 ? Math.round(cnt / pmTotal * 100) : 0,
+                    approved: pmApproved[label] || 0,
+                    approval_rate: cnt > 0 ? +((pmApproved[label] || 0) / cnt * 100).toFixed(1) : 0,
+                }))
+                .sort((a, b) => b.attempts - a.attempts);
+            const pmTotApproved = Object.values(pmApproved).reduce((s, n) => s + n, 0);
+            const payment_methods = [...pmRows, {
+                label: 'Total', isTotal: true,
+                attempts: pmTotal, pct: 100,
+                approved: pmTotApproved,
+                approval_rate: pmTotal > 0 ? +((pmTotApproved / pmTotal) * 100).toFixed(1) : 0,
+            }];
 
             // Traffic + devices from metadata
             const srcMap = {}, devMap = {};
@@ -1689,14 +1716,20 @@ module.exports = function (supabase) {
                 if (src) srcMap[src] = (srcMap[src] || 0) + 1;
                 if (dev) devMap[dev] = (devMap[dev] || 0) + 1;
             });
-            const toArr = obj => {
+            const toAnalysisArr = (obj, colorMap) => {
                 const tot = Object.values(obj).reduce((s, n) => s + n, 0);
-                return Object.entries(obj)
-                    .map(([label, count]) => ({ label, count, pct: tot > 0 ? Math.round(count / tot * 100) : 0 }))
-                    .sort((a, b) => b.count - a.count).slice(0, 6);
+                const rows = Object.entries(obj)
+                    .map(([label, count], i) => ({
+                        label, count,
+                        color: colorMap[label] || fbColors[i] || '#64748b',
+                        pct: tot > 0 ? Math.round(count / tot * 100) : 0,
+                        conv_rate: null, abandon_rate: null,
+                    }))
+                    .sort((a, b) => b.count - a.count).slice(0, 5);
+                return [...rows, { label: 'Total', isTotal: true, count: tot, pct: 100, conv_rate: null, abandon_rate: null }];
             };
-            const traffic_sources = toArr(srcMap);
-            const devices         = toArr(devMap);
+            const traffic_sources = toAnalysisArr(srcMap, srcColors);
+            const devices         = toAnalysisArr(devMap, devColors);
 
             // Abandonment
             const successSet  = byType['payment_success']  || new Set();
@@ -1712,8 +1745,10 @@ module.exports = function (supabase) {
             }).length;
             const abandonedCheckout = [...checkoutSet].filter(sid => !successSet.has(sid)).length;
             const totalAbandoned    = abandonedCart + abandonedCheckout;
-            const totalEntered      = sv.cart_created + abandonedCart;
-            const abandonRate       = totalEntered > 0 ? +((totalAbandoned / totalEntered) * 100).toFixed(1) : 0;
+            const cartAbdRate       = sv.cart_created > 0 ? +((abandonedCart / sv.cart_created) * 100).toFixed(1) : 0;
+            const ckAbdRate         = sv.checkout_started > 0 ? +((abandonedCheckout / sv.checkout_started) * 100).toFixed(1) : 0;
+            const abandonRate       = sv.cart_created > 0 ? +((totalAbandoned / sv.cart_created) * 100).toFixed(1) : 0;
+            const lostValue         = +(avgTicket * totalAbandoned).toFixed(2);
 
             const rejMap = {};
             orders.filter(o => o.rejection_reason).forEach(o => {
@@ -1726,11 +1761,12 @@ module.exports = function (supabase) {
                 .map(([code, count]) => ({ label: getCategoryLabel(code), count, pct: rejTotal > 0 ? Math.round(count / rejTotal * 100) : 0 }));
 
             // Recovery
-            const recoveredCart     = [...cartSet].filter(s => successSet.has(s)).length;
+            const recoveredCart     = [...cartSet].filter(s => checkoutSet.has(s) || successSet.has(s)).length;
             const recoveredCheckout = [...checkoutSet].filter(s => successSet.has(s)).length;
             const totalRecovered    = recoveredCart + recoveredCheckout;
             const recoveryRate      = totalAbandoned > 0 ? +((totalRecovered / totalAbandoned) * 100).toFixed(1) : 0;
-            const abandonedValue    = +(avgTicket * totalAbandoned).toFixed(2);
+            const cartRecoveryRate  = abandonedCart > 0 ? +((recoveredCart / abandonedCart) * 100).toFixed(1) : 0;
+            const ckRecoveryRate    = abandonedCheckout > 0 ? +((recoveredCheckout / abandonedCheckout) * 100).toFixed(1) : 0;
 
             // Products from pedidos.items
             const itemMap = {};
@@ -1749,10 +1785,12 @@ module.exports = function (supabase) {
             const prodArr = Object.values(itemMap);
             const convPct = p => p.adds > 0 ? +((p.purchases / p.adds) * 100).toFixed(0) : 0;
             const most_added = [...prodArr].sort((a, b) => b.adds - a.adds).slice(0, 5)
-                .map(p => ({ name: p.name, count: p.adds, conv: convPct(p) }));
+                .map(p => ({ name: p.name, adds: p.adds, conv: convPct(p), abandon: 100 - convPct(p) }));
             const worst_conversion = [...prodArr].filter(p => p.adds >= 3)
                 .sort((a, b) => convPct(a) - convPct(b)).slice(0, 5)
-                .map(p => ({ name: p.name, count: p.adds, conv: convPct(p) }));
+                .map(p => ({ name: p.name, adds: p.adds, purchases: p.purchases, conv: convPct(p) }));
+            const most_viewed = [...prodArr].sort((a, b) => b.adds - a.adds).slice(0, 5)
+                .map(p => ({ name: p.name, views: p.adds, ctr: convPct(p) }));
 
             // Conversion time
             let convTotalMs = 0, convCount = 0;
@@ -1766,37 +1804,66 @@ module.exports = function (supabase) {
 
             // Insights
             const insights = [];
-            if (convRate < 1)       insights.push({ type: 'warn', title: 'Conversão crítica',         body: `Taxa de ${convRate}% abaixo de 1%. Revise checkout e abandono.` });
-            else if (convRate < 3)  insights.push({ type: 'warn', title: 'Conversão abaixo da média', body: `Taxa de ${convRate}% — referência do setor é 2–4%. Analise o funil.` });
-            else                    insights.push({ type: 'up',   title: 'Conversão saudável',        body: `Taxa de ${convRate}% — dentro ou acima da média do setor (2–4%).` });
+            if (convRate < 1)         insights.push({ type:'bottleneck', label:'GARGALO',      heading:'Conversão crítica',         body:`Taxa de ${convRate}% abaixo de 1%. Revise os pontos de abandono e otimize o checkout.` });
+            else if (convRate < 3)    insights.push({ type:'bottleneck', label:'GARGALO',      heading:'Conversão abaixo da média',  body:`Taxa de ${convRate}% — referência do setor é 2–4%. Identifique o maior ponto de queda no funil.` });
+            else                      insights.push({ type:'opportunity',label:'OPORTUNIDADE',  heading:'Conversão saudável',         body:`Taxa de ${convRate}% dentro ou acima da média do setor (2–4%). Continue monitorando.` });
 
-            if (abandonRate > 70)   insights.push({ type: 'warn', title: 'Abandono elevado',      body: `${abandonRate}% das sessões com carrinho são abandonadas.` });
-            else if (abandonRate > 0) insights.push({ type: 'ok', title: 'Abandono controlado',   body: `Taxa de abandono em ${abandonRate}% — dentro do padrão.` });
-            else                    insights.push({ type: 'ok',   title: 'Sem abandono detectado', body: 'Nenhum carrinho abandonado registrado no período.' });
+            if (abandonRate > 70)     insights.push({ type:'bottleneck', label:'GARGALO',      heading:'Abandono elevado',           body:`${abandonRate}% das sessões com carrinho são abandonadas. Carrinho: ${abandonedCart}, Checkout: ${abandonedCheckout}.` });
+            else if (abandonRate > 0) insights.push({ type:'opportunity',label:'OPORTUNIDADE',  heading:'Abandono controlado',        body:`Taxa de abandono em ${abandonRate}% — dentro do padrão para e-commerce. Continue monitorando.` });
+            else                      insights.push({ type:'opportunity',label:'OPORTUNIDADE',  heading:'Sem abandono detectado',     body:'Nenhum carrinho abandonado registrado no período selecionado.' });
 
-            if (avgTicket > 0)      insights.push({ type: 'info', title: 'Ticket médio',          body: `R$ ${avgTicket.toFixed(2)} por pedido — ${paidOrders.length} conversões em ${days} dias.` });
-            else                    insights.push({ type: 'info', title: 'Sem conversões',         body: `Nenhum pedido concluído nos últimos ${days} dias.` });
+            const worstProd = worst_conversion[0];
+            if (worstProd)            insights.push({ type:'product', label:'PRODUTO', heading:`${worstProd.name} — Pior conversão`, body:`${worstProd.adds} adições mas apenas ${worstProd.conv}% de conversão. Revise a precificação e a apresentação do produto.` });
+            else if (avgTicket > 0)   insights.push({ type:'product', label:'PRODUTO', heading:'Ticket médio',                        body:`R$ ${avgTicket.toFixed(2)} por pedido — ${paidOrders.length} conversões em ${days} dias.` });
+            else                      insights.push({ type:'product', label:'PRODUTO', heading:'Sem dados de produtos',               body:`Nenhum produto registrado em pedidos nos últimos ${days} dias.` });
 
             res.json({
                 period: days,
                 steps,
                 advance_rates,
                 kpis: {
-                    conv_rate:       convRate,
-                    avg_ticket:      +avgTicket.toFixed(2),
-                    total_revenue:   +totalRevenue.toFixed(2),
-                    abandoned_value: abandonedValue,
-                    recovery_rate:   +recoveryRate,
+                    conv_rate:             convRate,
+                    conv_orders:           sv.payment_success,
+                    conv_visits:           sv.site_enter,
+                    avg_ticket:            +avgTicket.toFixed(2),
+                    avg_ticket_delta:      null,
+                    total_revenue:         +totalRevenue.toFixed(2),
+                    total_revenue_delta:   null,
+                    abandoned_value:       lostValue,
+                    avg_funnel_time:       fmtMs(avgMs),
+                    avg_funnel_time_delta: null,
+                    approval_rate:         approvalRate,
+                    approval_rate_delta:   null,
+                    recovery_rate:         +recoveryRate,
                 },
                 traffic_sources,
                 devices,
                 payment_methods,
-                abandonment: { rate: +abandonRate, cart: abandonedCart, checkout: abandonedCheckout, total: totalAbandoned, reasons: abandonment_reasons },
-                recovery:    { count: totalRecovered, rate: +recoveryRate, value: +(avgTicket * totalRecovered).toFixed(2) },
-                products:    { most_added, worst_conversion, most_viewed: most_added },
+                abandonment: {
+                    rate:           +abandonRate,
+                    cart_count:     abandonedCart,
+                    cart_rate:      +cartAbdRate,
+                    checkout_count: abandonedCheckout,
+                    checkout_rate:  +ckAbdRate,
+                    total:          totalAbandoned,
+                    lost_value:     lostValue,
+                    reasons:        abandonment_reasons,
+                },
+                recovery: {
+                    cart_recovered:         recoveredCart,
+                    cart_recovery_rate:     +cartRecoveryRate,
+                    checkout_recovered:     recoveredCheckout,
+                    checkout_recovery_rate: +ckRecoveryRate,
+                    count:                  totalRecovered,
+                    rate:                   +recoveryRate,
+                    recovered_value:        +(avgTicket * totalRecovered).toFixed(2),
+                    channel:                'WhatsApp',
+                    avg_response_time:      null,
+                    post_contact_conv_rate: null,
+                },
+                products: { most_added, worst_conversion, most_viewed },
                 insights,
                 conversion_time_avg: fmtMs(avgMs),
-                pay_origin: payment_methods.map(p => ({ l: p.label, v: p.count, pct: p.pct })),
             });
         } catch (e) {
             res.status(500).json({ error: e.message });

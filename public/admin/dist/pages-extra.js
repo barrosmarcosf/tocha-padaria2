@@ -989,169 +989,301 @@ function FunilDonut({
     }
   }, sub)));
 }
-const _FUNIL_MOCK_STEPS = [{
-  key: 'site_enter',
-  label: 'Visitantes',
-  count: 2840,
-  icon: 'site_enter'
-}, {
-  key: 'view_product',
-  label: 'Viram Produto',
-  count: 1920,
-  icon: 'view_product'
-}, {
-  key: 'cart_created',
-  label: 'Carrinho',
-  count: 862,
-  icon: 'cart_created'
-}, {
-  key: 'checkout_started',
-  label: 'Checkout',
-  count: 412,
-  icon: 'checkout_started'
-}, {
-  key: 'payment_attempted',
-  label: 'Pag. Tentado',
-  count: 298,
-  icon: 'payment_attempted'
-}, {
-  key: 'payment_success',
-  label: 'Converteu',
-  count: 247,
-  icon: 'payment_success'
-}];
-const _FUNIL_MOCK_ADV = [67.6, 44.8, 47.8, 72.3, 82.9];
-const _FUNIL_MOCK_KPIS = {
-  conv_rate: 8.7,
-  avg_ticket: 42.50,
-  total_revenue: 10497.50,
-  abandoned_value: 24810.00,
-  recovery_rate: 12.3
-};
-const _FUNIL_MOCK_SRC = [{
-  label: 'Orgânico',
-  count: 1240,
-  pct: 44
-}, {
-  label: 'Direto',
-  count: 820,
-  pct: 29
-}, {
-  label: 'WhatsApp',
-  count: 480,
-  pct: 17
-}, {
-  label: 'Instagram',
-  count: 300,
-  pct: 10
-}];
-const _FUNIL_MOCK_DEV = [{
-  label: 'Mobile',
-  count: 2100,
-  pct: 74
-}, {
-  label: 'Desktop',
-  count: 600,
-  pct: 21
-}, {
-  label: 'Tablet',
-  count: 140,
-  pct: 5
-}];
-const _FUNIL_MOCK_PAY = [{
-  label: 'PIX',
-  count: 148,
-  pct: 60
-}, {
-  label: 'Crédito',
-  count: 74,
-  pct: 30
-}, {
-  label: 'Débito',
-  count: 25,
-  pct: 10
-}];
-const _FUNIL_MOCK_PROD = {
-  most_added: [{
-    name: 'Pão Francês',
-    count: 342,
-    conv: 78
+const _FV_MOCK = {
+  steps: [{
+    key: 'site_enter',
+    label: 'Visitantes',
+    icon: 'site_enter',
+    count: 1248,
+    pct_total: 100
   }, {
-    name: 'Croissant',
-    count: 215,
-    conv: 65
+    key: 'view_product',
+    label: 'Visualização de Produto',
+    icon: 'view_product',
+    count: 475,
+    pct_total: 38.1
   }, {
-    name: 'Bolo de Chocolate',
-    count: 189,
-    conv: 71
+    key: 'cart_created',
+    label: 'Carrinho Criado',
+    icon: 'cart_created',
+    count: 149,
+    pct_total: 11.9
   }, {
-    name: 'Rosca Doce',
-    count: 134,
-    conv: 58
+    key: 'checkout_started',
+    label: 'Checkout',
+    icon: 'checkout_started',
+    count: 80,
+    pct_total: 6.4
   }, {
-    name: 'Pão Integral',
-    count: 98,
-    conv: 82
+    key: 'payment_attempted',
+    label: 'Pagamento Tentado',
+    icon: 'payment_attempted',
+    count: 48,
+    pct_total: 3.8
+  }, {
+    key: 'payment_success',
+    label: 'Pagamento Aprovado',
+    icon: 'payment_success',
+    count: 33,
+    pct_total: 2.6
   }],
-  worst_conversion: [{
-    name: 'Bolo Recheado',
-    count: 45,
-    conv: 12
+  advance_rates: [{
+    label: 'Taxa de avanço',
+    pct: 38.1
   }, {
-    name: 'Torta de Limão',
-    count: 67,
-    conv: 18
+    label: 'Taxa de avanço',
+    pct: 31.4
   }, {
-    name: 'Empada',
-    count: 89,
-    conv: 22
+    label: 'Taxa de avanço',
+    pct: 53.7
   }, {
-    name: 'Quiche',
-    count: 34,
-    conv: 26
+    label: 'Taxa de avanço',
+    pct: 60.0
   }, {
-    name: 'Pão de Queijo',
-    count: 156,
-    conv: 31
+    label: 'Taxa de conversão',
+    pct: 68.8
   }],
-  most_viewed: [{
-    name: 'Pão Francês',
-    count: 1240,
-    conv: 78
+  kpis: {
+    conv_rate: 2.6,
+    conv_orders: 33,
+    conv_visits: 1248,
+    avg_ticket: 47.30,
+    avg_ticket_delta: null,
+    total_revenue: 1560.90,
+    total_revenue_delta: null,
+    abandoned_value: 7388.28,
+    avg_funnel_time: '8m 42s',
+    avg_funnel_time_delta: null,
+    approval_rate: 68.8,
+    approval_rate_delta: null
+  },
+  traffic_sources: [{
+    label: 'Instagram',
+    color: '#8b5cf6',
+    count: 474,
+    pct: 38,
+    conv_rate: 1.4,
+    abandon_rate: 71
   }, {
-    name: 'Croissant',
-    count: 890,
-    conv: 65
+    label: 'Google',
+    color: '#3b82f6',
+    count: 337,
+    pct: 27,
+    conv_rate: 3.2,
+    abandon_rate: 65
   }, {
-    name: 'Bolo de Chocolate',
-    count: 720,
-    conv: 71
+    label: 'WhatsApp',
+    color: '#22c55e',
+    count: 274,
+    pct: 22,
+    conv_rate: 5.1,
+    abandon_rate: 58
   }, {
-    name: 'Rosca Doce',
-    count: 540,
-    conv: 58
+    label: 'Direto',
+    color: '#f59e0b',
+    count: 163,
+    pct: 13,
+    conv_rate: 1.8,
+    abandon_rate: 78
   }, {
-    name: 'Pão de Queijo',
-    count: 420,
-    conv: 31
+    label: 'Total',
+    isTotal: true,
+    count: 1248,
+    pct: 100,
+    conv_rate: 2.6,
+    abandon_rate: 73.6
+  }],
+  devices: [{
+    label: 'Mobile',
+    color: '#22c55e',
+    count: 774,
+    pct: 62,
+    conv_rate: 2.1,
+    abandon_rate: 77
+  }, {
+    label: 'Desktop',
+    color: '#8b5cf6',
+    count: 387,
+    pct: 31,
+    conv_rate: 3.6,
+    abandon_rate: 62
+  }, {
+    label: 'Tablet',
+    color: '#3b82f6',
+    count: 87,
+    pct: 7,
+    conv_rate: 2.3,
+    abandon_rate: 74
+  }, {
+    label: 'Total',
+    isTotal: true,
+    count: 1248,
+    pct: 100,
+    conv_rate: 2.6,
+    abandon_rate: 73.6
+  }],
+  payment_methods: [{
+    label: 'PIX',
+    color: '#22c55e',
+    attempts: 29,
+    pct: 61,
+    approved: 24,
+    approval_rate: 82.8
+  }, {
+    label: 'Crédito',
+    color: '#3b82f6',
+    attempts: 14,
+    pct: 29,
+    approved: 7,
+    approval_rate: 50.0
+  }, {
+    label: 'Débito',
+    color: '#f59e0b',
+    attempts: 5,
+    pct: 10,
+    approved: 2,
+    approval_rate: 40.0
+  }, {
+    label: 'Total',
+    isTotal: true,
+    attempts: 48,
+    pct: 100,
+    approved: 33,
+    approval_rate: 68.8
+  }],
+  abandonment: {
+    rate: 73.6,
+    cart_count: 109,
+    cart_rate: 73.2,
+    checkout_count: 47,
+    checkout_rate: 58.8,
+    total: 156,
+    lost_value: 7388.28,
+    reasons: [{
+      label: 'Preço percebido alto',
+      pct: 34
+    }, {
+      label: 'Distrações externas',
+      pct: 28
+    }, {
+      label: 'Método de pagamento',
+      pct: 19
+    }, {
+      label: 'Dúvidas sobre o produto',
+      pct: 12
+    }, {
+      label: 'Outros',
+      pct: 7
+    }]
+  },
+  recovery: {
+    cart_recovered: 40,
+    cart_recovery_rate: 36.7,
+    checkout_recovered: 33,
+    checkout_recovery_rate: 70.2,
+    count: 73,
+    rate: 46.8,
+    recovered_value: 3455.20,
+    channel: 'WhatsApp',
+    avg_response_time: '4m 20s',
+    post_contact_conv_rate: 58
+  },
+  products: {
+    most_added: [{
+      name: 'Pão Francês',
+      adds: 89,
+      conv: 78,
+      abandon: 22
+    }, {
+      name: 'Croissant',
+      adds: 67,
+      conv: 65,
+      abandon: 35
+    }, {
+      name: 'Bolo de Chocolate',
+      adds: 54,
+      conv: 71,
+      abandon: 29
+    }, {
+      name: 'Rosca Doce',
+      adds: 43,
+      conv: 58,
+      abandon: 42
+    }, {
+      name: 'Pão Integral',
+      adds: 38,
+      conv: 82,
+      abandon: 18
+    }],
+    worst_conversion: [{
+      name: 'Bolo Recheado',
+      adds: 45,
+      purchases: 6,
+      conv: 12
+    }, {
+      name: 'Torta de Limão',
+      adds: 67,
+      purchases: 12,
+      conv: 18
+    }, {
+      name: 'Empada',
+      adds: 89,
+      purchases: 20,
+      conv: 22
+    }, {
+      name: 'Quiche',
+      adds: 34,
+      purchases: 9,
+      conv: 26
+    }, {
+      name: 'Pão de Queijo',
+      adds: 156,
+      purchases: 48,
+      conv: 31
+    }],
+    most_viewed: [{
+      name: 'Pão Francês',
+      views: 234,
+      ctr: 38
+    }, {
+      name: 'Croissant',
+      views: 189,
+      ctr: 35
+    }, {
+      name: 'Bolo de Chocolate',
+      views: 167,
+      ctr: 32
+    }, {
+      name: 'Rosca Doce',
+      views: 143,
+      ctr: 30
+    }, {
+      name: 'Pão de Queijo',
+      views: 128,
+      ctr: 24
+    }]
+  },
+  insights: [{
+    type: 'bottleneck',
+    label: 'GARGALO',
+    heading: 'Visualização de Produto',
+    body: 'Apenas 38.1% dos visitantes visualizam produtos. Otimize a homepage com produtos em destaque e melhore a navegação por categorias.'
+  }, {
+    type: 'product',
+    label: 'PRODUTO',
+    heading: 'Pão de Queijo — Pior Conversão',
+    body: '156 adições mas apenas 31% de conversão. Revise a precificação e a apresentação do produto para reduzir abandono.'
+  }, {
+    type: 'opportunity',
+    label: 'OPORTUNIDADE',
+    heading: 'Recuperação no Checkout',
+    body: 'Taxa de recuperação de 70.2% no checkout. Considere expandir a estratégia para carrinhos (36.7%) para aumentar a receita recuperada.'
   }]
 };
-const _FUNIL_MOCK_INS = [{
-  type: 'warn',
-  title: 'Conversão abaixo da média',
-  body: 'Taxa de 8.7% — referência do setor é 2–4%. Analise os pontos de abandono no funil.'
-}, {
-  type: 'ok',
-  title: 'Abandono controlado',
-  body: 'Taxa de abandono em 68% — dentro do padrão para e-commerce de food delivery.'
-}, {
-  type: 'info',
-  title: 'Ticket médio',
-  body: 'R$ 42,50 por pedido — 247 conversões nos últimos 30 dias.'
-}];
-const _FUNIL_STEP_COLORS = ['oklch(0.65 0.18 280)', 'oklch(0.68 0.17 250)', 'oklch(0.70 0.16 215)', 'oklch(0.72 0.15 185)', 'oklch(0.74 0.14 165)', 'oklch(0.78 0.15 148)'];
-const _FUNIL_DONUT_COLORS = ['var(--gold)', 'oklch(0.65 0.18 280)', 'oklch(0.72 0.16 160)', 'oklch(0.70 0.16 215)', 'oklch(0.68 0.15 35)', 'oklch(0.75 0.14 100)'];
-function _funilStepIcon(key, color) {
+const FV_STEP_COLORS = ['#8b5cf6', '#06b6d4', '#f59e0b', '#f97316', '#ef4444', '#22c55e'];
+const FV_PILL_BG = ['rgba(139,92,246,.18)', 'rgba(6,182,212,.18)', 'rgba(249,115,22,.18)', 'rgba(239,68,68,.18)', 'rgba(34,197,94,.18)'];
+const FV_ADV_COLORS = ['#a78bfa', '#22d3ee', '#fb923c', '#f87171', '#4ade80'];
+function _fvStepIcon(key, color) {
   const p = {
     width: 20,
     height: 20,
@@ -1204,6 +1336,13 @@ function _funilStepIcon(key, color) {
     x2: "23",
     y2: "10"
   }));
+  if (key === 'payment_attempted') return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "10"
+  }), /*#__PURE__*/React.createElement("polyline", {
+    points: "12 6 12 12 16 14"
+  }));
   if (key === 'payment_success') return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
     d: "M22 11.08V12a10 10 0 1 1-5.93-9.14"
   }), /*#__PURE__*/React.createElement("polyline", {
@@ -1213,58 +1352,6 @@ function _funilStepIcon(key, color) {
     cx: "12",
     cy: "12",
     r: "10"
-  }), /*#__PURE__*/React.createElement("polyline", {
-    points: "12 6 12 12 16 14"
-  }));
-}
-function _funilInsIcon(type) {
-  const p = {
-    width: 16,
-    height: 16,
-    viewBox: '0 0 24 24',
-    fill: 'none',
-    stroke: 'currentColor',
-    strokeWidth: '2.5',
-    strokeLinecap: 'round',
-    strokeLinejoin: 'round'
-  };
-  if (type === 'warn') return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
-    d: "M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-  }), /*#__PURE__*/React.createElement("line", {
-    x1: "12",
-    y1: "9",
-    x2: "12",
-    y2: "13"
-  }), /*#__PURE__*/React.createElement("line", {
-    x1: "12",
-    y1: "17",
-    x2: "12.01",
-    y2: "17"
-  }));
-  if (type === 'up') return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("polyline", {
-    points: "23 6 13.5 15.5 8.5 10.5 1 18"
-  }), /*#__PURE__*/React.createElement("polyline", {
-    points: "17 6 23 6 23 12"
-  }));
-  if (type === 'ok') return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("path", {
-    d: "M22 11.08V12a10 10 0 1 1-5.93-9.14"
-  }), /*#__PURE__*/React.createElement("polyline", {
-    points: "22 4 12 14.01 9 11.01"
-  }));
-  return /*#__PURE__*/React.createElement("svg", p, /*#__PURE__*/React.createElement("circle", {
-    cx: "12",
-    cy: "12",
-    r: "10"
-  }), /*#__PURE__*/React.createElement("line", {
-    x1: "12",
-    y1: "8",
-    x2: "12",
-    y2: "12"
-  }), /*#__PURE__*/React.createElement("line", {
-    x1: "12",
-    y1: "16",
-    x2: "12.01",
-    y2: "16"
   }));
 }
 function FunilPage() {
@@ -1286,20 +1373,24 @@ function FunilPage() {
       mounted = false;
     };
   }, [days]);
-  const steps = data?.steps?.length === 6 ? data.steps : _FUNIL_MOCK_STEPS;
-  const advRates = data?.advance_rates?.length === 5 ? data.advance_rates : _FUNIL_MOCK_ADV;
-  const kpis = Object.keys(data?.kpis || {}).length ? data.kpis : _FUNIL_MOCK_KPIS;
-  const srcData = data?.traffic_sources?.length ? data.traffic_sources : _FUNIL_MOCK_SRC;
-  const devData = data?.devices?.length ? data.devices : _FUNIL_MOCK_DEV;
-  const payData = data?.payment_methods?.length ? data.payment_methods : _FUNIL_MOCK_PAY;
-  const abd = data?.abandonment || {};
-  const rec = data?.recovery || {};
-  const products = data?.products?.most_added?.length ? data.products : _FUNIL_MOCK_PROD;
-  const insights = data?.insights?.length ? data.insights : _FUNIL_MOCK_INS;
+  const d = data || _FV_MOCK;
   const isMock = !data;
-  const baseCount = steps[0]?.count || 1;
-  const advPillCls = r => r >= 50 ? 'ok' : r >= 20 ? 'warn' : 'crit';
+  const steps = d.steps?.length === 6 ? d.steps : _FV_MOCK.steps;
+  const advRates = d.advance_rates?.length === 5 ? d.advance_rates : _FV_MOCK.advance_rates;
+  const kpis = d.kpis || _FV_MOCK.kpis;
+  const src = d.traffic_sources?.length ? d.traffic_sources : _FV_MOCK.traffic_sources;
+  const devs = d.devices?.length ? d.devices : _FV_MOCK.devices;
+  const pms = d.payment_methods?.length ? d.payment_methods : _FV_MOCK.payment_methods;
+  const abd = d.abandonment || _FV_MOCK.abandonment;
+  const rec = d.recovery || _FV_MOCK.recovery;
+  const prods = d.products || _FV_MOCK.products;
+  const insights = d.insights?.length ? d.insights : _FV_MOCK.insights;
   const fBrl = v => brl(+(v || 0));
+  const advPct = r => typeof r === 'object' ? r.pct || 0 : r || 0;
+  const mkSegs = rows => rows.filter(r => !r.isTotal).map(r => ({
+    pct: r.pct,
+    color: r.color
+  }));
   return /*#__PURE__*/React.createElement("div", {
     className: "page"
   }, /*#__PURE__*/React.createElement("div", {
@@ -1307,7 +1398,7 @@ function FunilPage() {
       display: 'flex',
       alignItems: 'flex-start',
       justifyContent: 'space-between',
-      marginBottom: 24,
+      marginBottom: 20,
       gap: 16,
       flexWrap: 'wrap'
     }
@@ -1315,15 +1406,21 @@ function FunilPage() {
     title: "Funil de Vendas",
     subtitle: "Rastreie a jornada do cliente \u2014 do acesso ao pagamento."
   }), /*#__PURE__*/React.createElement("div", {
-    className: "funil-period-row",
     style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
       paddingTop: 8
     }
-  }, [7, 14, 30, 90].map(d => /*#__PURE__*/React.createElement("button", {
-    key: d,
-    className: 'funil-period-btn' + (days === d ? ' on' : ''),
-    onClick: () => setDays(d)
-  }, d, "d")))), loading ? /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-period-row"
+  }, [7, 14, 30, 90].map(d2 => /*#__PURE__*/React.createElement("button", {
+    key: d2,
+    className: 'fv-period-btn' + (days === d2 ? ' on' : ''),
+    onClick: () => setDays(d2)
+  }, d2, "d"))), /*#__PURE__*/React.createElement("span", {
+    className: "fv-realtime"
+  }, "Tempo real"))), loading ? /*#__PURE__*/React.createElement("div", {
     className: "empty-state",
     style: {
       height: 200
@@ -1332,36 +1429,38 @@ function FunilPage() {
     className: "card",
     style: {
       marginBottom: 14,
-      padding: '18px 16px'
+      padding: '18px 16px',
+      position: 'relative'
     }
   }, isMock && /*#__PURE__*/React.createElement("div", {
-    className: "funil-mock-badge"
+    className: "fv-mock-badge"
   }, "DADOS DEMONSTRATIVOS"), /*#__PURE__*/React.createElement("div", {
-    className: "funil-h"
+    className: "fv-funnel-row"
   }, steps.map((step, i) => /*#__PURE__*/React.createElement(React.Fragment, {
     key: step.key
   }, /*#__PURE__*/React.createElement("div", {
-    className: "funil-step-card",
+    className: "fv-step-wrap"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-step-card",
     style: {
-      borderColor: _FUNIL_STEP_COLORS[i] + '55'
+      borderColor: FV_STEP_COLORS[i] + '50'
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "funil-step-icon"
-  }, _funilStepIcon(step.icon || step.key, _FUNIL_STEP_COLORS[i])), /*#__PURE__*/React.createElement("div", {
-    className: "funil-step-label"
+    className: "fv-step-icon-wrap",
+    style: {
+      background: FV_STEP_COLORS[i] + '22'
+    }
+  }, _fvStepIcon(step.key, FV_STEP_COLORS[i])), /*#__PURE__*/React.createElement("div", {
+    className: "fv-step-lbl"
   }, step.label), /*#__PURE__*/React.createElement("div", {
-    className: "funil-step-count"
+    className: "fv-step-num"
   }, (step.count || 0).toLocaleString('pt-BR')), /*#__PURE__*/React.createElement("div", {
-    className: "funil-step-pct"
-  }, i === 0 ? '100%' : (step.count / baseCount * 100).toFixed(1) + '%')), i < steps.length - 1 && /*#__PURE__*/React.createElement("div", {
-    className: "funil-arrow-col"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: 'funil-adv-pill ' + advPillCls(advRates[i] || 0)
-  }, advRates[i] || 0, "%"), /*#__PURE__*/React.createElement("div", {
-    className: "funil-arrow-line"
-  }), /*#__PURE__*/React.createElement("svg", {
-    width: "12",
-    height: "12",
+    className: "fv-step-pct-lbl"
+  }, i === 0 ? '100%' : (step.pct_total || 0).toFixed(1) + '%'))), i < steps.length - 1 && /*#__PURE__*/React.createElement("div", {
+    className: "fv-arrow-wrap"
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "14",
+    height: "14",
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: "var(--ink-4)",
@@ -1370,334 +1469,504 @@ function FunilPage() {
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("polyline", {
     points: "9 18 15 12 9 6"
-  }))))))), /*#__PURE__*/React.createElement("div", {
-    className: "funil-kpi-row",
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "fv-adv-pill",
     style: {
-      marginBottom: 14
+      background: FV_PILL_BG[i],
+      color: FV_ADV_COLORS[i]
     }
+  }, advPct(advRates[i]), "%")))))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-kpi-grid"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "funil-kpi"
-  }, /*#__PURE__*/React.createElement("small", null, "TAXA DE CONVERS\xC3O"), /*#__PURE__*/React.createElement("b", null, (kpis.conv_rate || 0).toFixed(1), "%"), /*#__PURE__*/React.createElement("span", {
-    className: "funil-kpi-delta nt"
-  }, "ref. 2\u20134% do setor")), /*#__PURE__*/React.createElement("div", {
-    className: "funil-kpi"
-  }, /*#__PURE__*/React.createElement("small", null, "TICKET M\xC9DIO"), /*#__PURE__*/React.createElement("b", {
+    className: "fv-kpi-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-kpi-lbl"
+  }, "TAXA DE CONVERS\xC3O"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-kpi-val"
+  }, (kpis.conv_rate || 0).toFixed(1), "%"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-kpi-meta"
+  }, kpis.conv_orders || 0, " pedidos / ", (kpis.conv_visits || 0).toLocaleString('pt-BR'), " visitas")), /*#__PURE__*/React.createElement("div", {
+    className: "fv-kpi-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-kpi-lbl"
+  }, "TICKET M\xC9DIO"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-kpi-val",
     style: {
       fontSize: 20
     }
-  }, fBrl(kpis.avg_ticket || 0)), /*#__PURE__*/React.createElement("span", {
-    className: "funil-kpi-delta nt"
+  }, fBrl(kpis.avg_ticket)), /*#__PURE__*/React.createElement("div", {
+    className: "fv-kpi-meta"
   }, "por pedido")), /*#__PURE__*/React.createElement("div", {
-    className: "funil-kpi"
-  }, /*#__PURE__*/React.createElement("small", null, "RECEITA TOTAL"), /*#__PURE__*/React.createElement("b", {
+    className: "fv-kpi-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-kpi-lbl"
+  }, "RECEITA TOTAL"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-kpi-val",
     style: {
-      fontSize: 18
+      fontSize: 20
     }
-  }, fBrl(kpis.total_revenue || 0)), /*#__PURE__*/React.createElement("span", {
-    className: "funil-kpi-delta nt"
+  }, fBrl(kpis.total_revenue)), /*#__PURE__*/React.createElement("div", {
+    className: "fv-kpi-meta"
   }, "no per\xEDodo")), /*#__PURE__*/React.createElement("div", {
-    className: "funil-kpi"
-  }, /*#__PURE__*/React.createElement("small", null, "VALOR ABANDONADO"), /*#__PURE__*/React.createElement("b", {
-    style: {
-      fontSize: 18
-    }
-  }, fBrl(kpis.abandoned_value || 0)), /*#__PURE__*/React.createElement("span", {
-    className: "funil-kpi-delta dn"
-  }, "potencial perdido")), /*#__PURE__*/React.createElement("div", {
-    className: "funil-kpi"
-  }, /*#__PURE__*/React.createElement("small", null, "RECUPERA\xC7\xC3O"), /*#__PURE__*/React.createElement("b", null, (kpis.recovery_rate || 0).toFixed(1), "%"), /*#__PURE__*/React.createElement("span", {
-    className: 'funil-kpi-delta ' + ((kpis.recovery_rate || 0) >= 10 ? 'up' : 'nt')
-  }, (kpis.recovery_rate || 0) >= 10 ? '↑ acima da média' : 'abaixo da média'))), /*#__PURE__*/React.createElement("div", {
-    className: "funil-analysis-grid",
-    style: {
-      marginBottom: 14
-    }
-  }, [{
-    title: 'ORIGEM DE TRÁFEGO',
-    aData: srcData
-  }, {
-    title: 'DISPOSITIVOS',
-    aData: devData
-  }, {
-    title: 'MÉTODOS DE PAGAMENTO',
-    aData: payData
-  }].map(({
-    title,
-    aData
-  }, gi) => {
-    const segs = aData.slice(0, 6).map((r, i) => ({
-      pct: r.pct,
-      color: _FUNIL_DONUT_COLORS[i]
-    }));
-    return /*#__PURE__*/React.createElement("div", {
-      key: gi,
-      className: "funil-analysis-card"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "funil-analysis-title"
-    }, title), aData.length === 0 ? /*#__PURE__*/React.createElement("div", {
-      style: {
-        color: 'var(--ink-4)',
-        fontSize: 12,
-        padding: '20px 0',
-        textAlign: 'center'
-      }
-    }, "Sem dados dispon\xEDveis") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-      className: "funil-donut-center"
-    }, /*#__PURE__*/React.createElement(FunilDonut, {
-      segments: segs,
-      size: 100,
-      stroke: 12,
-      label: aData[0].pct + '%',
-      sub: aData[0].label.split(' ')[0]
-    })), aData.map((row, i) => /*#__PURE__*/React.createElement("div", {
-      key: i,
-      className: "funil-tbl-row"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "funil-tbl-dot",
-      style: {
-        background: _FUNIL_DONUT_COLORS[i]
-      }
-    }), /*#__PURE__*/React.createElement("div", {
-      className: "funil-tbl-label"
-    }, row.label), /*#__PURE__*/React.createElement("div", {
-      className: "funil-tbl-pct"
-    }, row.pct, "%"), /*#__PURE__*/React.createElement("div", {
-      className: "funil-tbl-count"
-    }, row.count)))));
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "funil-abd-grid",
-    style: {
-      marginBottom: 14
-    }
+    className: "fv-kpi-card"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "card"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "section-title",
+    className: "fv-kpi-lbl"
+  }, "TEMPO M\xC9DIO NO FUNIL"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-kpi-val",
     style: {
-      marginBottom: 16
+      fontSize: 22
     }
-  }, "ABANDONO"), /*#__PURE__*/React.createElement("div", {
+  }, kpis.avg_funnel_time || '—'), /*#__PURE__*/React.createElement("div", {
+    className: "fv-kpi-meta"
+  }, "do acesso ao pagamento")), /*#__PURE__*/React.createElement("div", {
+    className: "fv-kpi-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-kpi-lbl"
+  }, "TAXA DE APROVA\xC7\xC3O"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-kpi-val"
+  }, (kpis.approval_rate || 0).toFixed(1), "%"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-kpi-meta"
+  }, "tentativas aprovadas"))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-analysis-grid"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-analysis-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-analysis-hdr"
+  }, "ORIGEM DE TR\xC1FEGO"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-donut-legend-row"
+  }, /*#__PURE__*/React.createElement(FunilDonut, {
+    segments: mkSegs(src),
+    size: 88,
+    stroke: 11,
+    label: src.find(r => !r.isTotal)?.pct + '%',
+    sub: src.find(r => !r.isTotal)?.label?.split(' ')[0]
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "fv-legend-list"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-legend-item",
+    style: {
+      gridTemplateColumns: '1fr 34px 28px 34px 34px',
+      borderBottom: '1px solid rgba(255,255,255,.08)',
+      paddingBottom: 3,
+      marginBottom: 1
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-hdr-cell",
+    style: {
+      textAlign: 'left'
+    }
+  }, "Origem"), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-hdr-cell"
+  }, "Vis."), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-hdr-cell"
+  }, "%"), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-hdr-cell",
+    style: {
+      color: '#22c55e'
+    }
+  }, "Conv"), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-hdr-cell",
+    style: {
+      color: '#ef4444'
+    }
+  }, "Abd")), src.filter(r => !r.isTotal).map((row, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    className: "fv-legend-item",
+    style: {
+      gridTemplateColumns: '1fr 34px 28px 34px 34px'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
       display: 'flex',
-      gap: 20,
       alignItems: 'center',
-      marginBottom: 18
+      gap: 5
     }
-  }, /*#__PURE__*/React.createElement(FunilDonut, {
-    segments: [{
-      pct: abd.rate || 0,
-      color: 'var(--down)'
-    }],
-    size: 80,
-    stroke: 10,
-    label: (abd.rate || 0) + '%'
-  }), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-sq",
     style: {
-      flex: 1
+      background: row.color
     }
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-lbl"
+  }, row.label)), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-val"
+  }, row.count), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-pct"
+  }, row.pct, "%"), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-conv"
+  }, row.conv_rate != null ? row.conv_rate + '%' : '—'), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-bad"
+  }, row.abandon_rate != null ? row.abandon_rate + '%' : '—'))), src.find(r => r.isTotal) && (() => {
+    const t = src.find(r => r.isTotal);
+    return /*#__PURE__*/React.createElement("div", {
+      className: "fv-analysis-total",
+      style: {
+        gridTemplateColumns: '1fr 34px 28px 34px 34px'
+      }
+    }, /*#__PURE__*/React.createElement("span", null, "Total"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        textAlign: 'right',
+        fontFamily: 'var(--mono)'
+      }
+    }, t.count), /*#__PURE__*/React.createElement("span", {
+      style: {
+        textAlign: 'right',
+        fontFamily: 'var(--mono)'
+      }
+    }, "100%"), /*#__PURE__*/React.createElement("span", {
+      className: "fv-legend-conv"
+    }, t.conv_rate != null ? t.conv_rate + '%' : '—'), /*#__PURE__*/React.createElement("span", {
+      className: "fv-legend-bad"
+    }, t.abandon_rate != null ? t.abandon_rate + '%' : '—'));
+  })()))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-analysis-card"
   }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-analysis-hdr"
+  }, "DISPOSITIVOS"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-donut-legend-row"
+  }, /*#__PURE__*/React.createElement(FunilDonut, {
+    segments: mkSegs(devs),
+    size: 88,
+    stroke: 11,
+    label: devs.find(r => !r.isTotal)?.pct + '%',
+    sub: devs.find(r => !r.isTotal)?.label
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "fv-legend-list"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-legend-item",
+    style: {
+      gridTemplateColumns: '1fr 34px 28px 34px 34px',
+      borderBottom: '1px solid rgba(255,255,255,.08)',
+      paddingBottom: 3,
+      marginBottom: 1
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-hdr-cell",
+    style: {
+      textAlign: 'left'
+    }
+  }, "Disp."), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-hdr-cell"
+  }, "Vis."), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-hdr-cell"
+  }, "%"), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-hdr-cell",
+    style: {
+      color: '#22c55e'
+    }
+  }, "Conv"), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-hdr-cell",
+    style: {
+      color: '#ef4444'
+    }
+  }, "Abd")), devs.filter(r => !r.isTotal).map((row, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    className: "fv-legend-item",
+    style: {
+      gridTemplateColumns: '1fr 34px 28px 34px 34px'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 5
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-sq",
+    style: {
+      background: row.color
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-lbl"
+  }, row.label)), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-val"
+  }, row.count), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-pct"
+  }, row.pct, "%"), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-conv"
+  }, row.conv_rate != null ? row.conv_rate + '%' : '—'), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-bad"
+  }, row.abandon_rate != null ? row.abandon_rate + '%' : '—'))), devs.find(r => r.isTotal) && (() => {
+    const t = devs.find(r => r.isTotal);
+    return /*#__PURE__*/React.createElement("div", {
+      className: "fv-analysis-total",
+      style: {
+        gridTemplateColumns: '1fr 34px 28px 34px 34px'
+      }
+    }, /*#__PURE__*/React.createElement("span", null, "Total"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        textAlign: 'right',
+        fontFamily: 'var(--mono)'
+      }
+    }, t.count), /*#__PURE__*/React.createElement("span", {
+      style: {
+        textAlign: 'right',
+        fontFamily: 'var(--mono)'
+      }
+    }, "100%"), /*#__PURE__*/React.createElement("span", {
+      className: "fv-legend-conv"
+    }, t.conv_rate != null ? t.conv_rate + '%' : '—'), /*#__PURE__*/React.createElement("span", {
+      className: "fv-legend-bad"
+    }, t.abandon_rate != null ? t.abandon_rate + '%' : '—'));
+  })()))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-analysis-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-analysis-hdr"
+  }, "M\xC9TODOS DE PAGAMENTO"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-donut-legend-row"
+  }, /*#__PURE__*/React.createElement(FunilDonut, {
+    segments: mkSegs(pms),
+    size: 88,
+    stroke: 11,
+    label: pms.find(r => !r.isTotal)?.pct + '%',
+    sub: pms.find(r => !r.isTotal)?.label
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "fv-legend-list"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-legend-item",
+    style: {
+      gridTemplateColumns: '1fr 32px 28px 40px',
+      borderBottom: '1px solid rgba(255,255,255,.08)',
+      paddingBottom: 3,
+      marginBottom: 1
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-hdr-cell",
+    style: {
+      textAlign: 'left'
+    }
+  }, "M\xE9todo"), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-hdr-cell"
+  }, "Tent."), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-hdr-cell"
+  }, "%"), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-hdr-cell",
+    style: {
+      color: '#22c55e'
+    }
+  }, "Aprov.")), pms.filter(r => !r.isTotal).map((row, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    className: "fv-legend-item",
+    style: {
+      gridTemplateColumns: '1fr 32px 28px 40px'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 5
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-sq",
+    style: {
+      background: row.color
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-lbl"
+  }, row.label)), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-val"
+  }, row.attempts ?? row.count ?? 0), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-pct"
+  }, row.pct, "%"), /*#__PURE__*/React.createElement("span", {
+    className: "fv-legend-conv"
+  }, row.approval_rate != null ? row.approval_rate + '%' : '—'))), pms.find(r => r.isTotal) && (() => {
+    const t = pms.find(r => r.isTotal);
+    return /*#__PURE__*/React.createElement("div", {
+      className: "fv-analysis-total",
+      style: {
+        gridTemplateColumns: '1fr 32px 28px 40px'
+      }
+    }, /*#__PURE__*/React.createElement("span", null, "Total"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        textAlign: 'right',
+        fontFamily: 'var(--mono)'
+      }
+    }, t.attempts ?? t.count ?? 0), /*#__PURE__*/React.createElement("span", {
+      style: {
+        textAlign: 'right',
+        fontFamily: 'var(--mono)'
+      }
+    }, "100%"), /*#__PURE__*/React.createElement("span", {
+      className: "fv-legend-conv"
+    }, t.approval_rate != null ? t.approval_rate + '%' : '—'));
+  })())))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-abd-rec-grid"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-abd-card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-abd-hdr"
+  }, "ABANDONO"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-stat-line"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-stat-left"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-stat-num"
+  }, abd.cart_count || 0), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "fv-stat-lbl",
     style: {
       fontSize: 10,
-      color: 'var(--ink-4)',
-      letterSpacing: '0.12em',
-      marginBottom: 6
+      marginBottom: 2
     }
-  }, "TAXA DE ABANDONO"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: 'var(--ink-3)',
-      marginBottom: 3
-    }
-  }, "Carrinho: ", /*#__PURE__*/React.createElement("b", {
-    style: {
-      color: 'var(--ink)'
-    }
-  }, abd.cart || 0)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: 'var(--ink-3)'
-    }
-  }, "Checkout: ", /*#__PURE__*/React.createElement("b", {
-    style: {
-      color: 'var(--ink)'
-    }
-  }, abd.checkout || 0)))), abd.reasons?.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, "Carrinho"), /*#__PURE__*/React.createElement("span", {
+    className: "fv-stat-badge bad"
+  }, abd.cart_rate || 0, "%"))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-stat-left"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-stat-num"
+  }, abd.checkout_count || 0), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "fv-stat-lbl",
     style: {
       fontSize: 10,
-      letterSpacing: '0.14em',
-      color: 'var(--ink-4)',
-      marginBottom: 8
+      marginBottom: 2
     }
+  }, "Checkout"), /*#__PURE__*/React.createElement("span", {
+    className: "fv-stat-badge bad"
+  }, abd.checkout_rate || 0, "%")))), /*#__PURE__*/React.createElement("hr", {
+    className: "fv-sep"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "fv-val-row"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "fv-val-lbl"
+  }, "Total abandonado"), /*#__PURE__*/React.createElement("span", {
+    className: "fv-val-num"
+  }, abd.total || 0, " sess\xF5es")), /*#__PURE__*/React.createElement("div", {
+    className: "fv-val-row",
+    style: {
+      marginBottom: 0
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "fv-val-lbl"
+  }, "Valor perdido estimado"), /*#__PURE__*/React.createElement("span", {
+    className: "fv-val-num bad"
+  }, fBrl(abd.lost_value))), abd.reasons?.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "fv-motivos-hdr"
   }, "MOTIVOS PRINCIPAIS"), abd.reasons.map((r, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-      marginBottom: 7
-    }
+    className: "fv-motivo-row"
   }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: 'var(--ink-3)',
-      flex: 1,
-      minWidth: 0,
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
-    }
+    className: "fv-motivo-lbl"
   }, r.label), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 4,
-      width: 80,
-      background: 'var(--panel-3)',
-      borderRadius: 999,
-      overflow: 'hidden',
-      flexShrink: 0
-    }
+    className: "fv-motivo-bar-bg"
   }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-motivo-bar-fill",
     style: {
-      height: '100%',
-      width: r.pct + '%',
-      background: 'var(--down)',
-      borderRadius: 999
+      width: r.pct + '%'
     }
   })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: 'var(--ink-3)',
-      fontFamily: 'var(--mono)',
-      width: 28,
-      textAlign: 'right'
-    }
+    className: "fv-motivo-pct"
   }, r.pct, "%"))))), /*#__PURE__*/React.createElement("div", {
-    className: "card"
+    className: "fv-abd-card"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "section-title",
-    style: {
-      marginBottom: 16
-    }
+    className: "fv-rec-hdr"
   }, "RECUPERA\xC7\xC3O"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-mini-stats"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-mini-stat"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-mini-lbl"
+  }, "Canal"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-mini-val",
     style: {
-      display: 'flex',
-      gap: 20,
-      alignItems: 'center',
-      marginBottom: 18
+      fontSize: 12
     }
-  }, /*#__PURE__*/React.createElement(FunilDonut, {
-    segments: [{
-      pct: rec.rate || 0,
-      color: 'var(--up)'
-    }],
-    size: 80,
-    stroke: 10,
-    label: (rec.rate || 0) + '%'
+  }, rec.channel || '—')), /*#__PURE__*/React.createElement("div", {
+    className: "fv-mini-stat"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-mini-lbl"
+  }, "Tempo m\xE9dio"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-mini-val",
+    style: {
+      fontSize: 12
+    }
+  }, rec.avg_response_time || '—')), /*#__PURE__*/React.createElement("div", {
+    className: "fv-mini-stat"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-mini-lbl"
+  }, "Conv. p\xF3s-contato"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-mini-val"
+  }, rec.post_contact_conv_rate != null ? rec.post_contact_conv_rate + '%' : '—'))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-stat-line"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-stat-left"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-stat-num"
+  }, rec.cart_recovered || 0), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "fv-stat-lbl",
+    style: {
+      fontSize: 10,
+      marginBottom: 2
+    }
+  }, "Carrinho"), /*#__PURE__*/React.createElement("span", {
+    className: "fv-stat-badge ok"
+  }, rec.cart_recovery_rate || 0, "%"))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-stat-left"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-stat-num"
+  }, rec.checkout_recovered || 0), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "fv-stat-lbl",
+    style: {
+      fontSize: 10,
+      marginBottom: 2
+    }
+  }, "Checkout"), /*#__PURE__*/React.createElement("span", {
+    className: "fv-stat-badge ok"
+  }, rec.checkout_recovery_rate || 0, "%")))), /*#__PURE__*/React.createElement("hr", {
+    className: "fv-sep"
   }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
+    className: "fv-rec-note"
+  }, /*#__PURE__*/React.createElement("b", null, fBrl(rec.recovered_value)), " recuperados em ", rec.count || 0, " sess\xF5es via ", rec.channel || 'contato direto', "."))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-prod-grid"
   }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      color: 'var(--ink-4)',
-      letterSpacing: '0.12em',
-      marginBottom: 6
-    }
-  }, "TAXA DE RECUPERA\xC7\xC3O"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: 'var(--ink-3)',
-      marginBottom: 3
-    }
-  }, "Sess\xF5es: ", /*#__PURE__*/React.createElement("b", {
-    style: {
-      color: 'var(--ink)'
-    }
-  }, rec.count || 0)), rec.value > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: 'var(--up)'
-    }
-  }, "Valor: ", /*#__PURE__*/React.createElement("b", null, fBrl(rec.value))))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '14px 16px',
-      borderRadius: 8,
-      background: 'color-mix(in oklch, var(--up) 6%, transparent)',
-      border: '1px solid color-mix(in oklch, var(--up) 20%, var(--line))'
-    }
+    className: "fv-prod-card"
   }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      letterSpacing: '0.14em',
-      color: 'var(--ink-4)',
-      marginBottom: 6
-    }
-  }, "POTENCIAL RECUPER\xC1VEL"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: 'var(--display)',
-      fontSize: 26,
-      color: 'var(--up)',
-      fontWeight: 400,
-      lineHeight: 1
-    }
-  }, fBrl(kpis.abandoned_value || 0)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: 'var(--ink-3)',
-      marginTop: 4
-    }
-  }, "em carrinhos e checkouts abandonados")))), /*#__PURE__*/React.createElement("div", {
-    className: "funil-prod-grid",
-    style: {
-      marginBottom: 14
-    }
-  }, [{
-    title: 'MAIS ADICIONADOS',
-    items: products.most_added || []
-  }, {
-    title: 'PIOR CONVERSÃO',
-    items: products.worst_conversion || []
-  }, {
-    title: 'MAIS VISUALIZADOS',
-    items: products.most_viewed || []
-  }].map(({
-    title,
-    items
-  }, gi) => /*#__PURE__*/React.createElement("div", {
-    key: gi,
-    className: "funil-prod-card"
+    className: "fv-prod-col-hdr amber"
+  }, "MAIS ADICIONADOS AO CARRINHO"), /*#__PURE__*/React.createElement("table", {
+    className: "fv-table"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Produto"), /*#__PURE__*/React.createElement("th", null, "Adi\xE7\xF5es"), /*#__PURE__*/React.createElement("th", null, "Conv%"), /*#__PURE__*/React.createElement("th", null, "Abd%"))), /*#__PURE__*/React.createElement("tbody", null, (prods.most_added || []).map((p, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", null, p.name), /*#__PURE__*/React.createElement("td", {
+    className: "fv-num-val"
+  }, p.adds), /*#__PURE__*/React.createElement("td", {
+    className: "fv-conv-val"
+  }, p.conv, "%"), /*#__PURE__*/React.createElement("td", {
+    className: "fv-bad-val"
+  }, p.abandon, "%")))))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-prod-card"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "funil-prod-title"
-  }, title), items.length === 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: 'var(--ink-4)',
-      padding: '12px 0',
-      textAlign: 'center'
-    }
-  }, "Sem dados") : items.map((item, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    className: "funil-prod-row"
+    className: "fv-prod-col-hdr red"
+  }, "PIOR CONVERS\xC3O"), /*#__PURE__*/React.createElement("table", {
+    className: "fv-table"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Produto"), /*#__PURE__*/React.createElement("th", null, "Adi\xE7\xF5es"), /*#__PURE__*/React.createElement("th", null, "Compras"), /*#__PURE__*/React.createElement("th", null, "Conv%"))), /*#__PURE__*/React.createElement("tbody", null, (prods.worst_conversion || []).map((p, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", null, p.name), /*#__PURE__*/React.createElement("td", {
+    className: "fv-num-val"
+  }, p.adds), /*#__PURE__*/React.createElement("td", {
+    className: "fv-num-val"
+  }, p.purchases), /*#__PURE__*/React.createElement("td", {
+    className: "fv-bad-val"
+  }, p.conv, "%")))))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-prod-card"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "funil-prod-num"
-  }, i + 1), /*#__PURE__*/React.createElement("div", {
-    className: "funil-prod-name",
-    title: item.name
-  }, item.name), /*#__PURE__*/React.createElement("div", {
-    className: "funil-prod-cnt"
-  }, item.count), /*#__PURE__*/React.createElement("div", {
-    className: 'funil-prod-conv ' + (item.conv < 30 ? 'bad' : 'ok')
-  }, item.conv, "%")))))), /*#__PURE__*/React.createElement("div", {
-    className: "funil-insights-row"
+    className: "fv-prod-col-hdr teal"
+  }, "MAIS VISUALIZADOS"), /*#__PURE__*/React.createElement("table", {
+    className: "fv-table"
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Produto"), /*#__PURE__*/React.createElement("th", null, "Views"), /*#__PURE__*/React.createElement("th", null, "CTR%"))), /*#__PURE__*/React.createElement("tbody", null, (prods.most_viewed || []).map((p, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", null, p.name), /*#__PURE__*/React.createElement("td", {
+    className: "fv-num-val"
+  }, p.views), /*#__PURE__*/React.createElement("td", {
+    className: "fv-conv-val"
+  }, p.ctr, "%"))))))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-insights-grid"
   }, insights.map((ins, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
-    className: "funil-insight-card"
+    className: 'fv-ins-card ' + (ins.type || 'bottleneck')
   }, /*#__PURE__*/React.createElement("div", {
-    className: 'funil-insight-icon ' + (ins.type || 'info')
-  }, _funilInsIcon(ins.type)), /*#__PURE__*/React.createElement("div", {
-    className: "funil-insight-title"
-  }, ins.title), /*#__PURE__*/React.createElement("div", {
-    className: "funil-insight-body"
+    className: 'fv-ins-type-tag ' + (ins.type || 'bottleneck')
+  }, ins.label || ins.type), /*#__PURE__*/React.createElement("div", {
+    className: "fv-ins-heading"
+  }, ins.heading || ins.title), /*#__PURE__*/React.createElement("div", {
+    className: "fv-ins-body"
   }, ins.body))))));
 }
 
