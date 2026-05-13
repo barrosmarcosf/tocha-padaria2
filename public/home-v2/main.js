@@ -81,7 +81,7 @@
     cartOpen: false,
     captureOpen: false,
     pendingItem: null,
-    activeCategory: Object.keys(window.MENU_DATA)[0],
+    activeCategory: Object.keys(window.MENU_DATA)[0] || '',
     search: '',
     drawerView: 'cart',
     orderNote: '',
@@ -290,6 +290,63 @@
     }, { threshold: 0.1, rootMargin: '0px 0px -10% 0px' });
 
     qsa('.reveal-wrap').forEach(function (el) { obs.observe(el); });
+  }
+
+  // ──────────────────────────────────────────────
+  // API → MENU_DATA TRANSFORM
+  // ──────────────────────────────────────────────
+  var _SLUG_ICONS = {
+    'sourdough':'🍞','focaccia':'🫓','focaccias':'🫓','brioche':'🥖','brioches':'🥖',
+    'mini-brioches':'🧆','mini':'🧆','folhados':'🥐','tortas':'🥐','folhados-tortas':'🥐',
+    'pao-de-queijo':'🧀','confeitaria':'🍰','doces':'🍰','lanche':'🍔','lanches':'🍔',
+  };
+
+  function _transformConfig(config) {
+    var cats  = config.categorias || [];
+    var prods = config.produtos   || [];
+    var result = {};
+    cats.forEach(function (cat) {
+      var icon = cat.icon || _SLUG_ICONS[cat.slug] || _SLUG_ICONS[(cat.name || '').toLowerCase().split(' ')[0]] || '🍽️';
+      var catProds = prods.filter(function (p) { return p.category_slug === cat.slug; });
+      result[cat.name] = {
+        slug: cat.slug,
+        icon: icon,
+        desc: cat.description || '',
+        items: catProds.map(function (p) {
+          return {
+            id:    p.id,
+            name:  p.name,
+            price: Number(p.price) || 0,
+            desc:  p.description || '',
+            tag:   null,
+            img:   p.image_url ? '/' + p.image_url : '',
+            stock: p.disponivel_agora != null ? Number(p.disponivel_agora) : (p.stock_quantity != null ? Number(p.stock_quantity) : undefined),
+          };
+        }),
+      };
+    });
+    return result;
+  }
+
+  function loadMenuFromAPI() {
+    var ctrl  = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, 6000);
+    return fetch('/api/config', { signal: ctrl.signal })
+      .then(function (r) { clearTimeout(timer); return r.json(); })
+      .then(function (config) {
+        var transformed = _transformConfig(config);
+        var keys = Object.keys(transformed);
+        if (keys.length) {
+          window.MENU_DATA     = transformed;
+          window.PRODUCTS_FLAT = keys.reduce(function (acc, k) { return acc.concat(transformed[k].items); }, []);
+          state.activeCategory = keys[0];
+        }
+      })
+      .catch(function () {
+        clearTimeout(timer);
+        // fallback: manter dados estáticos de menu-data.js
+        if (!state.activeCategory) state.activeCategory = Object.keys(window.MENU_DATA)[0] || '';
+      });
   }
 
   // ──────────────────────────────────────────────
@@ -625,7 +682,7 @@
   }
 
   function initProductCard(card) {
-    var productId = parseInt(card.dataset.id, 10);
+    var productId = card.dataset.id;
     var product   = findProduct(productId);
     if (!product) return;
     if (typeof product.stock === 'number' && product.stock === 0) return;
@@ -672,7 +729,7 @@
   }
 
   function findProduct(id) {
-    return (window.PRODUCTS_FLAT || []).find(function (p) { return p.id === id; });
+    return (window.PRODUCTS_FLAT || []).find(function (p) { return String(p.id) === String(id); });
   }
 
   // ──────────────────────────────────────────────
@@ -1720,7 +1777,7 @@
     initManifestoStrip();
     initHowItWorks();
     initScrollReveal();
-    initMenu();
+    loadMenuFromAPI().then(initMenu).catch(initMenu);
     initCartDrawer();
     initEarlyCaptureModal();
   });
