@@ -95,6 +95,7 @@
   // ── Payment runtime vars (module-level, survives re-renders) ──
   var _mpBricksCtrl = null;
   var _mpPublicKey  = null;
+  var _menuRender   = null; // set by initMenu, called after API refresh
   var _pixPollTimer = null;
 
   // ──────────────────────────────────────────────
@@ -543,6 +544,7 @@
 
     // ── Initial render ──
     renderProducts();
+    _menuRender = renderProducts;
 
     function updateCatButtons() {
       qsa('.cat-btn', categoryNav).forEach(function (btn) {
@@ -567,13 +569,15 @@
     }
 
     function renderProducts() {
+      const _MD  = window.MENU_DATA     || {};
+      const _PF  = window.PRODUCTS_FLAT || [];
       const q = state.search.trim().toLowerCase();
       const isSearch = !!q;
 
       let items, headerHTML;
 
       if (isSearch) {
-        items = PRODUCTS_FLAT.filter(function (p) {
+        items = _PF.filter(function (p) {
           return p.name.toLowerCase().includes(q) || (p.desc || '').toLowerCase().includes(q);
         });
         const label = items.length + ' resultado' + (items.length !== 1 ? 's' : '') + ' para "' + escHtml(state.search) + '"';
@@ -581,7 +585,7 @@
           '<p class="products-cat-desc"><span class="search-result-label">' + label + '</span></p>' +
           '</div>';
       } else {
-        const cat = MENU_DATA[state.activeCategory] || { items: [], icon: '', desc: '' };
+        const cat = _MD[state.activeCategory] || { items: [], icon: '', desc: '' };
         items = cat.items;
         headerHTML = '<div class="products-header">' +
           '<div class="products-title-row">' +
@@ -1778,7 +1782,9 @@
     initHowItWorks();
     initScrollReveal();
     initMenu();
-    loadMenuFromAPI().then(function () { initMenu(); });
+    loadMenuFromAPI().then(function () {
+      if (_menuRender) _menuRender();
+    });
     initCartDrawer();
     initEarlyCaptureModal();
   });
