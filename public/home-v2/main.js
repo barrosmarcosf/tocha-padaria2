@@ -1777,7 +1777,16 @@
     initManifestoStrip();
     initHowItWorks();
     initScrollReveal();
-    loadMenuFromAPI().then(initMenu).catch(initMenu);
+    initMenu();
+    loadMenuFromAPI().then(function () {
+      var nav  = qs('#category-nav');
+      var area = qs('#products-area');
+      var ddl  = qs('#cat-dropdown-list');
+      if (nav)  nav.innerHTML  = '';
+      if (area) area.innerHTML = '';
+      if (ddl)  ddl.innerHTML  = '';
+      initMenu();
+    });
     initCartDrawer();
     initEarlyCaptureModal();
   });
