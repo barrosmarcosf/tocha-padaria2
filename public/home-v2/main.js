@@ -337,11 +337,14 @@
       .then(function (config) {
         var transformed = _transformConfig(config);
         var keys = Object.keys(transformed);
-        if (keys.length) {
+        var totalItems = keys.reduce(function (n, k) { return n + transformed[k].items.length; }, 0);
+        if (keys.length && totalItems > 0) {
           window.MENU_DATA     = transformed;
           window.PRODUCTS_FLAT = keys.reduce(function (acc, k) { return acc.concat(transformed[k].items); }, []);
           state.activeCategory = keys[0];
+          return true;
         }
+        return false;
       })
       .catch(function () {
         clearTimeout(timer);
@@ -1782,8 +1785,8 @@
     initHowItWorks();
     initScrollReveal();
     initMenu();
-    loadMenuFromAPI().then(function () {
-      if (_menuRender) _menuRender();
+    loadMenuFromAPI().then(function (hasApiData) {
+      if (hasApiData && _menuRender) _menuRender();
     });
     initCartDrawer();
     initEarlyCaptureModal();
