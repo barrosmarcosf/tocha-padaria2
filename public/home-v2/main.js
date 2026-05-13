@@ -307,9 +307,10 @@
     var prods = config.produtos   || [];
     var result = {};
     cats.forEach(function (cat) {
-      var icon = cat.icon || _SLUG_ICONS[cat.slug] || _SLUG_ICONS[(cat.name || '').toLowerCase().split(' ')[0]] || '🍽️';
+      var catName = cat.name || cat.title || '';
+      var icon = cat.icon || _SLUG_ICONS[cat.slug] || _SLUG_ICONS[catName.toLowerCase().split(' ')[0]] || '🍽️';
       var catProds = prods.filter(function (p) { return p.category_slug === cat.slug; });
-      result[cat.name] = {
+      result[catName] = {
         slug: cat.slug,
         icon: icon,
         desc: cat.description || '',
