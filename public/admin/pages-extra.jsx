@@ -1620,9 +1620,10 @@ function ProdutoModal({ prod, onClose, onSave }) {
 
   const handleSave = () => {
     setSaving(true);
+    const stockVal = parseInt(estoque) || 0;
     const payload = {
       name, price: parseFloat(price) || 0, description: desc,
-      is_active: active, initial_stock: parseInt(estoque) || 0,
+      is_active: active, initial_stock: stockVal, stock_quantity: stockVal,
       category_slug: prod?.category_slug || '',
       image_url: imageUrl,
     };
@@ -1814,7 +1815,7 @@ function CardapioPage() {
     setProds(prev => prev.map(x => x.id === p.id
       ? { ...x, initial_stock: n, stock_quantity: Math.max(0, n - (x.vendidos || 0)) }
       : x));
-    window.apiPost('/api/admin/save-product', { ...p, initial_stock: n })
+    window.apiPost('/api/admin/save-product', { ...p, initial_stock: n, stock_quantity: n })
       .catch(() => {
         setProds(prev => prev.map(x => x.id === p.id
           ? { ...x, initial_stock: p.initial_stock ?? 0, stock_quantity: p.stock_quantity ?? 0 }
