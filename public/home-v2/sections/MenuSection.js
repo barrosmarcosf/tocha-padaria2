@@ -370,13 +370,11 @@
           }}>
 
             ${!searchResults && html`
-              <${Reveal}>
-                <${CategoryNav}
-                  categories=${categories}
-                  active=${activeKey}
-                  onChange=${setActiveKey}
-                />
-              <//>
+              <${CategoryNav}
+                categories=${categories}
+                active=${activeKey}
+                onChange=${setActiveKey}
+              />
             `}
 
             <div style=${{ gridColumn: searchResults ? '1 / -1' : 'auto' }}>
