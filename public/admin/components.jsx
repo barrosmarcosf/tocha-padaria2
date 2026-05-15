@@ -81,6 +81,23 @@ function SafeComponent({ component: Comp, fallback, ...props }) {
   return <Comp {...props}/>;
 }
 
+// Stable arrow: always renders the same SVG node, only path data changes.
+// Avoids React reconciler insertBefore errors caused by conditional node swapping.
+function Arrow({ direction }) {
+  const isUp = direction !== 'down';
+  const d = isUp ? "M12 19V5M5 12l7-7 7 7" : "M12 5v14M5 12l7 7 7-7";
+  return (
+    <svg
+      viewBox="0 0 24 24" width="12" height="12"
+      fill="none" stroke="currentColor" strokeWidth="2.2"
+      strokeLinecap="round" strokeLinejoin="round"
+      style={{ visibility: direction === 'flat' ? 'hidden' : 'visible' }}
+    >
+      <path d={d}/>
+    </svg>
+  );
+}
+
 function Delta({ curr, prev, invert }) {
   const diff = pct(curr, prev);
   const dir = diff > 0.5 ? 'up' : diff < -0.5 ? 'down' : 'flat';
@@ -88,8 +105,7 @@ function Delta({ curr, prev, invert }) {
   if (invert) cls = dir === 'up' ? 'down' : dir === 'down' ? 'up' : 'flat';
   return (
     <span className={`delta ${cls}`}>
-      {dir === 'up' && <Ic.arrowUp/>}
-      {dir === 'down' && <Ic.arrowDown/>}
+      <Arrow direction={dir}/>
       {Math.abs(diff).toFixed(1)}%
     </span>
   );

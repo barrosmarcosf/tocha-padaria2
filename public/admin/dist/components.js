@@ -456,6 +456,30 @@ function SafeComponent({
   }
   return /*#__PURE__*/React.createElement(Comp, props);
 }
+
+// Stable arrow: always renders the same SVG node, only path data changes.
+// Avoids React reconciler insertBefore errors caused by conditional node swapping.
+function Arrow({
+  direction
+}) {
+  const isUp = direction !== 'down';
+  const d = isUp ? "M12 19V5M5 12l7-7 7 7" : "M12 5v14M5 12l7 7 7-7";
+  return /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24",
+    width: "12",
+    height: "12",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2.2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    style: {
+      visibility: direction === 'flat' ? 'hidden' : 'visible'
+    }
+  }, /*#__PURE__*/React.createElement("path", {
+    d: d
+  }));
+}
 function Delta({
   curr,
   prev,
@@ -467,7 +491,9 @@ function Delta({
   if (invert) cls = dir === 'up' ? 'down' : dir === 'down' ? 'up' : 'flat';
   return /*#__PURE__*/React.createElement("span", {
     className: `delta ${cls}`
-  }, dir === 'up' && /*#__PURE__*/React.createElement(Ic.arrowUp, null), dir === 'down' && /*#__PURE__*/React.createElement(Ic.arrowDown, null), Math.abs(diff).toFixed(1), "%");
+  }, /*#__PURE__*/React.createElement(Arrow, {
+    direction: dir
+  }), Math.abs(diff).toFixed(1), "%");
 }
 
 /* ---------- SPARKLINE ---------- */
