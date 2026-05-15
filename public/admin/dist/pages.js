@@ -205,7 +205,7 @@ function ClientesPage() {
     const since = sinceFmt(c.created_at);
     const lastD = c.crm_last ? sinceFmt(c.crm_last) : '—';
     return /*#__PURE__*/React.createElement("tr", {
-      key: c.id || i,
+      key: c.id,
       onClick: () => setOpen(c),
       style: {
         cursor: 'pointer'
@@ -393,7 +393,7 @@ function ClienteModal({
     const itemsArr = Array.isArray(o.items) ? o.items.filter(x => x && typeof x === 'object' && x.name) : [];
     const itemsLabel = itemsArr.length > 0 ? itemsArr.map(it => `${it.qty || it.quantity || 1}x ${it.name}`).join(' · ') : `${parseItems(o).length || 1} item`;
     return /*#__PURE__*/React.createElement("div", {
-      key: o.id || i,
+      key: o.id,
       className: "order-row-mini"
     }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -562,7 +562,7 @@ function HistoricoPage() {
       return bd ? fmtDate(bd + 'T12:00:00') : '—';
     })();
     return /*#__PURE__*/React.createElement("tr", {
-      key: o.id || i,
+      key: o.id,
       onClick: () => setOpen(o),
       style: {
         cursor: 'pointer'
@@ -983,7 +983,7 @@ function FilaPage() {
     const hasNext = !!NEXT_STATUS_MAP[tab];
     const hasPrev = !!PREV_STATUS_MAP[tab];
     return /*#__PURE__*/React.createElement("div", {
-      key: o.id || i,
+      key: o.id,
       className: "order-card",
       onClick: () => setOpen(o)
     }, /*#__PURE__*/React.createElement("div", {
@@ -1166,7 +1166,7 @@ function PrevendaPage() {
     const timeStr = dt ? `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}` : '—';
     const dateStr = dt ? fmtDate(o.created_at) : '—';
     return /*#__PURE__*/React.createElement("div", {
-      key: o.id || i,
+      key: o.id,
       className: "order-card",
       onClick: () => setOpen(o)
     }, /*#__PURE__*/React.createElement("div", {

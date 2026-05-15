@@ -568,7 +568,7 @@ function Dashboard() {
       textAlign: 'right'
     }
   }, "Rec\xEAncia"))), /*#__PURE__*/React.createElement("tbody", null, recList.map((c, i) => /*#__PURE__*/React.createElement("tr", {
-    key: c.id || i,
+    key: c.id,
     className: "row-clickable",
     onClick: () => setOpenClient(c)
   }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {

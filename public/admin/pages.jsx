@@ -172,7 +172,7 @@ function ClientesPage() {
                 const since = sinceFmt(c.created_at);
                 const lastD = c.crm_last ? sinceFmt(c.crm_last) : '—';
                 return (
-                  <tr key={c.id || i} onClick={() => setOpen(c)} style={{ cursor: 'pointer' }}>
+                  <tr key={c.id} onClick={() => setOpen(c)} style={{ cursor: 'pointer' }}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div className="sb-avatar" style={{ width: 28, height: 28, fontSize: 10 }}>
@@ -276,7 +276,7 @@ function ClienteModal({ client, onClose }) {
               ? itemsArr.map(it => `${it.qty || it.quantity || 1}x ${it.name}`).join(' · ')
               : `${parseItems(o).length || 1} item`;
             return (
-              <div key={o.id || i} className="order-row-mini">
+              <div key={o.id} className="order-row-mini">
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <b>Pedido {orderId(o)}</b>
@@ -383,7 +383,7 @@ function HistoricoPage() {
                     return bd ? fmtDate(bd + 'T12:00:00') : '—';
                   })();
                   return (
-                    <tr key={o.id || i} onClick={() => setOpen(o)} style={{ cursor: 'pointer' }}>
+                    <tr key={o.id} onClick={() => setOpen(o)} style={{ cursor: 'pointer' }}>
                       <td><a className="link-id">{orderId(o)}</a></td>
                       <td>
                         <div style={{ color: 'var(--ink)' }}>{clientName}</div>
@@ -670,7 +670,7 @@ function FilaPage() {
             const hasNext = !!NEXT_STATUS_MAP[tab];
             const hasPrev = !!PREV_STATUS_MAP[tab];
             return (
-              <div key={o.id || i} className="order-card" onClick={() => setOpen(o)}>
+              <div key={o.id} className="order-card" onClick={() => setOpen(o)}>
                 <div className="order-card-strip"/>
                 <div className="order-card-head">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -809,7 +809,7 @@ function PrevendaPage() {
             const timeStr = dt ? `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}` : '—';
             const dateStr = dt ? fmtDate(o.created_at) : '—';
             return (
-              <div key={o.id || i} className="order-card" onClick={() => setOpen(o)}>
+              <div key={o.id} className="order-card" onClick={() => setOpen(o)}>
                 <div className="order-card-strip"/>
                 <div className="order-card-head">
                   <span className="tag">{orderId(o)}</span>

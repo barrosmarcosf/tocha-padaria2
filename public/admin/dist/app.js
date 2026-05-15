@@ -7,7 +7,59 @@
 
 const AUTH_KEY = 'tocha_admin_token';
 
-/* ---------- ERROR BOUNDARY ---------- */
+/* ---------- ERROR BOUNDARIES ---------- */
+
+// Filtra erros originados em extensões do navegador — não são erros da aplicação
+function isExtensionError(err, info) {
+  const src = (err?.stack || '') + (info?.componentStack || '') + (err?.message || '');
+  return /chrome-extension:|moz-extension:|safari-extension:|webkit-masked-url:/.test(src);
+}
+
+// Root: envolve App inteiro, fallback de tela cheia + reload
+class RootErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      crashed: false
+    };
+  }
+  static getDerivedStateFromError() {
+    return {
+      crashed: true
+    };
+  }
+  componentDidCatch(err, info) {
+    if (isExtensionError(err, info)) return;
+    console.error('[RootErrorBoundary]', err, info.componentStack);
+  }
+  render() {
+    if (this.state.crashed) {
+      return /*#__PURE__*/React.createElement("div", {
+        style: {
+          position: 'fixed',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg-deep)',
+          flexDirection: 'column',
+          gap: 16
+        }
+      }, /*#__PURE__*/React.createElement("p", {
+        style: {
+          fontSize: 14,
+          color: 'var(--ink-3)'
+        }
+      }, "Ocorreu um erro inesperado."), /*#__PURE__*/React.createElement("button", {
+        className: "btn-secondary",
+        onClick: () => window.location.reload()
+      }, "Recarregar p\xE1gina"));
+    }
+    return this.props.children;
+  }
+}
+
+// Page-level: envolve cada página individualmente, permite retry sem reload
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -21,6 +73,7 @@ class ErrorBoundary extends React.Component {
     };
   }
   componentDidCatch(err, info) {
+    if (isExtensionError(err, info)) return;
     console.error('[ErrorBoundary] página crashou:', err, info.componentStack);
   }
   render() {
@@ -254,4 +307,4 @@ function Login({
     disabled: loading
   }, loading ? 'Verificando...' : 'Entrar')));
 }
-ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));
+ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(RootErrorBoundary, null, /*#__PURE__*/React.createElement(App, null)));

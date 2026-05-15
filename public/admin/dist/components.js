@@ -4,7 +4,8 @@ const {
   useState,
   useEffect,
   useRef,
-  useMemo
+  useMemo,
+  useCallback
 } = React;
 
 /* ---------- ICONS ---------- */
@@ -459,7 +460,8 @@ function SafeComponent({
 
 // Stable arrow: always renders the same SVG node, only path data changes.
 // Avoids React reconciler insertBefore errors caused by conditional node swapping.
-function Arrow({
+// React.memo: direction rarely changes mid-render — skips unnecessary reconciliation.
+const Arrow = React.memo(function Arrow({
   direction
 }) {
   const isUp = direction !== 'down';
@@ -479,7 +481,7 @@ function Arrow({
   }, /*#__PURE__*/React.createElement("path", {
     d: d
   }));
-}
+});
 function Delta({
   curr,
   prev,
@@ -847,6 +849,8 @@ function Donut({
   size = 148
 }) {
   const [hovered, setHovered] = useState(null);
+  const uid = useMemo(() => Math.random().toString(36).slice(2, 8), []);
+  const glowId = `dg-${uid}`;
   const total = Math.max(data.reduce((s, d) => s + (d.value || 0), 0), 0.001);
   const stroke = 20;
   const r = size / 2 - stroke / 2 - 3;
@@ -870,8 +874,8 @@ function Donut({
     const a = -Math.PI / 2 + t * 2 * Math.PI;
     return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
   };
-  const onEnter = i => setHovered(i);
-  const onLeave = () => setHovered(null);
+  const onEnter = useCallback(i => setHovered(i), []);
+  const onLeave = useCallback(() => setHovered(null), []);
   return /*#__PURE__*/React.createElement("div", {
     className: "donut-wrap"
   }, /*#__PURE__*/React.createElement("div", {
@@ -884,7 +888,7 @@ function Donut({
     width: size,
     height: size
   }, /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("filter", {
-    id: "donut-glow",
+    id: glowId,
     x: "-50%",
     y: "-50%",
     width: "200%",
@@ -919,7 +923,7 @@ function Donut({
       strokeWidth: active ? stroke + 4 : stroke,
       strokeLinecap: "butt",
       opacity: dim ? 0.25 : 1,
-      filter: i === 0 && hovered === null ? 'url(#donut-glow)' : undefined,
+      filter: i === 0 && hovered === null ? `url(#${glowId})` : undefined,
       style: {
         animation: `barIn 720ms var(--ease) ${i * 90}ms backwards`,
         transition: 'opacity 200ms var(--ease)'

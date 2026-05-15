@@ -356,7 +356,7 @@ function Dashboard() {
               </thead>
               <tbody>
                 {recList.map((c, i) => (
-                  <tr key={c.id || i} className="row-clickable" onClick={() => setOpenClient(c)}>
+                  <tr key={c.id} className="row-clickable" onClick={() => setOpenClient(c)}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div className="sb-avatar" style={{

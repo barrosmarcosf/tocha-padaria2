@@ -355,6 +355,8 @@ function AreaChart({ current, previous, style = 'area' }) {
 /* ---------- DONUT ---------- */
 function Donut({ data, size = 148 }) {
   const [hovered, setHovered] = useState(null);
+  const uid = useMemo(() => Math.random().toString(36).slice(2, 8), []);
+  const glowId = `dg-${uid}`;
   const total = Math.max(data.reduce((s, d) => s + (d.value || 0), 0), 0.001);
   const stroke = 20;
   const r = size / 2 - stroke / 2 - 3;
@@ -375,15 +377,15 @@ function Donut({ data, size = 148 }) {
     return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
   };
 
-  const onEnter = (i) => setHovered(i);
-  const onLeave = () => setHovered(null);
+  const onEnter = useCallback((i) => setHovered(i), []);
+  const onLeave = useCallback(() => setHovered(null), []);
 
   return (
     <div className="donut-wrap">
       <div className="donut" style={{ width: size, height: size }}>
         <svg width={size} height={size}>
           <defs>
-            <filter id="donut-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur"/>
               <feMerge>
                 <feMergeNode in="blur"/>
@@ -409,7 +411,7 @@ function Donut({ data, size = 148 }) {
                 strokeWidth={active ? stroke + 4 : stroke}
                 strokeLinecap="butt"
                 opacity={dim ? 0.25 : 1}
-                filter={i === 0 && hovered === null ? 'url(#donut-glow)' : undefined}
+                filter={i === 0 && hovered === null ? `url(#${glowId})` : undefined}
                 style={{
                   animation: `barIn 720ms var(--ease) ${i * 90}ms backwards`,
                   transition: 'opacity 200ms var(--ease)',
