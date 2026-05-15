@@ -375,6 +375,7 @@ app.use((req, res) => {
 
     // HTML (browser) → serve home-v2; outros (JS/CSS/API perdida) → 404 limpo
     if (req.accepts('html')) {
+        res.set('Vary', 'Accept');
         return res.status(200).sendFile(path.join(__dirname, 'public', 'home-v2', 'index.html'));
     }
     res.status(404).send('Not Found');
