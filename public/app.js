@@ -102,7 +102,7 @@
           onCartOpen=${() => setCartOpen(true)}
         />
 
-        <${Hero} status=${status} scrollToMenu=${scrollToMenu} />
+        <${Hero} scrollToMenu=${scrollToMenu} />
 
         <${ManifestoStrip} />
 
@@ -151,7 +151,22 @@
     `;
   }
 
-  window.ReactDOM.createRoot(document.getElementById('root'))
-    .render(window.React.createElement(App));
+  // Garante que Playfair Display está pronto antes do primeiro render,
+  // eliminando o FOUT (dois formatos) nos textos da Hero.
+  // A CSS do Google Fonts é render-blocking, então o @font-face já está
+  // registrado quando este script executa — só precisamos aguardar o woff2.
+  function _mount() {
+    window.ReactDOM.createRoot(document.getElementById('root'))
+      .render(window.React.createElement(App));
+  }
+
+  if (document.fonts && document.fonts.load) {
+    Promise.race([
+      document.fonts.load('500 1em "Playfair Display"'),
+      new Promise(function(r) { setTimeout(r, 300); })
+    ]).then(_mount);
+  } else {
+    _mount();
+  }
 
 }());

@@ -231,7 +231,7 @@
           const catName = cat.title || cat.name || '';
           if (!catName) return;
           const items = config.produtos
-            .filter(p => p.category_slug === cat.slug)
+            .filter(p => p.category_slug === cat.slug && p.is_active !== false)
             .map(p => ({
               id:    p.id,
               name:  p.name,
