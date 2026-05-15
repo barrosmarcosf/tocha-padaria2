@@ -733,9 +733,9 @@ function Dashboard() {
     className: "meta"
   }, alerts.filter(a => a.kind !== 'ok').length || 'Nenhum', " ativo", alerts.filter(a => a.kind !== 'ok').length !== 1 ? 's' : '')), /*#__PURE__*/React.createElement("div", {
     className: "alert-list"
-  }, alerts.map((a, i) => /*#__PURE__*/React.createElement("div", {
+  }, alerts.map(a => /*#__PURE__*/React.createElement("div", {
     className: `alert ${a.kind}`,
-    key: i
+    key: `${a.kind}-${a.title}`
   }, /*#__PURE__*/React.createElement("span", {
     className: "a-ic"
   }, /*#__PURE__*/React.createElement(SafeIcon, {

@@ -489,8 +489,8 @@ function Dashboard() {
             <span className="meta">{alerts.filter(a => a.kind !== 'ok').length || 'Nenhum'} ativo{alerts.filter(a => a.kind !== 'ok').length !== 1 ? 's' : ''}</span>
           </div>
           <div className="alert-list">
-            {alerts.map((a, i) => (
-              <div className={`alert ${a.kind}`} key={i}>
+            {alerts.map((a) => (
+              <div className={`alert ${a.kind}`} key={`${a.kind}-${a.title}`}>
                 <span className="a-ic">
                   <SafeIcon icon={a.kind === 'info' ? Ic.info : a.kind === 'ok' ? Ic.shield : Ic.warn}/>
                 </span>

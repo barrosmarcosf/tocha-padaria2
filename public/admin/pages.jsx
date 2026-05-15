@@ -480,7 +480,7 @@ function OrderModal({ order, variant = 'history', onClose, onStatusChange }) {
           </div>
         </div>
         {itemsArr.length > 0 ? itemsArr.map((item, i) => (
-          <div key={i} className="order-line-item">
+          <div key={`${item.name || 'item'}-${i}`} className="order-line-item">
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <span style={{ color: 'var(--gold)', fontWeight: 500 }}>{item.qty || item.quantity || 1}x</span>
               <span>{item.name || 'Item'}</span>

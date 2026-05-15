@@ -732,7 +732,7 @@ function OrderModal({
       fontSize: 13
     }
   }, fmtDateTime(order.created_at)))), itemsArr.length > 0 ? itemsArr.map((item, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
+    key: `${item.name || 'item'}-${i}`,
     className: "order-line-item"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
