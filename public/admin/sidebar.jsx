@@ -31,7 +31,23 @@ const NAV = [
   { kind: 'item', id: 'insights', label: 'Insights', icon: Ic.bulb },
 ];
 
+function _readUser() {
+  try { return JSON.parse(localStorage.getItem('tocha_admin_user') || '{}'); } catch { return {}; }
+}
+
 function Sidebar({ active, onNavigate }) {
+  const [user, setUser] = React.useState(_readUser);
+
+  React.useEffect(() => {
+    const handler = (e) => setUser(prev => ({ ...prev, ...e.detail }));
+    window.addEventListener('tocha:profile-updated', handler);
+    return () => window.removeEventListener('tocha:profile-updated', handler);
+  }, []);
+
+  const initials = (user.nome || 'T')[0].toUpperCase();
+  const avatarUrl = user.avatar_url;
+  const email = user.email || 'admin@tochapadaria';
+
   return (
     <aside className="sb">
       <div className="sb-brand">
@@ -54,10 +70,14 @@ function Sidebar({ active, onNavigate }) {
         })}
       </div>
       <div className="sb-foot">
-        <div className="sb-avatar">TP</div>
+        <div className="sb-avatar" style={{ overflow: 'hidden', padding: avatarUrl ? 0 : undefined }}>
+          {avatarUrl
+            ? <img src={'/' + avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+            : initials}
+        </div>
         <div style={{ minWidth: 0 }}>
           <b>TOCHA PADARIA</b>
-          <small>admin@tochapadaria</small>
+          <small style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{email}</small>
         </div>
       </div>
     </aside>
@@ -66,12 +86,32 @@ function Sidebar({ active, onNavigate }) {
 
 function Topbar({ pageLabel, onNavigate, onHamburger }) {
   const [open, setOpen] = React.useState(false);
+  const [user, setUser] = React.useState(_readUser);
+
   React.useEffect(() => {
     if (!open) return;
     const fn = () => setOpen(false);
     window.addEventListener('click', fn);
     return () => window.removeEventListener('click', fn);
   }, [open]);
+
+  React.useEffect(() => {
+    const handler = (e) => setUser(prev => ({ ...prev, ...e.detail }));
+    window.addEventListener('tocha:profile-updated', handler);
+    return () => window.removeEventListener('tocha:profile-updated', handler);
+  }, []);
+
+  const avatarUrl = user.avatar_url;
+  const email = user.email || 'admin@tochapadaria';
+
+  const AvatarOrLogo = ({ small }) => (
+    <div className={`lg${small ? ' sm' : ''}`}>
+      {avatarUrl
+        ? <img src={'/' + avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }}/>
+        : <img src={LOGO} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}/>}
+    </div>
+  );
+
   return (
     <div className="topbar">
       <div className="crumb">
@@ -85,17 +125,17 @@ function Topbar({ pageLabel, onNavigate, onHamburger }) {
       <button className="icon-btn" title="Alertas"><Ic.bell/></button>
       <div className="tb-store user-pop-wrap"
            onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}>
-        <div className="lg"><img src={LOGO} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}/></div>
+        <AvatarOrLogo/>
         <div>
           <b>TOCHA PADARIA</b>
         </div>
         {open && (
           <div className="user-pop" onClick={e => e.stopPropagation()}>
             <div className="user-pop-head">
-              <div className="lg sm"><img src={LOGO} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}/></div>
+              <AvatarOrLogo small/>
               <div>
                 <b>TOCHA PADARIA</b>
-                <small>admin@tochapadaria</small>
+                <small>{email}</small>
               </div>
             </div>
             <button className="user-pop-item" onClick={() => { setOpen(false); onNavigate && onNavigate('perfil'); }}>
