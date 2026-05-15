@@ -222,20 +222,74 @@
   }
 
   function MenuSection({ cart, onAdd, config }) {
-    const categories = Object.entries(MENU_DATA);
-    const [activeKey, setActiveKey]       = React.useState(categories[0]?.[0] || '');
+    // Fonte única de verdade: API quando disponível (já filtrada is_active=true no servidor),
+    // ou dados estáticos sem produtos com stock===0 como fallback inicial.
+    const resolvedMenuData = React.useMemo(() => {
+      if (config && Array.isArray(config.categorias) && Array.isArray(config.produtos)) {
+        const result = {};
+        config.categorias.forEach(cat => {
+          const items = config.produtos
+            .filter(p => p.category_slug === cat.slug)
+            .map(p => ({
+              id:    p.id,
+              name:  p.name,
+              price: Number(p.price) || 0,
+              desc:  p.description || '',
+              tag:   p.tag || null,
+              img:   p.image_url ? ('/' + p.image_url) : '',
+              stock: typeof p.disponivel_agora === 'number'
+                ? p.disponivel_agora
+                : (Number(p.stock_quantity) || 0),
+            }));
+          if (items.length > 0) {
+            result[cat.name] = {
+              icon:  cat.icon || '',
+              desc:  cat.description || cat.desc || '',
+              items,
+            };
+          }
+        });
+        if (Object.keys(result).length > 0) return result;
+      }
+      // Fallback: dados estáticos sem produtos explicitamente indisponíveis (stock===0)
+      const filtered = {};
+      Object.entries(MENU_DATA).forEach(([key, cat]) => {
+        const items = cat.items.filter(p => p.stock == null || p.stock > 0);
+        if (items.length > 0) filtered[key] = { ...cat, items };
+      });
+      return Object.keys(filtered).length > 0 ? filtered : MENU_DATA;
+    }, [config]);
+
+    // Lista plana derivada dos dados resolvidos (usada na busca)
+    const resolvedProductsFlat = React.useMemo(
+      () => Object.values(resolvedMenuData).flatMap(cat => cat.items),
+      [resolvedMenuData]
+    );
+
+    const categories = Object.entries(resolvedMenuData);
+    const [activeKey, setActiveKey] = React.useState(
+      () => Object.keys(resolvedMenuData)[0] || ''
+    );
     const [search, setSearch]             = React.useState('');
     const [searchFocused, setSearchFocused] = React.useState(false);
 
-    const activeCategory = MENU_DATA[activeKey] || { items: [], desc: '', icon: '' };
+    // Mantém activeKey válido quando resolvedMenuData muda (ex: API chega com categorias diferentes)
+    React.useEffect(() => {
+      if (!resolvedMenuData[activeKey]) {
+        const first = Object.keys(resolvedMenuData)[0];
+        if (first) setActiveKey(first);
+      }
+    }, [resolvedMenuData]);
+
+    const activeCategory = resolvedMenuData[activeKey] || { items: [], desc: '', icon: '' };
 
     const searchResults = React.useMemo(() => {
       if (!search.trim()) return null;
       const q = search.toLowerCase();
-      return PRODUCTS_FLAT.filter((p) =>
+      return resolvedProductsFlat.filter((p) =>
         p.name.toLowerCase().includes(q) || (p.desc || '').toLowerCase().includes(q)
       );
-    }, [search]);
+    }, [search, resolvedProductsFlat]);
 
     const displayItems = searchResults || activeCategory.items;
     const displayTitle = searchResults
