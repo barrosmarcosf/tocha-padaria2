@@ -4,7 +4,7 @@
 
   if (!document.getElementById('root')) return;
 
-  const { useState, useEffect } = window.React;
+  const { useState, useEffect, useCallback } = window.React;
   const html = window.htm.bind(window.React.createElement);
 
   const GlobalStyles       = window.GlobalStyles;
@@ -67,10 +67,10 @@
       persist(cart.filter(i => String(i.id) !== String(id)));
     }
 
-    function scrollToMenu() {
+    const scrollToMenu = useCallback(function () {
       const el = document.getElementById('cardapio');
       if (el) el.scrollIntoView({ behavior: 'smooth' });
-    }
+    }, []);
 
     function addToCart(item) {
       setCart(prev => {

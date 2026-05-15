@@ -193,5 +193,5 @@
     `;
   }
 
-  window.Hero = Hero;
+  window.Hero = React.memo(Hero);
 }());
