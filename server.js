@@ -178,6 +178,14 @@ app.get('/', (_req, res) => {
 app.get('/nossa-historia.html', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'home-v2', 'nossa-historia.html')));
 app.get('/fale-conosco.html', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'home-v2', 'fale-conosco.html')));
 
+// Redireciona entry points do /home-v2 para /
+// Assets (/home-v2/style.css, /home-v2/main.js, etc.) continuam via express.static
+app.get('/home-v2',             (_req, res) => res.redirect(301, '/'));
+app.get('/home-v2/',            (_req, res) => res.redirect(301, '/'));
+app.get('/home-v2/index.html',  (_req, res) => res.redirect(301, '/'));
+// Bloqueia acesso direto à home antiga
+app.get('/index.html',          (_req, res) => res.redirect(301, '/'));
+
 app.get('/checkout-mp.html', (_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
@@ -361,8 +369,8 @@ app.use((req, res) => {
         return res.status(200).sendFile(path.join(__dirname, 'public', 'admin', 'index.html'));
     }
 
-    // Caso contrário, serve o storefront normal (SPA — sempre 200)
-    res.status(200).sendFile(path.join(__dirname, 'public', 'index.html'));
+    // Caso contrário, serve o storefront (home-v2 é a raiz — sempre 200)
+    res.status(200).sendFile(path.join(__dirname, 'public', 'home-v2', 'index.html'));
 });
 
 // ──────────────────────────────────────────────────
