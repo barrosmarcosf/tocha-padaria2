@@ -194,8 +194,6 @@ app.get('/', async (_req, res) => {
         res.status(200).sendFile(_indexHtmlPath);
     }
 });
-app.get('/home-v2', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'home-v2', 'index.html')));
-
 app.get('/checkout-mp.html', (_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
