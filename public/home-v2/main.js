@@ -1787,7 +1787,7 @@
     initScrollReveal();
     initMenu();
     loadMenuFromAPI().then(function (hasApiData) {
-      if (hasApiData && _menuRender) _menuRender();
+      if (hasApiData) initMenu();
     });
     initCartDrawer();
     initEarlyCaptureModal();
