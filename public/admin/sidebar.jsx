@@ -87,6 +87,26 @@ function Sidebar({ active, onNavigate }) {
 function Topbar({ pageLabel, onNavigate, onHamburger }) {
   const [open, setOpen] = React.useState(false);
   const [user, setUser] = React.useState(_readUser);
+  const [lojaAberta, setLojaAberta] = React.useState(true);
+  const [togglingLoja, setTogglingLoja] = React.useState(false);
+
+  React.useEffect(() => {
+    window.apiGet('/api/admin/store-status')
+      .then(d => setLojaAberta(d.open !== false))
+      .catch(() => {});
+  }, []);
+
+  const toggleLoja = (e) => {
+    e.stopPropagation();
+    if (togglingLoja) return;
+    const next = !lojaAberta;
+    setLojaAberta(next);
+    setTogglingLoja(true);
+    window.apiPost('/api/admin/toggle-store', { open: next })
+      .then(d => setLojaAberta(d.open !== false))
+      .catch(() => setLojaAberta(!next))
+      .finally(() => setTogglingLoja(false));
+  };
 
   React.useEffect(() => {
     if (!open) return;
@@ -120,9 +140,15 @@ function Topbar({ pageLabel, onNavigate, onHamburger }) {
         <b>{pageLabel}</b>
       </div>
       <div className="tb-spacer"/>
-      <span className="status-pill"><span className="dot"/>Loja aberta</span>
-      <button className="icon-btn" title="Buscar"><Ic.search/></button>
-      <button className="icon-btn" title="Alertas"><Ic.bell/></button>
+      <button
+        className={`status-pill${lojaAberta ? '' : ' closed'}`}
+        onClick={toggleLoja}
+        disabled={togglingLoja}
+        title={lojaAberta ? 'Loja aberta — clique para fechar' : 'Loja fechada — clique para abrir'}
+      >
+        <span className="dot"/>
+        {lojaAberta ? 'Loja aberta' : 'Loja fechada'}
+      </button>
       <div className="tb-store user-pop-wrap"
            onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}>
         <AvatarOrLogo/>

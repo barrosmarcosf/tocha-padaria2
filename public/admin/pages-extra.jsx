@@ -1851,6 +1851,8 @@ function CardapioPage() {
     opacity: isLoading ? 0.4 : 1,
     fontFamily: 'inherit',
     whiteSpace: 'nowrap',
+    minWidth: 62,
+    textAlign: 'center',
   });
 
   return (
