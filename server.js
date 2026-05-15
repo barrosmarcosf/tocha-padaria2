@@ -175,6 +175,9 @@ const _homeV2HtmlPath = path.join(__dirname, 'public', 'home-v2', 'index.html');
 app.get('/', (_req, res) => {
     res.status(200).sendFile(_homeV2HtmlPath);
 });
+app.get('/nossa-historia.html', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'home-v2', 'nossa-historia.html')));
+app.get('/fale-conosco.html', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'home-v2', 'fale-conosco.html')));
+
 app.get('/checkout-mp.html', (_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
