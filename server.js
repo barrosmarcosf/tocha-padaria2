@@ -177,6 +177,7 @@ app.get('/', (_req, res) => {
 });
 app.get('/nossa-historia.html', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'home-v2', 'nossa-historia.html')));
 app.get('/fale-conosco.html', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'home-v2', 'fale-conosco.html')));
+app.get('/food-service.html', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'home-v2', 'food-service.html')));
 
 // Redireciona entry points do /home-v2 → / preservando query params (UTM, tracking)
 // app.use não é usado aqui pois interceptaria assets (/home-v2/style.css etc.)
