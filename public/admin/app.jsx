@@ -7,7 +7,41 @@
 
 const AUTH_KEY = 'tocha_admin_token';
 
-/* ---------- ERROR BOUNDARY ---------- */
+/* ---------- ERROR BOUNDARIES ---------- */
+
+// Filtra erros originados em extensões do navegador — não são erros da aplicação
+function isExtensionError(err, info) {
+  const src = (err?.stack || '') + (info?.componentStack || '') + (err?.message || '');
+  return /chrome-extension:|moz-extension:|safari-extension:|webkit-masked-url:/.test(src);
+}
+
+// Root: envolve App inteiro, fallback de tela cheia + reload
+class RootErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { crashed: false };
+  }
+  static getDerivedStateFromError() {
+    return { crashed: true };
+  }
+  componentDidCatch(err, info) {
+    if (isExtensionError(err, info)) return;
+    console.error('[RootErrorBoundary]', err, info.componentStack);
+  }
+  render() {
+    if (this.state.crashed) {
+      return (
+        <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-deep)', flexDirection: 'column', gap: 16 }}>
+          <p style={{ fontSize: 14, color: 'var(--ink-3)' }}>Ocorreu um erro inesperado.</p>
+          <button className="btn-secondary" onClick={() => window.location.reload()}>Recarregar página</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Page-level: envolve cada página individualmente, permite retry sem reload
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -17,6 +51,7 @@ class ErrorBoundary extends React.Component {
     return { error: err };
   }
   componentDidCatch(err, info) {
+    if (isExtensionError(err, info)) return;
     console.error('[ErrorBoundary] página crashou:', err, info.componentStack);
   }
   render() {
@@ -173,4 +208,8 @@ function Login({ onAuth }) {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <RootErrorBoundary>
+    <App/>
+  </RootErrorBoundary>
+);

@@ -1,5 +1,5 @@
 /* global React */
-const { useState, useEffect, useRef, useMemo } = React;
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
 /* ---------- ICONS ---------- */
 const Ic = {
@@ -83,7 +83,8 @@ function SafeComponent({ component: Comp, fallback, ...props }) {
 
 // Stable arrow: always renders the same SVG node, only path data changes.
 // Avoids React reconciler insertBefore errors caused by conditional node swapping.
-function Arrow({ direction }) {
+// React.memo: direction rarely changes mid-render — skips unnecessary reconciliation.
+const Arrow = React.memo(function Arrow({ direction }) {
   const isUp = direction !== 'down';
   const d = isUp ? "M12 19V5M5 12l7-7 7 7" : "M12 5v14M5 12l7 7 7-7";
   return (
@@ -96,7 +97,7 @@ function Arrow({ direction }) {
       <path d={d}/>
     </svg>
   );
-}
+});
 
 function Delta({ curr, prev, invert }) {
   const diff = pct(curr, prev);
