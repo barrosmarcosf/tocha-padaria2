@@ -2,8 +2,10 @@
 // MENU SECTION
 // ============================================================
 (function () {
-  const html    = window.html;
-  const Reveal  = window.Reveal;
+  const html               = window.html;
+  const Reveal             = window.Reveal;
+  const AnimatedContainer  = window.AnimatedContainer;
+  const AnimatedItem       = window.AnimatedItem;
   const MENU_DATA     = window.MENU_DATA || {};
   const PRODUCTS_FLAT = window.PRODUCTS_FLAT || [];
 
@@ -356,17 +358,26 @@
                     </div>
                   `
                 : html`
-                    <div style=${{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                      gap: 20,
-                    }}>
+                    <${AnimatedContainer}
+                      as="div"
+                      delay=${0.05}
+                      stagger=${0.07}
+                      style=${{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                        gap: 20,
+                      }}
+                    >
                       ${displayItems.map((product, i) => html`
-                        <${Reveal} key=${product.id} delay=${Math.min(i * 0.05, 0.3)}>
+                        <${AnimatedItem}
+                          key=${product.id}
+                          index=${Math.min(i, 12)}
+                          style=${{ height: '100%' }}
+                        >
                           <${ProductCard} product=${product} onAdd=${onAdd} />
                         <//>
                       `)}
-                    </div>
+                    <//>
                   `
               }
             </div>
