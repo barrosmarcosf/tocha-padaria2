@@ -228,6 +228,8 @@
       if (config && Array.isArray(config.categorias) && Array.isArray(config.produtos)) {
         const result = {};
         config.categorias.forEach(cat => {
+          const catName = cat.title || cat.name || '';
+          if (!catName) return;
           const items = config.produtos
             .filter(p => p.category_slug === cat.slug)
             .map(p => ({
@@ -242,8 +244,9 @@
                 : (Number(p.stock_quantity) || 0),
             }));
           if (items.length > 0) {
-            result[cat.name] = {
-              icon:  cat.icon || '',
+            const staticCat = MENU_DATA[catName];
+            result[catName] = {
+              icon:  (staticCat && staticCat.icon) || '',
               desc:  cat.description || cat.desc || '',
               items,
             };
