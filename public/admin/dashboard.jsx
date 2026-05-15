@@ -106,6 +106,14 @@ function Dashboard() {
   const [config,         setConfig]          = useStD(null);
   const [health,         setHealth]          = useStD(null);
   const [loading,        setLoading]         = useStD(true);
+  const [copied,         setCopied]          = useStD(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText('https://tochapadaria.com').then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   const today     = new Date();
   const dateLabel = today.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -249,7 +257,45 @@ function Dashboard() {
       <div className="page-head">
         <div>
           <div className="sub" style={{ marginBottom: 6 }}>{dateLabel} · {PERIOD_LABEL[period]}</div>
-          <h1>Boas vindas, TOCHA PADARIA</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+            <h1 style={{ margin: 0 }}>Boas vindas, TOCHA PADARIA</h1>
+            <a
+              href="https://tochapadaria.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-ghost btn-narrow"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, textDecoration: 'none', flexShrink: 0 }}
+            >
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+              Ver site
+            </a>
+            <button
+              className="btn-ghost btn-narrow"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0, color: copied ? 'var(--up)' : undefined, borderColor: copied ? 'var(--up)' : undefined }}
+              onClick={handleCopy}
+            >
+              {copied ? (
+                <>
+                  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  Link copiado!
+                </>
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                  Copiar link
+                </>
+              )}
+            </button>
+          </div>
           <div className="sub">
             {bakeDateStr
               ? <>Próxima fornada: <b>{fornadaWhen}</b> · <b>{fornadaPedidos} pedidos</b> confirmados</>

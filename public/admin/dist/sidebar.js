@@ -144,7 +144,11 @@ function Sidebar({
   return /*#__PURE__*/React.createElement("aside", {
     className: "sb"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "sb-brand"
+    className: "sb-brand",
+    onClick: () => onNavigate && onNavigate('home'),
+    style: {
+      cursor: 'pointer'
+    }
   }, /*#__PURE__*/React.createElement("img", {
     src: LOGO,
     style: {

@@ -50,7 +50,7 @@ function Sidebar({ active, onNavigate }) {
 
   return (
     <aside className="sb">
-      <div className="sb-brand">
+      <div className="sb-brand" onClick={() => onNavigate && onNavigate('home')} style={{ cursor: 'pointer' }}>
         <img src={LOGO} style={{ width: 26, height: 'auto', objectFit: 'contain' }}/>
       </div>
       <div style={{ overflowY: 'auto', flex: 1, marginRight: -8, paddingRight: 4 }}>
