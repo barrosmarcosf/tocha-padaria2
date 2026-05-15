@@ -1242,7 +1242,7 @@ module.exports = function (supabase) {
 
     router.post('/update-profile', adminAuth, async (req, res) => {
         try {
-            const { nome, email, senha } = req.body;
+            const { nome, email, senha, telefone, contact_email } = req.body;
             const updates = { nome, email };
             if (senha && senha.trim() !== '' && senha !== '********') updates.senha = await bcrypt.hash(senha, 10);
 
@@ -1254,6 +1254,19 @@ module.exports = function (supabase) {
                     console.error('[UPDATE_PROFILE_ERROR]', error);
                     throw error;
                 }
+            }
+
+            // Persiste telefone e email de contato como config global do site
+            const contentUpdates = [];
+            if (telefone && telefone.trim()) {
+                const phone = telefone.replace(/\D/g, '');
+                contentUpdates.push({ key: 'contact_phone', value: phone, updated_at: new Date().toISOString() });
+            }
+            if (contact_email && contact_email.trim()) {
+                contentUpdates.push({ key: 'contact_email', value: contact_email.trim(), updated_at: new Date().toISOString() });
+            }
+            if (contentUpdates.length) {
+                await supabase.from('site_content').upsert(contentUpdates);
             }
 
             res.json({ success: true, message: 'Perfil atualizado com sucesso!' });

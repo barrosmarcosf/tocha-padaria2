@@ -33,6 +33,23 @@ module.exports = function (supabase) {
     // ──────────────────────────────────────────────────
     // STATUS DA LOJA (Sincronizado)
     // ──────────────────────────────────────────────────
+    // Config pública leve (telefone + email de contato) — sem autenticação
+    router.get('/site-config', async (req, res) => {
+        try {
+            const { data } = await supabase
+                .from('site_content')
+                .select('key, value')
+                .in('key', ['contact_phone', 'contact_email']);
+            const config = { phone: '5521966278965', contactEmail: 'contato@tochapadaria.com' };
+            (data || []).forEach(row => {
+                if (row.key === 'contact_phone' && row.value)  config.phone        = row.value;
+                if (row.key === 'contact_email' && row.value)  config.contactEmail = row.value;
+            });
+            res.set('Cache-Control', 'public, max-age=60');
+            res.json(config);
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
     router.get('/store-status', async (req, res) => {
         try {
             const { data, error } = await supabase.from('site_content').select('value').eq('key', 'opening_hours').single();

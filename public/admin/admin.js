@@ -5464,7 +5464,7 @@ let state = {
                     <i data-lucide="file-text" style="width:14px; height:14px; color: #f59e0b;"></i>
                     ${t.name}
                 </div>
-                <div style="font-size: 0.875rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; font-weight: 600; font-style: italic;">"${t.text}"</div>
+                <div style="font-size: 0.875rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; font-weight: 600;">"${t.text}"</div>
                 <div style="position: absolute; top: 0.7rem; right: 1rem; display: flex; align-items: center; background: #fff; padding-left: 10px;">
                     <button onclick="event.stopPropagation(); fillEngagementText(${i})" 
                             style="background: #6366f1; color: #fff; border: none; border-radius: 10px; padding: 0.55rem 1.1rem; font-size: 0.875rem; font-weight: 800; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);"

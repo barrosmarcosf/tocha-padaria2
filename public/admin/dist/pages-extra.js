@@ -166,7 +166,7 @@ function ColumnChart({
 }) {
   const max = Math.max(...data.map(d => d.v), 1);
   const W = 520,
-    H = 180,
+    H = 153,
     P = 28,
     BW = (W - P * 2) / data.length * 0.62;
   const step = (W - P * 2) / data.length;
@@ -221,7 +221,7 @@ function BarChart({
 }) {
   const max = Math.max(...data.map(d => d.v), 1);
   const W = 520,
-    H = 180,
+    H = 153,
     P = 70,
     RH = (H - 24) / data.length * 0.68;
   const step = (H - 24) / data.length;

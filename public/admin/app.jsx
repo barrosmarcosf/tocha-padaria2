@@ -143,7 +143,7 @@ function Login({ onAuth }) {
             width: 32, height: 32, border: '1px solid var(--gold-line)',
             borderRadius: 4, display: 'grid', placeItems: 'center', padding: 4,
           }}>
-            <img src="/assets/logo-footer%20(1).png" style={{ width: '100%', height: '100%', objectFit: 'contain' }}/>
+            <img src="/assets/logo.png" style={{ width: '100%', height: '100%', objectFit: 'contain' }}/>
           </div>
           <div style={{ fontFamily: 'var(--display)', fontSize: 20, color: 'var(--ink)', fontStyle: 'normal', letterSpacing: '0.04em' }}>TOCHA</div>
         </div>

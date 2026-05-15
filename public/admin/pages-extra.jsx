@@ -108,7 +108,7 @@ const TONE_COLOR = {
 
 function ColumnChart({ data, color, unit }) {
   const max = Math.max(...data.map(d => d.v), 1);
-  const W = 520, H = 180, P = 28, BW = (W - P * 2) / data.length * 0.62;
+  const W = 520, H = 153, P = 28, BW = (W - P * 2) / data.length * 0.62;
   const step = (W - P * 2) / data.length;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }}>
@@ -134,7 +134,7 @@ function ColumnChart({ data, color, unit }) {
 
 function BarChart({ data, color, unit }) {
   const max = Math.max(...data.map(d => d.v), 1);
-  const W = 520, H = 180, P = 70, RH = (H - 24) / data.length * 0.68;
+  const W = 520, H = 153, P = 70, RH = (H - 24) / data.length * 0.68;
   const step = (H - 24) / data.length;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }}>
