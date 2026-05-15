@@ -330,12 +330,46 @@
     return result;
   }
 
+  function _parseBannerTitle(raw) {
+    if (!raw) return '';
+    return raw
+      .split('\n')
+      .map(function (line) { return line.replace(/\*([^*]+)\*/g, '<em>$1</em>'); })
+      .join('<br>');
+  }
+
+  function applyHeroBanner(hp) {
+    if (!hp) return;
+    var idx     = ((hp.active || 1) - 1);
+    var banners = hp.banners || [];
+    var b       = banners[idx] || banners[0];
+    if (!b) return;
+
+    var heroImg  = qs('#hero-img');
+    var heroTag  = qs('#hero-tag');
+    var heroH1   = qs('#hero-h1');
+    var heroDesc = qs('#hero-desc');
+
+    if (heroImg && b.imageUrl) {
+      heroImg.src = (b.imageUrl.startsWith('http') ? '' : '/') + b.imageUrl;
+      var zoom = parseFloat(b.image_zoom) || 1;
+      heroImg.style.transform       = 'scale(' + zoom + ')';
+      heroImg.style.transformOrigin = 'center center';
+    }
+    if (heroTag && b.kicker)  heroTag.textContent = b.kicker;
+    if (heroH1  && b.title)   heroH1.innerHTML    = _parseBannerTitle(b.title);
+    if (heroDesc && b.desc)   heroDesc.textContent = b.desc;
+  }
+
   function loadMenuFromAPI() {
     var ctrl  = new AbortController();
     var timer = setTimeout(function () { ctrl.abort(); }, 6000);
     return fetch('/api/config', { signal: ctrl.signal })
       .then(function (r) { clearTimeout(timer); return r.json(); })
       .then(function (config) {
+        if (config.siteContent && config.siteContent.home_banners) {
+          applyHeroBanner(config.siteContent.home_banners);
+        }
         var transformed = _transformConfig(config);
         var keys = Object.keys(transformed);
         var totalItems = keys.reduce(function (n, k) { return n + transformed[k].items.length; }, 0);

@@ -483,12 +483,14 @@ const BANNER_DEFAULTS = [{
   kicker: 'Fermentação Natural',
   title: 'O pão que\ntransforma\no seu dia',
   desc: 'Cada pão nasce de levain vivo, farinha de qualidade e tempo; não tem atalho, tem respeito.',
-  imageUrl: ''
+  imageUrl: '',
+  image_zoom: 1
 }, {
   kicker: 'Fornada de Sábado',
   title: 'Reserve sua\nfornada da\nsemana',
   desc: 'Pedidos abertos até sexta-feira às 16h. Retirada sábado a partir das 9h, ainda quente da pedra.',
-  imageUrl: ''
+  imageUrl: '',
+  image_zoom: 1
 }];
 function BannerEditor({
   index,
@@ -569,7 +571,25 @@ function BannerEditor({
     rows: 3,
     value: value.desc,
     onChange: set('desc')
-  }))), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "form-row"
+  }, /*#__PURE__*/React.createElement("label", null, "Zoom da imagem"), /*#__PURE__*/React.createElement("input", {
+    type: "range",
+    min: "0.8",
+    max: "1.5",
+    step: "0.05",
+    value: value.image_zoom ?? 1,
+    onChange: e => onChange({
+      ...value,
+      image_zoom: parseFloat(e.target.value)
+    }),
+    style: {
+      width: '100%',
+      accentColor: 'var(--gold)'
+    }
+  }), /*#__PURE__*/React.createElement("small", {
+    className: "hint"
+  }, "Zoom: ", ((value.image_zoom ?? 1) * 100).toFixed(0), "% \u2014 padr\xE3o 100%"))), /*#__PURE__*/React.createElement("div", {
     className: "hp-preview"
   }, /*#__PURE__*/React.createElement("div", {
     className: "section-title"

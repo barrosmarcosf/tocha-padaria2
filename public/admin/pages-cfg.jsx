@@ -327,8 +327,8 @@ function CycleCard({ num, label, values, onChange }) {
 
 /* ========== HOME PAGE EDITOR ========== */
 const BANNER_DEFAULTS = [
-  { kicker: 'Fermentação Natural', title: 'O pão que\ntransforma\no seu dia', desc: 'Cada pão nasce de levain vivo, farinha de qualidade e tempo; não tem atalho, tem respeito.', imageUrl: '' },
-  { kicker: 'Fornada de Sábado', title: 'Reserve sua\nfornada da\nsemana', desc: 'Pedidos abertos até sexta-feira às 16h. Retirada sábado a partir das 9h, ainda quente da pedra.', imageUrl: '' },
+  { kicker: 'Fermentação Natural', title: 'O pão que\ntransforma\no seu dia', desc: 'Cada pão nasce de levain vivo, farinha de qualidade e tempo; não tem atalho, tem respeito.', imageUrl: '', image_zoom: 1 },
+  { kicker: 'Fornada de Sábado', title: 'Reserve sua\nfornada da\nsemana', desc: 'Pedidos abertos até sexta-feira às 16h. Retirada sábado a partir das 9h, ainda quente da pedra.', imageUrl: '', image_zoom: 1 },
 ];
 
 function BannerEditor({ index, value, onChange, active, onSelect }) {
@@ -388,6 +388,18 @@ function BannerEditor({ index, value, onChange, active, onSelect }) {
               <small className="ref-tag purple">Ref. retângulo roxo</small>
             </label>
             <textarea className="inp" rows={3} value={value.desc} onChange={set('desc')}/>
+          </div>
+
+          <div className="form-row">
+            <label>Zoom da imagem</label>
+            <input
+              type="range"
+              min="0.8" max="1.5" step="0.05"
+              value={value.image_zoom ?? 1}
+              onChange={(e) => onChange({ ...value, image_zoom: parseFloat(e.target.value) })}
+              style={{ width: '100%', accentColor: 'var(--gold)' }}
+            />
+            <small className="hint">Zoom: {((value.image_zoom ?? 1) * 100).toFixed(0)}% — padrão 100%</small>
           </div>
         </div>
 
