@@ -565,6 +565,7 @@ module.exports = function (supabase) {
         try {
             const { error } = await supabase.from('categorias').upsert([req.body], { onConflict: 'slug' });
             if (error) throw error;
+            if (req.app.locals.broadcastMenuUpdate) req.app.locals.broadcastMenuUpdate({ table: 'categorias' });
             res.json({ success: true });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
@@ -731,10 +732,11 @@ module.exports = function (supabase) {
                  }
             }
 
+            if (req.app.locals.broadcastMenuUpdate) req.app.locals.broadcastMenuUpdate({ table: 'produtos' });
             res.json({ success: true });
-        } catch (e) { 
+        } catch (e) {
             console.error("❌ Erro ao salvar produto:", e.message);
-            res.status(500).json({ error: e.message }); 
+            res.status(500).json({ error: e.message });
         }
     });
 
@@ -754,6 +756,9 @@ module.exports = function (supabase) {
             if (!ALLOWED_TABLES.includes(table)) return res.status(403).json({ error: `Operação não permitida na tabela '${table}'.` });
             const { error } = await supabase.from(table).delete().eq('id', id);
             if (error) throw error;
+            if (['categorias', 'produtos'].includes(table) && req.app.locals.broadcastMenuUpdate) {
+                req.app.locals.broadcastMenuUpdate({ table });
+            }
             res.json({ success: true });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
@@ -1235,7 +1240,8 @@ module.exports = function (supabase) {
             if (error) throw error;
             
             const status = await getUnifiedStoreStatus(supabase);
-            
+
+            if (req.app.locals.broadcastStoreStatus) req.app.locals.broadcastStoreStatus({ open: status.isOpen });
             res.json({ success: true, open: status.isOpen, statusMode: status.statusMode, message: status.message, allowNextBatch: status.allowNextBatch });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });

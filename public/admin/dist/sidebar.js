@@ -214,6 +214,21 @@ function Topbar({
 }) {
   const [open, setOpen] = React.useState(false);
   const [user, setUser] = React.useState(_readUser);
+  const [lojaAberta, setLojaAberta] = React.useState(true);
+  const [togglingLoja, setTogglingLoja] = React.useState(false);
+  React.useEffect(() => {
+    window.apiGet('/api/admin/store-status').then(d => setLojaAberta(d.open !== false)).catch(() => {});
+  }, []);
+  const toggleLoja = e => {
+    e.stopPropagation();
+    if (togglingLoja) return;
+    const next = !lojaAberta;
+    setLojaAberta(next);
+    setTogglingLoja(true);
+    window.apiPost('/api/admin/toggle-store', {
+      open: next
+    }).then(d => setLojaAberta(d.open !== false)).catch(() => setLojaAberta(!next)).finally(() => setTogglingLoja(false));
+  };
   React.useEffect(() => {
     if (!open) return;
     const fn = () => setOpen(false);
@@ -257,17 +272,14 @@ function Topbar({
     className: "crumb"
   }, /*#__PURE__*/React.createElement("span", null, "Admin"), /*#__PURE__*/React.createElement(Ic.chev, null), /*#__PURE__*/React.createElement("b", null, pageLabel)), /*#__PURE__*/React.createElement("div", {
     className: "tb-spacer"
-  }), /*#__PURE__*/React.createElement("span", {
-    className: "status-pill"
+  }), /*#__PURE__*/React.createElement("button", {
+    className: `status-pill${lojaAberta ? '' : ' closed'}`,
+    onClick: toggleLoja,
+    disabled: togglingLoja,
+    title: lojaAberta ? 'Loja aberta — clique para fechar' : 'Loja fechada — clique para abrir'
   }, /*#__PURE__*/React.createElement("span", {
     className: "dot"
-  }), "Loja aberta"), /*#__PURE__*/React.createElement("button", {
-    className: "icon-btn",
-    title: "Buscar"
-  }, /*#__PURE__*/React.createElement(Ic.search, null)), /*#__PURE__*/React.createElement("button", {
-    className: "icon-btn",
-    title: "Alertas"
-  }, /*#__PURE__*/React.createElement(Ic.bell, null)), /*#__PURE__*/React.createElement("div", {
+  }), lojaAberta ? 'Loja aberta' : 'Loja fechada'), /*#__PURE__*/React.createElement("div", {
     className: "tb-store user-pop-wrap",
     onClick: e => {
       e.stopPropagation();

@@ -228,9 +228,26 @@ app.get('/api/stock-stream', (req, res) => {
 function broadcastStockUpdate(data) {
     const payload = JSON.stringify({ type: 'stock_update', ...data });
     sseClients.forEach(client => {
-        client.res.write(`data: ${payload}\n\n`);
+        try { client.res.write(`data: ${payload}\n\n`); } catch (_) {}
     });
 }
+
+function broadcastMenuUpdate(data) {
+    const payload = JSON.stringify({ type: 'menu_update', ...(data || {}) });
+    sseClients.forEach(client => {
+        try { client.res.write(`data: ${payload}\n\n`); } catch (_) {}
+    });
+}
+
+function broadcastStoreStatus(data) {
+    const payload = JSON.stringify({ type: 'store_status', ...(data || {}) });
+    sseClients.forEach(client => {
+        try { client.res.write(`data: ${payload}\n\n`); } catch (_) {}
+    });
+}
+
+app.locals.broadcastMenuUpdate = broadcastMenuUpdate;
+app.locals.broadcastStoreStatus = broadcastStoreStatus;
 
 // Subscrição em tempo real no Supabase (Backend -> Frontend via SSE)
 supabase
@@ -244,6 +261,20 @@ supabase
         initialStock: data.estoque_base,
         vendas: data.vendas_confirmadas
     });
+  })
+  .subscribe();
+
+supabase
+  .channel('menu-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'categorias' }, () => {
+    broadcastMenuUpdate({ table: 'categorias' });
+  })
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'produtos' }, () => {
+    broadcastMenuUpdate({ table: 'produtos' });
+  })
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'site_content' }, (payload) => {
+    const key = (payload.new || payload.old || {}).key;
+    if (key === 'opening_hours') broadcastStoreStatus({});
   })
   .subscribe();
 

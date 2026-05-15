@@ -3782,7 +3782,9 @@ function CardapioPage() {
     color: active ? 'var(--up)' : 'var(--down)',
     opacity: isLoading ? 0.4 : 1,
     fontFamily: 'inherit',
-    whiteSpace: 'nowrap'
+    whiteSpace: 'nowrap',
+    minWidth: 62,
+    textAlign: 'center'
   });
   return /*#__PURE__*/React.createElement("div", {
     className: "page"

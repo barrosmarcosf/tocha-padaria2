@@ -65,6 +65,24 @@
     }, []);
 
     useEffect(() => {
+      const es = new EventSource('/api/stock-stream');
+      es.onmessage = (ev) => {
+        try {
+          const data = JSON.parse(ev.data);
+          if (data.type === 'menu_update') {
+            fetchWithTimeout('/api/config', {}, 8000)
+              .then(r => r.json()).then(setConfig).catch(() => {});
+          } else if (data.type === 'store_status') {
+            fetchWithTimeout('/api/status', {}, 8000)
+              .then(r => r.json()).then(setStatus).catch(() => {});
+          }
+        } catch (_) {}
+      };
+      es.onerror = () => { es.close(); };
+      return () => es.close();
+    }, []);
+
+    useEffect(() => {
       const h = () => setCart(getCart());
       window.addEventListener('storage', h);
       return () => window.removeEventListener('storage', h);
