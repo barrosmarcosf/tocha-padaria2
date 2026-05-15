@@ -37,7 +37,7 @@
 
   function App() {
     const [status, setStatus]               = useState(null);
-    const [config, setConfig]               = useState(null);
+    const [config, setConfig]               = useState(() => window.__INITIAL_CONFIG__ || null);
     const [cart, setCart]                   = useState(getCart);
     const [cartOpen, setCartOpen]           = useState(false);
     const [captureOpen, setCaptureOpen]     = useState(false);

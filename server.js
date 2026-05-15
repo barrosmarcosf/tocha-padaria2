@@ -170,7 +170,30 @@ app.use('/api', require('./src/routes/events')(supabase));
 app.get('/debug', (req, res) => {
   res.send('VERSAO NOVA 123');
 });
-app.get('/', (_req, res) => res.status(200).sendFile(path.join(__dirname, 'public', 'index.html')));
+const { getUnifiedProductList } = require('./src/services/stockService');
+const _indexHtmlPath = path.join(__dirname, 'public', 'index.html');
+
+app.get('/', async (_req, res) => {
+    try {
+        const [{ data: categorias }, { data: produtosRaw }, { data: content }] = await Promise.all([
+            supabase.from('categorias').select('*').eq('is_active', true).order('display_order', { ascending: true }),
+            supabase.from('produtos').select('*').eq('is_active', true).order('display_order', { ascending: true }),
+            supabase.from('site_content').select('*'),
+        ]);
+        const siteContent = {};
+        (content || []).forEach(c => siteContent[c.key] = c.value);
+        const produtos = await getUnifiedProductList(supabase, produtosRaw || []);
+        const safeJson = JSON.stringify({ categorias: categorias || [], produtos, siteContent })
+            .replace(/<\/script>/gi, '<\\/script>');
+        const rawHtml = fs.readFileSync(_indexHtmlPath, 'utf8');
+        const html = rawHtml.replace('</head>', `<script>window.__INITIAL_CONFIG__=${safeJson};</script>\n</head>`);
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.send(html);
+    } catch (e) {
+        console.error('[HOME] Erro ao injetar config inicial:', e.message);
+        res.status(200).sendFile(_indexHtmlPath);
+    }
+});
 app.get('/checkout-mp.html', (_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
