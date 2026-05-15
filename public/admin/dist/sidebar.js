@@ -118,10 +118,29 @@ const NAV = [{
   label: 'Insights',
   icon: Ic.bulb
 }];
+function _readUser() {
+  try {
+    return JSON.parse(localStorage.getItem('tocha_admin_user') || '{}');
+  } catch {
+    return {};
+  }
+}
 function Sidebar({
   active,
   onNavigate
 }) {
+  const [user, setUser] = React.useState(_readUser);
+  React.useEffect(() => {
+    const handler = e => setUser(prev => ({
+      ...prev,
+      ...e.detail
+    }));
+    window.addEventListener('tocha:profile-updated', handler);
+    return () => window.removeEventListener('tocha:profile-updated', handler);
+  }, []);
+  const initials = (user.nome || 'T')[0].toUpperCase();
+  const avatarUrl = user.avatar_url;
+  const email = user.email || 'admin@tochapadaria';
   return /*#__PURE__*/React.createElement("aside", {
     className: "sb"
   }, /*#__PURE__*/React.createElement("div", {
@@ -159,12 +178,30 @@ function Sidebar({
   })), /*#__PURE__*/React.createElement("div", {
     className: "sb-foot"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "sb-avatar"
-  }, "TP"), /*#__PURE__*/React.createElement("div", {
+    className: "sb-avatar",
+    style: {
+      overflow: 'hidden',
+      padding: avatarUrl ? 0 : undefined
+    }
+  }, avatarUrl ? /*#__PURE__*/React.createElement("img", {
+    src: '/' + avatarUrl,
+    style: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover'
+    }
+  }) : initials), /*#__PURE__*/React.createElement("div", {
     style: {
       minWidth: 0
     }
-  }, /*#__PURE__*/React.createElement("b", null, "TOCHA PADARIA"), /*#__PURE__*/React.createElement("small", null, "admin@tochapadaria"))));
+  }, /*#__PURE__*/React.createElement("b", null, "TOCHA PADARIA"), /*#__PURE__*/React.createElement("small", {
+    style: {
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      display: 'block'
+    }
+  }, email))));
 }
 function Topbar({
   pageLabel,
@@ -172,12 +209,44 @@ function Topbar({
   onHamburger
 }) {
   const [open, setOpen] = React.useState(false);
+  const [user, setUser] = React.useState(_readUser);
   React.useEffect(() => {
     if (!open) return;
     const fn = () => setOpen(false);
     window.addEventListener('click', fn);
     return () => window.removeEventListener('click', fn);
   }, [open]);
+  React.useEffect(() => {
+    const handler = e => setUser(prev => ({
+      ...prev,
+      ...e.detail
+    }));
+    window.addEventListener('tocha:profile-updated', handler);
+    return () => window.removeEventListener('tocha:profile-updated', handler);
+  }, []);
+  const avatarUrl = user.avatar_url;
+  const email = user.email || 'admin@tochapadaria';
+  const AvatarOrLogo = ({
+    small
+  }) => /*#__PURE__*/React.createElement("div", {
+    className: `lg${small ? ' sm' : ''}`
+  }, avatarUrl ? /*#__PURE__*/React.createElement("img", {
+    src: '/' + avatarUrl,
+    style: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      borderRadius: 'inherit'
+    }
+  }) : /*#__PURE__*/React.createElement("img", {
+    src: LOGO,
+    style: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'contain',
+      padding: 2
+    }
+  }));
   return /*#__PURE__*/React.createElement("div", {
     className: "topbar"
   }, /*#__PURE__*/React.createElement("div", {
@@ -200,32 +269,14 @@ function Topbar({
       e.stopPropagation();
       setOpen(o => !o);
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "lg"
-  }, /*#__PURE__*/React.createElement("img", {
-    src: LOGO,
-    style: {
-      width: '100%',
-      height: '100%',
-      objectFit: 'contain',
-      padding: 2
-    }
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "TOCHA PADARIA")), open && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement(AvatarOrLogo, null), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "TOCHA PADARIA")), open && /*#__PURE__*/React.createElement("div", {
     className: "user-pop",
     onClick: e => e.stopPropagation()
   }, /*#__PURE__*/React.createElement("div", {
     className: "user-pop-head"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "lg sm"
-  }, /*#__PURE__*/React.createElement("img", {
-    src: LOGO,
-    style: {
-      width: '100%',
-      height: '100%',
-      objectFit: 'contain',
-      padding: 2
-    }
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "TOCHA PADARIA"), /*#__PURE__*/React.createElement("small", null, "admin@tochapadaria"))), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement(AvatarOrLogo, {
+    small: true
+  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("b", null, "TOCHA PADARIA"), /*#__PURE__*/React.createElement("small", null, email))), /*#__PURE__*/React.createElement("button", {
     className: "user-pop-item",
     onClick: () => {
       setOpen(false);

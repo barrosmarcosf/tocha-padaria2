@@ -2389,7 +2389,9 @@ function EditarPerfilPage() {
   const [nome, setNome] = useStX(stored.nome || '');
   const [tel, setTel] = useStX(stored.telefone || '');
   const [email, setEmail] = useStX(stored.email || '');
+  const [contactEmail, setContactEmail] = useStX('');
   const [senha, setSenha] = useStX('');
+  const [showSenha, setShowSenha] = useStX(false);
   const [dirty, setDirty] = useStX(false);
   const [saving, setSaving] = useStX(false);
   const [msg, setMsg] = useStX('');
@@ -2399,9 +2401,18 @@ function EditarPerfilPage() {
 
   useEffX(() => {
     window.apiGet('/api/admin/config')
-      .then(d => { const url = d?.siteContent?.admin_profile_avatar; if (url) setAvatarUrl(url); })
+      .then(d => {
+        const sc = d?.siteContent || {};
+        if (sc.admin_profile_avatar) setAvatarUrl(sc.admin_profile_avatar);
+        if (sc.contact_phone) setTel(sc.contact_phone);
+        if (sc.contact_email) setContactEmail(sc.contact_email);
+      })
       .catch(() => {});
   }, []);
+
+  const _dispatchProfileUpdate = (patch) => {
+    window.dispatchEvent(new CustomEvent('tocha:profile-updated', { detail: patch }));
+  };
 
   const handleAvatarFile = async (e) => {
     const file = e.target.files?.[0];
@@ -2414,6 +2425,7 @@ function EditarPerfilPage() {
       await window.apiPost('/api/admin/save-content', { key: 'admin_profile_avatar', value: url });
       const updated = { ...stored, avatar_url: url };
       localStorage.setItem('tocha_admin_user', JSON.stringify(updated));
+      _dispatchProfileUpdate({ avatar_url: url });
     } catch (err) { alert('Erro no upload: ' + err.message); }
     finally { setUploadingAvatar(false); }
   };
@@ -2421,13 +2433,18 @@ function EditarPerfilPage() {
   const upd = (fn, v) => { fn(v); setDirty(true); setMsg(''); };
 
   const handleSave = () => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setMsg('Erro: informe um e-mail de login válido');
+      return;
+    }
     setSaving(true);
-    const payload = { nome, email };
+    const payload = { nome, email, telefone: tel, contact_email: contactEmail };
     if (senha && senha.trim()) payload.senha = senha;
     window.apiPost('/api/admin/update-profile', payload)
       .then(() => {
         const updated = { ...stored, nome, email, telefone: tel };
         localStorage.setItem('tocha_admin_user', JSON.stringify(updated));
+        _dispatchProfileUpdate({ nome, email, telefone: tel });
         setDirty(false);
         setSenha('');
         setMsg('Perfil atualizado com sucesso!');
@@ -2435,6 +2452,18 @@ function EditarPerfilPage() {
       .catch(e => setMsg('Erro: ' + e.message))
       .finally(() => setSaving(false));
   };
+
+  const EyeIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+    </svg>
+  );
+  const EyeOffIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+      <line x1="1" y1="1" x2="23" y2="23"/>
+    </svg>
+  );
 
   return (
     <div className="page">
@@ -2483,21 +2512,44 @@ function EditarPerfilPage() {
                 <input className="inp" value={nome} onChange={e => upd(setNome, e.target.value)}/>
               </label>
               <label className="field">
-                <span>Telefone <em className="req">*</em></span>
+                <span>Telefone / WhatsApp <em className="req">*</em></span>
                 <div className="inp-phone">
                   <span className="flag">🇧🇷</span>
-                  <input className="inp" value={tel} onChange={e => upd(setTel, e.target.value)}/>
+                  <input className="inp" value={tel} onChange={e => upd(setTel, e.target.value)} placeholder="5521966278965"/>
                 </div>
               </label>
             </div>
             <label className="field">
-              <span>E-mail <em className="req">*</em></span>
-              <input className="inp" value={email} onChange={e => upd(setEmail, e.target.value)}/>
+              <span>E-mail de login (admin) <em className="req">*</em></span>
+              <input className="inp" type="email" value={email} onChange={e => upd(setEmail, e.target.value)}/>
+            </label>
+            <label className="field">
+              <span>E-mail de contato (exibido no site)</span>
+              <input className="inp" type="email" value={contactEmail} onChange={e => upd(setContactEmail, e.target.value)} placeholder="contato@tochapadaria.com"/>
             </label>
             <label className="field">
               <span>Senha</span>
-              <input className="inp" type="password" value={senha} placeholder="Deixe em branco para manter a atual"
-                onChange={e => upd(setSenha, e.target.value)}/>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                  className="inp"
+                  type={showSenha ? 'text' : 'password'}
+                  value={senha}
+                  placeholder="Deixe em branco para manter a atual"
+                  onChange={e => upd(setSenha, e.target.value)}
+                  style={{ paddingRight: 40, width: '100%' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSenha(v => !v)}
+                  style={{
+                    position: 'absolute', right: 10, background: 'none', border: 'none',
+                    cursor: 'pointer', color: 'var(--ink-3)', display: 'flex', alignItems: 'center', padding: 0,
+                  }}
+                  title={showSenha ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {showSenha ? <EyeOffIcon/> : <EyeIcon/>}
+                </button>
+              </div>
             </label>
             {msg && <div style={{ color: msg.startsWith('Erro') ? 'var(--down)' : 'var(--up)', fontSize: 13 }}>{msg}</div>}
           </div>

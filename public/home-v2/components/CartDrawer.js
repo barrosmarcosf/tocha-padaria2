@@ -124,7 +124,7 @@
                 <strong style=${{ color: 'var(--amber)' }}>${fmt(total)}</strong>
               </div>
               <a
-                href=${'https://wa.me/5521966278965?text=' + encodeURIComponent(
+                href=${'https://wa.me/' + ((window.SITE_CONFIG && window.SITE_CONFIG.phone) || '5521966278965') + '?text=' + encodeURIComponent(
                   'Olá! Quero fazer um pedido:\n' +
                   (cart || []).map(i => '• ' + i.name + ' x' + i.qty + ' — R$ ' + (i.price * i.qty).toFixed(2).replace('.', ',')).join('\n') +
                   '\n\nTotal: ' + fmt(total)

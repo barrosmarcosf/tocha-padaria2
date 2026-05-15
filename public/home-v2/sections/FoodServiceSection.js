@@ -78,7 +78,7 @@
                   adaptação conforme sua demanda.
                 </p>
                 <a
-                  href="https://wa.me/5521966278965?text=Ol%C3%A1%21+Tenho+interesse+em+foodservice."
+                  href=${'https://wa.me/' + ((window.SITE_CONFIG && window.SITE_CONFIG.phone) || '5521966278965') + '?text=Ol%C3%A1%21+Tenho+interesse+em+foodservice.'}
                   target="_blank"
                   rel="noopener noreferrer"
                   style=${{

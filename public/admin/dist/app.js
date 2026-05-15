@@ -190,7 +190,7 @@ function Login({
       padding: 4
     }
   }, /*#__PURE__*/React.createElement("img", {
-    src: "/assets/logo-footer%20(1).png",
+    src: "/assets/logo.png",
     style: {
       width: '100%',
       height: '100%',

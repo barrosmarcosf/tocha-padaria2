@@ -1812,19 +1812,46 @@
   // ──────────────────────────────────────────────
   // INIT
   // ──────────────────────────────────────────────
+  function loadSiteConfig() {
+    return fetch('/api/site-config')
+      .then(function (r) { return r.json(); })
+      .then(function (cfg) {
+        window.SITE_CONFIG = cfg;
+        // Atualiza todos os links wa.me e mailto hardcoded no HTML estático
+        if (cfg.phone) {
+          qsa('a[href*="wa.me/"]').forEach(function (a) {
+            a.href = a.href.replace(/wa\.me\/\d+/, 'wa.me/' + cfg.phone);
+          });
+        }
+        if (cfg.contactEmail) {
+          qsa('a[href^="mailto:"]').forEach(function (a) {
+            var text = a.href.replace('mailto:', '').split('?')[0];
+            if (text && text !== cfg.contactEmail) {
+              a.href = a.href.replace('mailto:' + text, 'mailto:' + cfg.contactEmail);
+              if (a.textContent.trim() === text) a.textContent = cfg.contactEmail;
+            }
+          });
+        }
+      })
+      .catch(function () {});
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
-    initCountdown();
-    initNavbar();
-    initHeroParallax();
-    initManifestoStrip();
-    initHowItWorks();
-    initScrollReveal();
-    initMenu();
-    loadMenuFromAPI().then(function (hasApiData) {
-      if (hasApiData) initMenu();
+    // Carrega config global (telefone, email) antes de inicializar componentes
+    loadSiteConfig().then(function () {
+      initCountdown();
+      initNavbar();
+      initHeroParallax();
+      initManifestoStrip();
+      initHowItWorks();
+      initScrollReveal();
+      initMenu();
+      loadMenuFromAPI().then(function (hasApiData) {
+        if (hasApiData) initMenu();
+      });
+      initCartDrawer();
+      initEarlyCaptureModal();
     });
-    initCartDrawer();
-    initEarlyCaptureModal();
   });
 
 }());

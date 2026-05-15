@@ -72,7 +72,7 @@
                 Contato
               </div>
               <a
-                href="https://wa.me/5521966278965"
+                href=${'https://wa.me/' + ((window.SITE_CONFIG && window.SITE_CONFIG.phone) || '5521966278965')}
                 target="_blank"
                 rel="noopener"
                 style=${{
