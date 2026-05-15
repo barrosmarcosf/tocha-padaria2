@@ -330,14 +330,6 @@
     return result;
   }
 
-  function _parseBannerTitle(raw) {
-    if (!raw) return '';
-    return raw
-      .split('\n')
-      .map(function (line) { return line.replace(/\*([^*]+)\*/g, '<em>$1</em>'); })
-      .join('<br>');
-  }
-
   function applyHeroBanner(hp) {
     if (!hp) return;
     var idx     = ((hp.active || 1) - 1);
@@ -345,10 +337,7 @@
     var b       = banners[idx] || banners[0];
     if (!b) return;
 
-    var heroImg  = qs('#hero-img');
-    var heroTag  = qs('#hero-tag');
-    var heroH1   = qs('#hero-h1');
-    var heroDesc = qs('#hero-desc');
+    var heroImg = qs('#hero-img');
 
     if (heroImg && b.imageUrl) {
       heroImg.src = (b.imageUrl.startsWith('http') ? '' : '/') + b.imageUrl;
@@ -356,9 +345,6 @@
       heroImg.style.transform       = 'scale(' + zoom + ')';
       heroImg.style.transformOrigin = 'center center';
     }
-    if (heroTag && b.kicker)  heroTag.textContent = b.kicker;
-    if (heroH1  && b.title)   heroH1.innerHTML    = _parseBannerTitle(b.title);
-    if (heroDesc && b.desc)   heroDesc.textContent = b.desc;
   }
 
   function loadMenuFromAPI() {
@@ -1845,9 +1831,8 @@
       initManifestoStrip();
       initHowItWorks();
       initScrollReveal();
-      initMenu();
-      loadMenuFromAPI().then(function (hasApiData) {
-        if (hasApiData) initMenu();
+      loadMenuFromAPI().then(function () {
+        initMenu();
       });
       initCartDrawer();
       initEarlyCaptureModal();
