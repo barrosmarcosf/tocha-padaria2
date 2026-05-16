@@ -440,8 +440,14 @@ window.confirmarPedido = async function() {
     const payment = paymentEl ? paymentEl.value : 'pix';
     const cartToCheckout = JSON.parse(localStorage.getItem('tocha-cart') || '[]');
 
-    if (!name || !whatsapp || !email) {
-        openPaymentErrorModal("Preencha todos os campos obrigatórios.");
+    if (!name || !whatsapp) {
+        openPaymentErrorModal("Preencha nome e WhatsApp para continuar.");
+        window.__checkoutLock = false;
+        return;
+    }
+
+    if (email && !/^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{2,}$/.test(email)) {
+        openPaymentErrorModal("Email inválido. Corrija ou deixe em branco para continuar.");
         window.__checkoutLock = false;
         return;
     }
@@ -605,14 +611,15 @@ function injectCart() {
             </div>
 
             <div id="cartFooter" class="cart-footer" hidden>
-                <div class="cupom">
-                    <input id="couponInput" placeholder="CUPOM DE DESCONTO">
-                    <button id="applyCouponBtn">Aplicar</button>
-                </div>
                 <div class="totais">
                     <div><span>Subtotal</span><span id="subtotalLabel">R$ 0,00</span></div>
                     <div id="discountRow" hidden><span>Desconto</span><span class="green" id="discountLabel">— R$ 0,00</span></div>
                     <div class="total-row"><span>Total</span><span id="totalLabel">R$ 0,00</span></div>
+                </div>
+
+                <div class="cupom">
+                    <input id="couponInput" placeholder="CUPOM DE DESCONTO">
+                    <button id="applyCouponBtn">Aplicar</button>
                 </div>
 
                 <button class="btn-primary" onclick="openCheckoutModal()">FINALIZAR PEDIDO</button>
@@ -642,9 +649,10 @@ function injectCart() {
                     <div class="input-error-text"></div>
                 </div>
 
+                <p class="email-hint">Cadastre seu email para enviarmos seu recibo</p>
                 <div class="form-group">
-                    <label>Email <span class="required">*</span></label>
-                    <input id="id-email" type="email" placeholder="seu@email.com" class="modal-input" />
+                    <label>Email</label>
+                    <input id="id-email" type="email" placeholder="seu@email.com (opcional)" class="modal-input" />
                     <div class="input-error-text"></div>
                 </div>
 
