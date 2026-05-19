@@ -10,6 +10,42 @@ const { getUnifiedAvailableStock } = require('../services/stockService');
 const { getUnifiedStoreStatus } = require('../services/storeStatusService');
 const { deductStockAtomico } = require('../utils/deductStock');
 
+// Validações de pedido reutilizadas nos endpoints de preparação MP
+const _EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{2,}$/;
+function validateCustomer(c) {
+    if (!c || typeof c !== 'object') return 'Dados do cliente inválidos.';
+    const name = typeof c.name === 'string' ? c.name.trim() : '';
+    if (name.length < 2 || name.length > 200) return 'Nome deve ter entre 2 e 200 caracteres.';
+    if (!c.email || !_EMAIL_RE.test(String(c.email))) return 'Email inválido.';
+    if (String(c.email).length > 254) return 'Email muito longo.';
+    const digits = String(c.whatsapp || '').replace(/\D/g, '');
+    if (digits.length < 10 || digits.length > 15) return 'WhatsApp inválido (10-15 dígitos).';
+    return null;
+}
+function validateCart(cart) {
+    if (!Array.isArray(cart) || cart.length === 0) return 'Carrinho vazio.';
+    if (cart.length > 50) return 'Carrinho excede o limite de 50 itens.';
+    for (const item of cart) {
+        if (!item.id) return 'Item sem ID.';
+        const qty = parseInt(item.qty);
+        if (!Number.isInteger(qty) || qty < 1 || qty > 999) return `Quantidade inválida no item ${item.id}.`;
+    }
+    return null;
+}
+
+// Rate limiter: máx 10 req/min por IP em endpoints de criação de pedido/pagamento
+const _rlCheckoutMap = new Map();
+setInterval(() => { const c = Date.now() - 60_000; for (const [k, r] of _rlCheckoutMap) if (r.first < c) _rlCheckoutMap.delete(k); }, 60_000).unref();
+function rlCheckout(req, res, next) {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
+    const now = Date.now();
+    const r = _rlCheckoutMap.get(ip);
+    if (!r || now - r.first > 60_000) { _rlCheckoutMap.set(ip, { count: 1, first: now }); return next(); }
+    if (r.count >= 10) return res.status(429).json({ error: 'Muitas requisições. Aguarde 1 minuto.' });
+    r.count++;
+    next();
+}
+
 function verifyMPWebhookSignature(req, secret) {
     const signature = req.headers['x-signature'];
     const requestId = req.headers['x-request-id'] || '';
@@ -483,13 +519,12 @@ module.exports = function (supabase) {
     });
 
     // 3.2 PREPARAR PEDIDO PIX (Cria o pedido pendente antes de criar o pagamento)
-    router.post('/prepare-pix-order', async (req, res) => {
+    router.post('/prepare-pix-order', rlCheckout, async (req, res) => {
         try {
             let { customer, cart: cartItems } = req.body;
 
-            if (!cartItems || cartItems.length === 0) {
-                return res.status(400).json({ error: 'Carrinho vazio.' });
-            }
+            const cartErr = validateCart(cartItems);
+            if (cartErr) return res.status(400).json({ error: cartErr });
 
             if (!customer?.email) {
                 const sid = req.cookies?.session_id || req.session_id;
@@ -515,6 +550,9 @@ module.exports = function (supabase) {
             if (!customer?.email) {
                 return res.status(400).json({ error: 'Dados do cliente ausentes.' });
             }
+
+            const customerErr = validateCustomer(customer);
+            if (customerErr) return res.status(400).json({ error: customerErr });
 
             const sessionFallback = req.session_id || `anon_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
             const idemKey = req.headers['x-idempotency-key'] || `session_${sessionFallback}`;
@@ -602,14 +640,13 @@ module.exports = function (supabase) {
     });
 
     // 3.3 PREPARAR PEDIDO DE CARTÃO (Cria o pedido pendente antes de ir para a página de checkout)
-    router.post('/prepare-card-order', async (req, res) => {
+    router.post('/prepare-card-order', rlCheckout, async (req, res) => {
         console.log(JSON.stringify({ tag: 'MP_PREPARE_CARD', has_customer: !!req.body?.customer, cart_size: req.body?.cart?.length || 0, timestamp: new Date().toISOString() }));
         try {
             let { customer, cart: cartItems } = req.body;
 
-            if (!cartItems || cartItems.length === 0) {
-                return res.status(400).json({ error: 'Carrinho vazio.' });
-            }
+            const cartErr = validateCart(cartItems);
+            if (cartErr) return res.status(400).json({ error: cartErr });
 
             // Fallback: busca dados do cliente via sessão se não foram enviados
             if (!customer?.email) {
@@ -636,6 +673,9 @@ module.exports = function (supabase) {
             if (!customer?.email) {
                 return res.status(400).json({ error: 'Dados do cliente ausentes.' });
             }
+
+            const customerErr2 = validateCustomer(customer);
+            if (customerErr2) return res.status(400).json({ error: customerErr2 });
 
             // 🔒 IDEMPOTÊNCIA
             const sessionFallback = req.session_id || `anon_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;

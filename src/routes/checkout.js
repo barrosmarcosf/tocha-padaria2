@@ -98,6 +98,19 @@ function buildPendingOrder(customerId, sessionId, totalAmount, storeStatus, batc
     };
 }
 
+// Rate limiter: máx 10 req/min por IP no /checkout
+const _rlCheckoutMap = new Map();
+setInterval(() => { const c = Date.now() - 60_000; for (const [k, r] of _rlCheckoutMap) if (r.first < c) _rlCheckoutMap.delete(k); }, 60_000).unref();
+function rlCheckout(req, res, next) {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
+    const now = Date.now();
+    const r = _rlCheckoutMap.get(ip);
+    if (!r || now - r.first > 60_000) { _rlCheckoutMap.set(ip, { count: 1, first: now }); return next(); }
+    if (r.count >= 10) return res.status(429).json({ error: 'Muitas requisições. Aguarde 1 minuto.' });
+    r.count++;
+    next();
+}
+
 module.exports = function (supabase, stripe) {
     const router = express.Router();
     const PORT = process.env.PORT || 3333;
@@ -117,7 +130,7 @@ module.exports = function (supabase, stripe) {
     // CHECKOUT UNIFICADO
     // Suporta: stripe_card | mp_pix | mp_card
     // ──────────────────────────────────────────────────
-    router.post('/checkout', async (req, res) => {
+    router.post('/checkout', rlCheckout, async (req, res) => {
         const { customer, method = 'stripe_card' } = req.body;
         const cart = req.body.cart || req.body.items;
 

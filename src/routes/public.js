@@ -3,6 +3,26 @@ const { sendContactEmail } = require('../notification-service');
 const { getCurrentStoreStatus } = require('../services/storeStatusService');
 const { getUnifiedProductList } = require('../services/stockService');
 
+// Rate limiter genérico em memória
+function makeRateLimiter(windowMs, max, msg) {
+    const map = new Map();
+    setInterval(() => {
+        const cut = Date.now() - windowMs;
+        for (const [k, r] of map) if (r.first < cut) map.delete(k);
+    }, windowMs).unref();
+    return function (req, res, next) {
+        const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
+        const now = Date.now();
+        const r = map.get(ip);
+        if (!r || now - r.first > windowMs) { map.set(ip, { count: 1, first: now }); return next(); }
+        if (r.count >= max) return res.status(429).json({ error: msg });
+        r.count++;
+        next();
+    };
+}
+const rlContact  = makeRateLimiter(5 * 60_000, 5,  'Muitas mensagens. Aguarde 5 minutos.');
+const rlCartSync = makeRateLimiter(60_000,      60, 'Muitas requisições de carrinho. Aguarde 1 minuto.');
+
 module.exports = function (supabase) {
     const router = express.Router();
 
@@ -25,8 +45,8 @@ module.exports = function (supabase) {
 
             res.json({ categorias, produtos, siteContent });
         } catch (e) {
-            console.error("❌ Erro ao carregar /api/config:", e.message);
-            res.status(500).json({ error: e.message });
+            console.error(JSON.stringify({ tag: 'API_ERROR', route: '/api/config', error: e.message, timestamp: new Date().toISOString() }));
+            res.status(500).json({ error: 'Erro ao carregar configurações.' });
         }
     });
 
@@ -47,7 +67,10 @@ module.exports = function (supabase) {
             });
             res.set('Cache-Control', 'public, max-age=60');
             res.json(config);
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) {
+            console.error(JSON.stringify({ tag: 'API_ERROR', route: '/api/site-config', error: e.message, timestamp: new Date().toISOString() }));
+            res.status(500).json({ error: 'Erro interno.' });
+        }
     });
 
     router.get('/store-status', async (req, res) => {
@@ -56,7 +79,10 @@ module.exports = function (supabase) {
             const config = data ? data.value : null;
             const status = getCurrentStoreStatus(config);
             res.json(status);
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) {
+            console.error(JSON.stringify({ tag: 'API_ERROR', route: '/api/store-status', error: e.message, timestamp: new Date().toISOString() }));
+            res.status(500).json({ error: 'Erro interno.' });
+        }
     });
 
     // ──────────────────────────────────────────────────
@@ -64,16 +90,17 @@ module.exports = function (supabase) {
     // ──────────────────────────────────────────────────
     function validateCartItems(cart) {
         if (!Array.isArray(cart) || cart.length === 0) return 'Carrinho inválido ou vazio.';
+        if (cart.length > 50) return 'Carrinho excede o limite de 50 itens.';
         for (const item of cart) {
             if (!item || typeof item !== 'object') return 'Item do carrinho inválido.';
             if (!item.id || typeof item.id !== 'string' || item.id.trim() === '') return 'Item sem identificador válido.';
             const qty = parseInt(item.qty);
-            if (!Number.isInteger(qty) || qty < 1) return `Quantidade inválida para o item "${item.id}".`;
+            if (!Number.isInteger(qty) || qty < 1 || qty > 999) return `Quantidade inválida para o item "${item.id}".`;
         }
         return null;
     }
 
-    router.post('/cart/sync', async (req, res) => {
+    router.post('/cart/sync', rlCartSync, async (req, res) => {
         try {
             const sessionId = req.cookies.session_id || req.session_id;
             const { customer, cart, totalAmount, order_id } = req.body;
@@ -85,7 +112,7 @@ module.exports = function (supabase) {
 
             const isUUID = (v) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 
-            console.log(`[CART SYNC SESSION] session_id=${sessionId} order_id=${order_id || 'none'}`);
+            console.log(JSON.stringify({ tag: 'CART_SYNC', session_id: sessionId, order_id: order_id || null, timestamp: new Date().toISOString() }));
 
             const record = {
                 session_id: sessionId,
@@ -126,7 +153,10 @@ module.exports = function (supabase) {
                 }
             }
             res.json({ success: true });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) {
+            console.error(JSON.stringify({ tag: 'API_ERROR', route: '/api/cart/sync', error: e.message, timestamp: new Date().toISOString() }));
+            res.status(500).json({ error: 'Erro ao sincronizar carrinho.' });
+        }
     });
 
     // ──────────────────────────────────────────────────
@@ -159,7 +189,10 @@ module.exports = function (supabase) {
             // Retorna apenas o nome do cliente (não email/whatsapp) — suficiente para UI
             const customerData = cartData.customer_data || {};
             res.json({ cart: cartItems, customer: { name: customerData.name || '' } });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) {
+            console.error(JSON.stringify({ tag: 'API_ERROR', route: '/api/recover', error: e.message, timestamp: new Date().toISOString() }));
+            res.status(500).json({ error: 'Erro interno.' });
+        }
     });
 
     // ──────────────────────────────────────────────────
@@ -167,7 +200,6 @@ module.exports = function (supabase) {
     // ──────────────────────────────────────────────────
     router.get('/orders/:id', async (req, res) => {
         const { id } = req.params;
-        console.log('[ORDER FETCH HIT]', id);
         try {
             const { data: pedido, error } = await supabase
                 .from('pedidos')
@@ -187,8 +219,8 @@ module.exports = function (supabase) {
                 created_at: pedido.created_at
             });
         } catch (e) {
-            console.error('[ORDER GET ERROR]', { id, error: e.message });
-            res.status(500).json({ error: e.message });
+            console.error(JSON.stringify({ tag: 'API_ERROR', route: '/api/orders', error: e.message, timestamp: new Date().toISOString() }));
+            res.status(500).json({ error: 'Erro interno.' });
         }
     });
 
@@ -207,7 +239,7 @@ module.exports = function (supabase) {
     // ──────────────────────────────────────────────────
     // FALE CONOSCO
     // ──────────────────────────────────────────────────
-    router.post('/contact', async (req, res) => {
+    router.post('/contact', rlContact, async (req, res) => {
         try {
             const { name, email, phone, message } = req.body;
             if (!name || !email || !message) {

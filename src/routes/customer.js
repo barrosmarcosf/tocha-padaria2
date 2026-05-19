@@ -27,7 +27,7 @@ module.exports = function (supabase) {
             } else {
                 await supabase.from('clientes').insert([{ name, email, whatsapp }]);
             }
-            console.log('[CLIENT SAVED]', { email, name });
+            console.log(JSON.stringify({ tag: 'CLIENT_SAVED', timestamp: new Date().toISOString() }));
 
             const sid = req.cookies?.session_id || req.session_id;
             if (sid) {
@@ -40,7 +40,7 @@ module.exports = function (supabase) {
                 if (sessionErr) {
                     console.warn('[SESSION LINK WARN]', sessionErr.message);
                 } else {
-                    console.log('[SESSION LINKED]', { session_id: sid, email });
+                    console.log(JSON.stringify({ tag: 'SESSION_LINKED', timestamp: new Date().toISOString() }));
                 }
             }
 
