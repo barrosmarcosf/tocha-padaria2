@@ -23,10 +23,10 @@ const CYCLE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutos
 const MIN_DELAY_MS      = 10 * 1000;     // 10 segundos — anti-loop agressivo
 const CYCLE_TIMEOUT_MS  = 4 * 60 * 1000; // 4 minutos — timeout por ciclo
 const MAX_CYCLES        = 100;            // reinício preventivo após 100 ciclos (~8h)
+const SLOW_THRESHOLD_MS = 1000;          // alerta para operações acima de 1s
 
-let cycleCount = 0;
-
-let execCount = 0;
+let cycleCount    = 0;
+let execCount     = 0;
 let healthRunning = false;
 
 setInterval(() => {
@@ -38,28 +38,32 @@ setInterval(() => {
 async function checkStaleLocks() {
     const cutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString();
 
+    const qStart = Date.now();
     const { data: stale, error } = await supabase
         .from('pedidos')
         .select('id, processing_at')
         .eq('status', 'pending')
         .eq('processing', true)
         .lt('processing_at', cutoff);
+    console.log(JSON.stringify({ tag: 'DB_QUERY', table: 'pedidos', op: 'select_stale_locks', duration_ms: Date.now() - qStart, rows: stale?.length || 0, error: !!error }));
 
     if (error) {
         console.error(JSON.stringify({ tag: 'MONITOR_DB_ERROR', context: 'stale_locks', error: error.message, timestamp: new Date().toISOString() }));
-        return;
+        return 0;
     }
 
-    if (!stale || stale.length === 0) return;
+    if (!stale || stale.length === 0) return 0;
 
     for (const row of stale) {
         systemAlert('ALERT_STALE_LOCK', { order_id: row.id, processing_at: row.processing_at });
 
+        const uStart = Date.now();
         const { error: fixErr } = await supabase
             .from('pedidos')
             .update({ processing: false, processing_at: null })
             .eq('id', row.id)
             .eq('processing', true);
+        console.log(JSON.stringify({ tag: 'DB_QUERY', table: 'pedidos', op: 'update_stale_lock', duration_ms: Date.now() - uStart, rows: 1, error: !!fixErr }));
 
         if (fixErr) {
             console.error(JSON.stringify({ tag: 'MONITOR_FIX_ERROR', order_id: row.id, error: fixErr.message, timestamp: new Date().toISOString() }));
@@ -67,22 +71,26 @@ async function checkStaleLocks() {
             console.log(JSON.stringify({ tag: 'STALE_LOCK_FIXED', order_id: row.id, timestamp: new Date().toISOString() }));
         }
     }
+
+    return stale.length;
 }
 
 // ── CHECK 2: Pedidos pending com mp_payment_id — indica falha no processPaidMPOrder ─
 async function checkUnfinalizedPayments() {
+    const qStart = Date.now();
     const { data: unfinalized, error } = await supabase
         .from('pedidos')
         .select('id, mp_payment_id, created_at')
         .eq('status', 'pending')
         .not('mp_payment_id', 'is', null);
+    console.log(JSON.stringify({ tag: 'DB_QUERY', table: 'pedidos', op: 'select_unfinalized', duration_ms: Date.now() - qStart, rows: unfinalized?.length || 0, error: !!error }));
 
     if (error) {
         console.error(JSON.stringify({ tag: 'MONITOR_DB_ERROR', context: 'unfinalized_payments', error: error.message, timestamp: new Date().toISOString() }));
-        return;
+        return 0;
     }
 
-    if (!unfinalized || unfinalized.length === 0) return;
+    if (!unfinalized || unfinalized.length === 0) return 0;
 
     for (const row of unfinalized) {
         systemAlert('ALERT_PAYMENT_NOT_FINALIZED', {
@@ -91,21 +99,27 @@ async function checkUnfinalizedPayments() {
             created_at: row.created_at
         });
     }
+
+    return unfinalized.length;
 }
 
 // ── CHECK 3: Schema cache — valida coluna 'processing' sem transferir dados ─
 async function checkSchema() {
+    const qStart = Date.now();
     const { error } = await supabase
         .from('pedidos')
         .select('processing')
         .limit(0);
+    console.log(JSON.stringify({ tag: 'DB_QUERY', table: 'pedidos', op: 'select_schema_check', duration_ms: Date.now() - qStart, rows: 0, error: !!error }));
 
     if (!error) return;
 
     systemAlert('SCHEMA_ERROR', { error: error.message });
 
     try {
+        const rStart = Date.now();
         await supabase.rpc('notify_pgrst_reload');
+        console.log(JSON.stringify({ tag: 'DB_QUERY', table: 'rpc', op: 'notify_pgrst_reload', duration_ms: Date.now() - rStart, rows: 0, error: false }));
         console.log(JSON.stringify({ tag: 'SCHEMA_RELOAD_TRIGGERED', timestamp: new Date().toISOString() }));
     } catch (rpcErr) {
         console.error(JSON.stringify({ tag: 'SCHEMA_RELOAD_FAILED', error: rpcErr.message, timestamp: new Date().toISOString() }));
@@ -123,13 +137,26 @@ async function run() {
     const runStart = Date.now();
     console.log(JSON.stringify({ tag: 'MONITOR_START', pid: process.pid, timestamp: new Date().toISOString() }));
 
+    // checkStaleLocks
     const t1 = Date.now();
-    await Promise.all([checkStaleLocks(), checkUnfinalizedPayments()]);
-    perfLog('payments-health:staleLocks+unfinalized', t1);
+    const staleLockCount = await checkStaleLocks();
+    const d1 = Date.now() - t1;
+    console.log(JSON.stringify({ tag: 'PERF_DETAIL', step: 'checkStaleLocks', duration_ms: d1, result_count: staleLockCount }));
+    if (d1 > SLOW_THRESHOLD_MS) console.warn(JSON.stringify({ tag: 'SLOW_OPERATION', step: 'checkStaleLocks', duration_ms: d1 }));
 
+    // checkUnfinalizedPayments
     const t2 = Date.now();
+    const unfinalizedCount = await checkUnfinalizedPayments();
+    const d2 = Date.now() - t2;
+    console.log(JSON.stringify({ tag: 'PERF_DETAIL', step: 'checkUnfinalizedPayments', duration_ms: d2, result_count: unfinalizedCount }));
+    if (d2 > SLOW_THRESHOLD_MS) console.warn(JSON.stringify({ tag: 'SLOW_OPERATION', step: 'checkUnfinalizedPayments', duration_ms: d2 }));
+
+    // checkSchema
+    const t3 = Date.now();
     await checkSchema();
-    perfLog('payments-health:checkSchema', t2);
+    const d3 = Date.now() - t3;
+    console.log(JSON.stringify({ tag: 'PERF_DETAIL', step: 'checkSchema', duration_ms: d3, result_count: 0 }));
+    if (d3 > SLOW_THRESHOLD_MS) console.warn(JSON.stringify({ tag: 'SLOW_OPERATION', step: 'checkSchema', duration_ms: d3 }));
 
     console.log(JSON.stringify({ tag: 'MONITOR_DONE', timestamp: new Date().toISOString() }));
     perfLog('payments-health:run', runStart);
@@ -163,12 +190,15 @@ async function startWorker() {
             healthRunning = false; // libera o overlap guard em caso de timeout
         }
 
+        const elapsed = Date.now() - cycleStart;
+
+        console.log(JSON.stringify({ tag: 'CYCLE_SUMMARY', total_duration_ms: elapsed, cycle: cycleCount, timestamp: new Date().toISOString() }));
+
         if (cycleCount >= MAX_CYCLES) {
             console.log(JSON.stringify({ tag: 'WORKER_PREVENTIVE_RESTART', cycles: cycleCount, pid: process.pid, timestamp: new Date().toISOString() }));
             process.exit(0);
         }
 
-        const elapsed = Date.now() - cycleStart;
         const delay = Math.max(MIN_DELAY_MS, CYCLE_INTERVAL_MS - elapsed);
 
         console.log(JSON.stringify({ tag: 'WORKER_SLEEP', next_in_ms: delay, cycle: cycleCount, timestamp: new Date().toISOString() }));
