@@ -428,28 +428,48 @@ const _pendingDbWrites = [];
 async function retryPendingWrites() {
     if (_pendingDbWrites.length === 0) return;
 
-    const item = _pendingDbWrites[0];
-    const err = await markEventProcessed(item.id, item.type);
+    // Batch dinâmico: 1 item para filas pequenas, até 10 para filas grandes
+    // Fórmula: floor(tamanho/10), clamped em [1, 10]
+    // Ex: 5 itens → batch=1 | 50 itens → batch=5 | 100+ itens → batch=10
+    const batchSize = Math.min(10, Math.max(1, Math.floor(_pendingDbWrites.length / 10)));
+    let processed = 0;
 
-    if (!err || err.code === '23505') {
-        // Sucesso ou PK conflict (já persistido por outra via) → remove da fila
-        _pendingDbWrites.shift();
-        if (!err) {
-            console.log(JSON.stringify({
-                tag: 'WEBHOOK_DB_RECOVERY_SUCCESS',
+    while (processed < batchSize && _pendingDbWrites.length > 0) {
+        const item = _pendingDbWrites[0];
+        const err = await markEventProcessed(item.id, item.type);
+
+        if (!err || err.code === '23505') {
+            // Sucesso ou PK conflict (já persistido por outra via) → remove da fila
+            _pendingDbWrites.shift();
+            if (!err) {
+                console.log(JSON.stringify({
+                    tag: 'WEBHOOK_DB_RECOVERY_SUCCESS',
+                    event_id: item.id,
+                    type: item.type,
+                    queued_at: new Date(item.queued_at).toISOString(),
+                    batch_index: processed,
+                    timestamp: new Date().toISOString()
+                }));
+            }
+            processed++;
+        } else {
+            console.error(JSON.stringify({
+                tag: 'WEBHOOK_DB_RETRY_FAILED',
                 event_id: item.id,
-                type: item.type,
-                queued_at: new Date(item.queued_at).toISOString(),
-                queue_remaining: _pendingDbWrites.length,
+                error: err.message,
+                queue_size: _pendingDbWrites.length,
                 timestamp: new Date().toISOString()
             }));
+            break; // banco ainda indisponível — interrompe o batch, tenta no próximo ciclo
         }
-    } else {
-        console.error(JSON.stringify({
-            tag: 'WEBHOOK_DB_RETRY_FAILED',
-            event_id: item.id,
-            error: err.message,
-            queue_size: _pendingDbWrites.length,
+    }
+
+    if (processed > 0) {
+        console.log(JSON.stringify({
+            tag: 'WEBHOOK_DB_BATCH_SUMMARY',
+            processed,
+            batch_size: batchSize,
+            remaining: _pendingDbWrites.length,
             timestamp: new Date().toISOString()
         }));
     }
