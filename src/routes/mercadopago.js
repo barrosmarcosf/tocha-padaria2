@@ -425,8 +425,8 @@ module.exports = function (supabase) {
             }
             return res.json({ status, valid });
         } catch (error) {
-            console.error('Erro ao checar pagamento MP:', error);
-            res.status(500).json({ error: 'Erro ao verificar status.' });
+            console.warn(JSON.stringify({ tag: 'CHECK_PAYMENT_ERROR', mp_id: mpId, order_id: orderId, error: error?.message, timestamp: new Date().toISOString() }));
+            return res.status(409).json({ error: 'Pagamento não corresponde ao pedido informado.' });
         }
     });
 
