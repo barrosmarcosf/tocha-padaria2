@@ -108,7 +108,7 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc:  ["'self'"],
-            scriptSrc:   ["'self'", "'unsafe-inline'", "https://sdk.mercadopago.com", "https://http2.mlstatic.com", "https://cdn.jsdelivr.net"],
+            scriptSrc:   ["'self'", "https://sdk.mercadopago.com", "https://http2.mlstatic.com", "https://cdn.jsdelivr.net"],
             connectSrc:  ["'self'", "https://api.mercadopago.com", "https://api.mercadolibre.com", "https://*.mercadolibre.com", "https://http2.mlstatic.com", "https://secure-fields.mercadopago.com", "https://api-static.mercadopago.com"],
             frameSrc:    ["'self'", "https://sdk.mercadopago.com", "https://www.mercadopago.com", "https://www.mercadolibre.com", "https://secure-fields.mercadopago.com"],
             imgSrc:      ["'self'", "data:", "https:"],
