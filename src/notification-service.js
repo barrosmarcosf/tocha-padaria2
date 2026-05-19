@@ -120,14 +120,20 @@ const client = new Client({
         executablePath: process.env.CHROME_PATH || undefined,
         headless: true,
         args: [
-            '--no-sandbox', 
+            '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-extensions',
             '--disable-gpu',
             '--no-first-run',
             '--no-zygote',
-            '--disable-web-security'
+            '--disable-web-security',
+            // reduz CPU do renderer em headless: desativa pipelines visuais desnecessários
+            '--disable-software-rasterizer',
+            '--disable-accelerated-2d-canvas',
+            '--disable-canvas-aa',
+            '--disable-2d-canvas-clip-aa',
+            '--renderer-process-limit=2'
         ]
     }
 });
