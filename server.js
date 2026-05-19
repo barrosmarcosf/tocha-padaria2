@@ -753,7 +753,7 @@ app.listen(PORT, '0.0.0.0', () => {
     }, WORKER_INTERVAL);
 
     // Worker de monitoramento: pedidos com falha de dedução de estoque (a cada 15 min)
-    const { checkStockDeductionFailures } = require('./src/workers/stock-monitor');
+    const { checkStockDeductionFailures, retryStockDeduction } = require('./src/workers/stock-monitor');
     console.log("🚀 [WORKER] Monitor de Falhas de Estoque Iniciado (intervalo: 15min).");
     let _stockMonitorRunning = false;
     setInterval(async () => {
@@ -767,6 +767,21 @@ app.listen(PORT, '0.0.0.0', () => {
             _stockMonitorRunning = false;
         }
     }, 15 * 60 * 1000);
+
+    // Worker de retry: re-tenta dedução de estoque para pedidos com falha (a cada 10 min, máx 3x)
+    console.log("🚀 [WORKER] Retry de Falhas de Estoque Iniciado (intervalo: 10min, máx 3 tentativas).");
+    let _stockRetryRunning = false;
+    setInterval(async () => {
+        if (_stockRetryRunning) return;
+        _stockRetryRunning = true;
+        try {
+            const _t = Date.now();
+            await retryStockDeduction(supabase);
+            perfLog('worker:stock-retry', _t);
+        } finally {
+            _stockRetryRunning = false;
+        }
+    }, 10 * 60 * 1000);
 
     // Iniciar o WhatsApp Bot com um pequeno delay para não impactar o boot
     setTimeout(() => {

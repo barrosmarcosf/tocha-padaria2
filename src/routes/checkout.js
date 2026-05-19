@@ -600,7 +600,7 @@ async function processPaidSession(supabase, stripe, session) {
         // Reduzir estoque
         try {
             await deductStockAtomico(supabase, orderUpdate.id);
-            console.log(`✅ [Estoque] Dedução atômica OK pedido ${orderUpdate.id}`);
+            console.log(JSON.stringify({ tag: 'STOCK_DEDUCTION_SUCCESS', correlation_id: correlationId, order_id: orderUpdate.id, timestamp: new Date().toISOString() }));
         } catch (stockErr) {
             if (stockErr.code === 'RPC_NOT_FOUND') {
                 console.warn('⚠️ [Estoque] processar_venda_completa ausente — fallback individual (execute a migration)');

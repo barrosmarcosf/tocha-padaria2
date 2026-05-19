@@ -1315,7 +1315,7 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
     // Reduzir estoque
     try {
         await deductStockAtomico(supabase, order.id);
-        console.log(`✅ [MP Estoque] Dedução atômica OK pedido ${order.id}`);
+        console.log(JSON.stringify({ tag: 'STOCK_DEDUCTION_SUCCESS', correlation_id: correlationId, order_id: order.id, provider: 'mercadopago', timestamp: new Date().toISOString() }));
     } catch (stockErr) {
         if (stockErr.code === 'RPC_NOT_FOUND') {
             console.warn('⚠️ [MP Estoque] processar_venda_completa ausente — fallback individual (execute a migration)');

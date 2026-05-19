@@ -1,9 +1,9 @@
 'use strict';
 const { systemAlert } = require('../utils/systemAlert');
+const { deductStockAtomico } = require('../utils/deductStock');
 
 async function checkStockDeductionFailures(supabase) {
     try {
-        // Busca todas as falhas não alertadas OU alertadas há mais de 1h
         const { data, error } = await supabase
             .from('pedidos')
             .select('id, created_at, total_amount')
@@ -20,7 +20,6 @@ async function checkStockDeductionFailures(supabase) {
         console.warn(JSON.stringify({ tag: 'STOCK_DEDUCTION_PENDING_REVIEW', count: data.length, orders: data.map(o => o.id), timestamp: new Date().toISOString() }));
         systemAlert('STOCK_DEDUCTION_PENDING_REVIEW', { orders: data.map(o => ({ id: o.id, created_at: o.created_at })) });
 
-        // Marca registros como alertados para evitar spam (re-alerta após 1h)
         await supabase
             .from('pedidos')
             .update({ alerted_at: new Date().toISOString() })
@@ -31,4 +30,84 @@ async function checkStockDeductionFailures(supabase) {
     }
 }
 
-module.exports = { checkStockDeductionFailures };
+async function retryStockDeduction(supabase) {
+    try {
+        const { data: orders, error } = await supabase
+            .from('pedidos')
+            .select('id, correlation_id, retry_count')
+            .eq('stock_deduction_failed', true)
+            .eq('status', 'paid')
+            .or('retry_count.is.null,retry_count.lt.3');
+
+        if (error) {
+            console.error(JSON.stringify({ tag: 'STOCK_RETRY_QUERY_ERROR', error: error.message, timestamp: new Date().toISOString() }));
+            return;
+        }
+
+        if (!orders || orders.length === 0) return;
+
+        for (const order of orders) {
+            const correlationId = order.correlation_id || 'unknown';
+            const currentCount = order.retry_count || 0;
+
+            try {
+                console.log(JSON.stringify({
+                    tag: 'STOCK_RETRY_ATTEMPT',
+                    correlation_id: correlationId,
+                    order_id: order.id,
+                    attempt: currentCount + 1,
+                    timestamp: new Date().toISOString()
+                }));
+
+                await deductStockAtomico(supabase, order.id);
+
+                await supabase
+                    .from('pedidos')
+                    .update({ stock_deduction_failed: false })
+                    .eq('id', order.id);
+
+                console.log(JSON.stringify({
+                    tag: 'STOCK_RETRY_SUCCESS',
+                    correlation_id: correlationId,
+                    order_id: order.id,
+                    attempt: currentCount + 1,
+                    timestamp: new Date().toISOString()
+                }));
+
+            } catch (err) {
+                const newCount = currentCount + 1;
+
+                await supabase
+                    .from('pedidos')
+                    .update({ retry_count: newCount })
+                    .eq('id', order.id);
+
+                console.error(JSON.stringify({
+                    tag: 'STOCK_RETRY_FAILED',
+                    correlation_id: correlationId,
+                    order_id: order.id,
+                    attempt: newCount,
+                    error: err.message,
+                    timestamp: new Date().toISOString()
+                }));
+
+                if (newCount >= 3) {
+                    systemAlert('STOCK_RETRY_EXHAUSTED', {
+                        correlation_id: correlationId,
+                        order_id: order.id
+                    });
+                    console.warn(JSON.stringify({
+                        tag: 'STOCK_RETRY_EXHAUSTED',
+                        correlation_id: correlationId,
+                        order_id: order.id,
+                        timestamp: new Date().toISOString()
+                    }));
+                }
+            }
+        }
+    } catch (err) {
+        console.error(JSON.stringify({ tag: 'STOCK_RETRY_CRASH', error: err.message, timestamp: new Date().toISOString() }));
+    }
+}
+
+module.exports = { checkStockDeductionFailures, retryStockDeduction };
