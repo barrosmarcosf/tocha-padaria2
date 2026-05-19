@@ -793,7 +793,6 @@ async function processStripeChargeback(supabase, dispute) {
     });
 
     console.log(JSON.stringify({ tag: 'CHARGEBACK_RECEIVED', provider: 'stripe', order_id: order.id, reason: dispute.reason, amount: disputeAmount, timestamp: new Date().toISOString() }));
-    const { systemAlert } = require('../utils/systemAlert');
     systemAlert('CHARGEBACK_RECEIVED', { order_id: order.id, provider: 'stripe', amount: disputeAmount, reason: dispute.reason });
 }
 

@@ -46,8 +46,8 @@ module.exports = function (supabase) {
 
             res.json({ ok: true });
         } catch (e) {
-            console.error('[CLIENT SAVE ERROR]', e.message);
-            res.status(500).json({ error: e.message });
+            console.error(JSON.stringify({ tag: 'CUSTOMER_SAVE_ERROR', error: e.message, timestamp: new Date().toISOString() }));
+            res.status(500).json({ error: 'Erro interno.' });
         }
     });
 
@@ -73,7 +73,6 @@ module.exports = function (supabase) {
 
             if (!customer) return res.json(null);
 
-            console.log('[CUSTOMER LOADED]', { email: customer.email });
             res.json(customer);
         } catch (e) {
             console.error('[CUSTOMER ME ERROR]', e.message);
