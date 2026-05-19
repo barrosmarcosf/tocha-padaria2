@@ -62,6 +62,17 @@ module.exports = function (supabase) {
     // ──────────────────────────────────────────────────
     // SINCRONIZAÇÃO DO CARRINHO (Prevenção de Abandono)
     // ──────────────────────────────────────────────────
+    function validateCartItems(cart) {
+        if (!Array.isArray(cart) || cart.length === 0) return 'Carrinho inválido ou vazio.';
+        for (const item of cart) {
+            if (!item || typeof item !== 'object') return 'Item do carrinho inválido.';
+            if (!item.id || typeof item.id !== 'string' || item.id.trim() === '') return 'Item sem identificador válido.';
+            const qty = parseInt(item.qty);
+            if (!Number.isInteger(qty) || qty < 1) return `Quantidade inválida para o item "${item.id}".`;
+        }
+        return null;
+    }
+
     router.post('/cart/sync', async (req, res) => {
         try {
             const sessionId = req.cookies.session_id || req.session_id;
@@ -69,9 +80,11 @@ module.exports = function (supabase) {
 
             if (!sessionId || !cart) return res.status(400).json({ error: 'Dados incompletos.' });
 
+            const cartError = validateCartItems(cart);
+            if (cartError) return res.status(400).json({ error: cartError });
+
             const isUUID = (v) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 
-            console.log(`[SESSION COOKIE] ${sessionId}`);
             console.log(`[CART SYNC SESSION] session_id=${sessionId} order_id=${order_id || 'none'}`);
 
             const record = {
@@ -101,15 +114,11 @@ module.exports = function (supabase) {
                 } catch (_) {}
             }
 
-            console.log('[CART SAVE TRACE] origem: public.js /cart/sync upsert');
-            console.log('[CART DEBUG]', JSON.stringify(record));
-
             const { error } = await supabase.from('carrinhos').upsert([record], { onConflict: 'session_id' });
             if (error) {
-                console.error('[CART DEBUG] upsert error:', error.message, '| payload:', JSON.stringify(record));
+                console.error('[CART SYNC] upsert error:', error.message);
                 if (record.customer_id !== undefined) {
                     delete record.customer_id;
-                    console.log('[CART SAVE TRACE] origem: public.js /cart/sync upsert retry (sem customer_id)');
                     const { error: e2 } = await supabase.from('carrinhos').upsert([record], { onConflict: 'session_id' });
                     if (e2) console.error("❌ Erro ao salvar carrinho:", e2.message);
                 } else {

@@ -8,6 +8,7 @@ const QRCode = require('qrcode');
 const { sendOrderEmails, sendOrderWhatsApp } = require('../notification-service');
 const { getUnifiedAvailableStock } = require('../services/stockService');
 const { getUnifiedStoreStatus } = require('../services/storeStatusService');
+const { deductStockAtomico } = require('../utils/deductStock');
 
 function verifyMPWebhookSignature(req, secret) {
     const signature = req.headers['x-signature'];
@@ -1297,26 +1298,22 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
             .catch(e => console.warn('[MP] Falha ao persistir payment_method:', e.message));
     }
 
-    // Reduzir estoque — com revalidação antes de cada item
-    if (batchDate && cart.length > 0) {
-        for (const item of cart) {
-            // Revalidar disponibilidade antes de dar baixa
-            const available = await getUnifiedAvailableStock(supabase, item.id);
-            if (available < item.qty) {
-                console.warn(`⚠️ [MP Estoque] Estoque insuficiente para ${item.name} no webhook. Disponível: ${available}, Solicitado: ${item.qty}`);
+    // Reduzir estoque
+    try {
+        await deductStockAtomico(supabase, order.id);
+        console.log(`✅ [MP Estoque] Dedução atômica OK pedido ${order.id}`);
+    } catch (stockErr) {
+        if (stockErr.code === 'RPC_NOT_FOUND') {
+            console.warn('⚠️ [MP Estoque] processar_venda_completa ausente — fallback individual (execute a migration)');
+            if (batchDate && cart.length > 0) {
+                for (const item of cart) {
+                    await supabase.rpc('processar_venda_estoque', {
+                        p_id: String(item.id), f_date: String(batchDate), amount: parseInt(item.qty)
+                    }).catch(e => console.warn(`⚠️ [MP Estoque] Fallback RPC ${item.name}:`, e.message));
+                }
             }
-
-            const { error: rpcError } = await supabase.rpc('processar_venda_estoque', {
-                p_id: String(item.id),
-                f_date: String(batchDate),
-                amount: parseInt(item.qty)
-            });
-
-            if (rpcError) {
-                console.warn(`⚠️ [MP Estoque] RPC falhou para ${item.name}:`, rpcError.message);
-            } else {
-                console.log(`✅ [MP Estoque] Baixa OK: ${item.name} (${item.qty}x) na fornada ${batchDate}`);
-            }
+        } else {
+            console.error('❌ [MP ESTOQUE] Erro fatal:', stockErr.message);
         }
     }
 

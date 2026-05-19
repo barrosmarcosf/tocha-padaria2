@@ -102,6 +102,8 @@ module.exports = function (supabase) {
                 return res.status(401).json({ error: 'Credenciais inválidas!' });
             }
 
+            loginAttempts.delete(ip);
+
             if (user && user.id) {
                 await supabase.from('usuarios').update({ ultimo_login: new Date().toISOString() }).eq('id', user.id);
             }

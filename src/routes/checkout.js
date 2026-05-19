@@ -5,6 +5,7 @@ const { sendOrderEmails, sendOrderWhatsApp } = require('../notification-service'
 const { getUnifiedAvailableStock } = require('../services/stockService');
 const { getUnifiedStoreStatus } = require('../services/storeStatusService');
 const { processPaidMPOrder } = require('./mercadopago');
+const { deductStockAtomico } = require('../utils/deductStock');
 
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{2,}$/;
 const VALID_METHODS = new Set(['stripe_card', 'mp_pix', 'mp_card']);
@@ -584,44 +585,23 @@ async function processPaidSession(supabase, stripe, session) {
 
         // Reduzir estoque
         try {
-            const itemsToReduce = originalItems.actual_items || [];
-            const orderBakeDate = originalItems.batch_date || originalItems.fornada_date;
-            if (orderBakeDate && itemsToReduce.length > 0) {
-                for (const item of itemsToReduce) {
-                    const { error: rpcError } = await supabase.rpc('processar_venda_estoque', {
-                        p_id: String(item.id),
-                        f_date: String(orderBakeDate),
-                        amount: parseInt(item.qty)
-                    });
-                    if (!rpcError) {
-                        console.log(`✅ [Estoque] RPC OK: ${item.name} (${orderBakeDate})`);
-                    } else {
-                        console.warn(`⚠️ [Estoque] RPC falhou, tentando fallback manual:`, rpcError.message);
-                        const { data: fornada } = await supabase.from('fornadas').select('id').eq('bake_date', orderBakeDate).maybeSingle();
-                        if (fornada) {
-                            const { data: cycle } = await supabase
-                                .from('produto_estoque_fornada')
-                                .select('estoque_disponivel, vendas_confirmadas')
-                                .eq('produto_id', item.id)
-                                .eq('fornada_id', fornada.id)
-                                .maybeSingle();
-                            if (cycle) {
-                                await supabase.from('produto_estoque_fornada')
-                                    .update({
-                                        estoque_disponivel: Math.max(0, cycle.estoque_disponivel - item.qty),
-                                        vendas_confirmadas: (cycle.vendas_confirmadas || 0) + item.qty
-                                    })
-                                    .eq('id', cycle.id);
-                                console.log(`[Estoque] Fallback Manual OK: ${item.name}`);
-                            }
-                        }
+            await deductStockAtomico(supabase, orderUpdate.id);
+            console.log(`✅ [Estoque] Dedução atômica OK pedido ${orderUpdate.id}`);
+        } catch (stockErr) {
+            if (stockErr.code === 'RPC_NOT_FOUND') {
+                console.warn('⚠️ [Estoque] processar_venda_completa ausente — fallback individual (execute a migration)');
+                const itemsToReduce = originalItems.actual_items || [];
+                const orderBakeDate = originalItems.batch_date || originalItems.fornada_date;
+                if (orderBakeDate && itemsToReduce.length > 0) {
+                    for (const item of itemsToReduce) {
+                        await supabase.rpc('processar_venda_estoque', {
+                            p_id: String(item.id), f_date: String(orderBakeDate), amount: parseInt(item.qty)
+                        }).catch(e => console.warn(`⚠️ [Estoque] Fallback RPC ${item.name}:`, e.message));
                     }
                 }
             } else {
-                console.warn("⚠️ [Estoque] Pedido sem data de fornada. Redução ignorada.");
+                console.error('❌ [ESTOQUE] Erro fatal:', stockErr.message);
             }
-        } catch (stockErr) {
-            console.error("❌ [ESTOQUE] Erro fatal:", stockErr.message);
         }
 
         if (session.metadata?.sessionId) {

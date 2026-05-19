@@ -41,7 +41,12 @@ async function dispatchRecovery(supabase, cart, customerData) {
     const appUrl = process.env.BASE_URL || 'http://localhost:3333';
     const recoveryUrl = `${appUrl}/?token=${recoveryToken}`;
 
-    await sendAbandonmentRecovery(supabase, customerData, JSON.parse(cart.items), recoveryUrl);
+    let cartItems;
+    try { cartItems = JSON.parse(cart.items); } catch (_) {
+        console.warn(`[CART RECOVERY] items corrompidos session_id=${cart.session_id}`);
+        return;
+    }
+    await sendAbandonmentRecovery(supabase, customerData, cartItems, recoveryUrl);
     console.log(`[CART RECOVERY STEP ${step}] Enviado session_id=${cart.session_id} cliente=${customerData.name || 'Cliente'}`);
     await markRecoverySent(supabase, cart);
 }
