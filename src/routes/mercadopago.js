@@ -425,7 +425,7 @@ module.exports = function (supabase) {
             }
             return res.json({ status, valid });
         } catch (error) {
-            console.warn(JSON.stringify({ tag: 'CHECK_PAYMENT_ERROR', mp_id: mpId, order_id: orderId, error: error?.message, timestamp: new Date().toISOString() }));
+            console.warn(JSON.stringify({ tag: 'CHECK_PAYMENT_ERROR', mp_id: req.params.id, order_id: req.query.order_id, error: error?.message, timestamp: new Date().toISOString() }));
             return res.status(409).json({ error: 'Pagamento não corresponde ao pedido informado.' });
         }
     });
