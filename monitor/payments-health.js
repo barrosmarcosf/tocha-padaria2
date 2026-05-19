@@ -23,7 +23,8 @@ const CYCLE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutos
 const MIN_DELAY_MS      = 10 * 1000;     // 10 segundos — anti-loop agressivo
 const CYCLE_TIMEOUT_MS  = 4 * 60 * 1000; // 4 minutos — timeout por ciclo
 const MAX_CYCLES        = 100;            // reinício preventivo após 100 ciclos (~8h)
-const SLOW_THRESHOLD_MS = 1000;          // alerta para operações acima de 1s
+const SLOW_THRESHOLD_MS      = 2000; // latência normal PostgREST via HTTP pode chegar a 1.4s
+const VERY_SLOW_THRESHOLD_MS = 4000; // acima disso é problema real (scan lento, timeout, degradação)
 
 let cycleCount    = 0;
 let execCount     = 0;
@@ -142,21 +143,24 @@ async function run() {
     const staleLockCount = await checkStaleLocks();
     const d1 = Date.now() - t1;
     console.log(JSON.stringify({ tag: 'PERF_DETAIL', step: 'checkStaleLocks', duration_ms: d1, result_count: staleLockCount }));
-    if (d1 > SLOW_THRESHOLD_MS) console.warn(JSON.stringify({ tag: 'SLOW_OPERATION', step: 'checkStaleLocks', duration_ms: d1 }));
+    if (d1 > SLOW_THRESHOLD_MS)      console.warn(JSON.stringify({ tag: 'SLOW_OPERATION',          step: 'checkStaleLocks', duration_ms: d1, note: 'Possível latência de rede ou degradação externa (PostgREST)' }));
+    if (d1 > VERY_SLOW_THRESHOLD_MS) console.error(JSON.stringify({ tag: 'CRITICAL_SLOW_OPERATION', step: 'checkStaleLocks', duration_ms: d1, note: 'Latência anormal acima do esperado — possível problema real' }));
 
     // checkUnfinalizedPayments
     const t2 = Date.now();
     const unfinalizedCount = await checkUnfinalizedPayments();
     const d2 = Date.now() - t2;
     console.log(JSON.stringify({ tag: 'PERF_DETAIL', step: 'checkUnfinalizedPayments', duration_ms: d2, result_count: unfinalizedCount }));
-    if (d2 > SLOW_THRESHOLD_MS) console.warn(JSON.stringify({ tag: 'SLOW_OPERATION', step: 'checkUnfinalizedPayments', duration_ms: d2 }));
+    if (d2 > SLOW_THRESHOLD_MS)      console.warn(JSON.stringify({ tag: 'SLOW_OPERATION',          step: 'checkUnfinalizedPayments', duration_ms: d2, note: 'Possível latência de rede ou degradação externa (PostgREST)' }));
+    if (d2 > VERY_SLOW_THRESHOLD_MS) console.error(JSON.stringify({ tag: 'CRITICAL_SLOW_OPERATION', step: 'checkUnfinalizedPayments', duration_ms: d2, note: 'Latência anormal acima do esperado — possível problema real' }));
 
     // checkSchema
     const t3 = Date.now();
     await checkSchema();
     const d3 = Date.now() - t3;
     console.log(JSON.stringify({ tag: 'PERF_DETAIL', step: 'checkSchema', duration_ms: d3, result_count: 0 }));
-    if (d3 > SLOW_THRESHOLD_MS) console.warn(JSON.stringify({ tag: 'SLOW_OPERATION', step: 'checkSchema', duration_ms: d3 }));
+    if (d3 > SLOW_THRESHOLD_MS)      console.warn(JSON.stringify({ tag: 'SLOW_OPERATION',          step: 'checkSchema', duration_ms: d3, note: 'Possível latência de rede ou degradação externa (PostgREST)' }));
+    if (d3 > VERY_SLOW_THRESHOLD_MS) console.error(JSON.stringify({ tag: 'CRITICAL_SLOW_OPERATION', step: 'checkSchema', duration_ms: d3, note: 'Latência anormal acima do esperado — possível problema real' }));
 
     console.log(JSON.stringify({ tag: 'MONITOR_DONE', timestamp: new Date().toISOString() }));
     perfLog('payments-health:run', runStart);
