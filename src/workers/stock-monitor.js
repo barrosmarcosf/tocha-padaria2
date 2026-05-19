@@ -75,12 +75,9 @@ async function retryStockDeduction(supabase) {
                 }));
 
             } catch (err) {
-                const newCount = currentCount + 1;
-
-                await supabase
-                    .from('pedidos')
-                    .update({ retry_count: newCount })
-                    .eq('id', order.id);
+                // Incremento atômico via RPC para evitar race condition em multi-processo
+                const { data: updated } = await supabase.rpc('increment_retry_count', { p_order_id: order.id });
+                const newCount = updated ?? (currentCount + 1);
 
                 console.error(JSON.stringify({
                     tag: 'STOCK_RETRY_FAILED',

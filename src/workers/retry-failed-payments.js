@@ -49,9 +49,15 @@ async function retryFailedPayments(supabase) {
 
                 // Tentar reprocessar consultando o status no MP
                 if (mp_payment_id && mpToken) {
-                    const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${mp_payment_id}`, {
-                        headers: { Authorization: `Bearer ${mpToken}` }
-                    });
+                    const ctrl = new AbortController();
+                    const tid = setTimeout(() => ctrl.abort(), 10000);
+                    let mpRes;
+                    try {
+                        mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${mp_payment_id}`, {
+                            headers: { Authorization: `Bearer ${mpToken}` },
+                            signal: ctrl.signal
+                        });
+                    } finally { clearTimeout(tid); }
                     const mpData = await mpRes.json();
 
                     if (mpData.status === 'approved') {

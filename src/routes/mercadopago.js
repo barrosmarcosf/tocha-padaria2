@@ -1266,7 +1266,7 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
                 error_type: 'DB_UPDATE_FAILED',
                 payload: { externalId, error_code: updateErr.code },
                 last_error: updateErr.message
-            }).catch(() => {});
+            }).catch(dlqErr => console.error(JSON.stringify({ tag: 'DLQ_INSERT_FAILED', order_id: String(extRef || 'unknown'), error: dlqErr.message, timestamp: new Date().toISOString() })));
             sendAlert({ tipo: 'MP_PROCESS_FAILED', order_id: String(extRef || 'unknown'), detail: updateErr.message }).catch(() => {});
         }
         return;
@@ -1366,7 +1366,7 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
         order_id:   order.id,
         user_id:    order.customer_id || null,
         metadata:   { provider: 'mercadopago', method: resolvedMethod, mp_payment_id: mpId }
-    });
+    }).catch(e => console.error(JSON.stringify({ tag: 'FUNNEL_EVENT_ERROR', error: e.message, order_id: order.id, timestamp: new Date().toISOString() })));
 
     console.log(`✅ [MP] Pedido ${order.id} processado com sucesso.`);
 }

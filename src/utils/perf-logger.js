@@ -1,8 +1,8 @@
 'use strict';
 
 function perfLog(label, start) {
-    const duration = Date.now() - start;
-    console.log(`[PERF] ${label} | ${duration}ms | ${new Date().toISOString()}`);
+    const duration_ms = Date.now() - start;
+    console.log(JSON.stringify({ tag: 'PERF', label, duration_ms, timestamp: new Date().toISOString() }));
 }
 
 module.exports = { perfLog };

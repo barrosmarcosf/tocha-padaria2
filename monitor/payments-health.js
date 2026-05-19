@@ -1,5 +1,6 @@
 'use strict';
-require('dotenv').config({ path: '/root/tocha-padaria2/.env' });
+const path = require('path');
+require('dotenv').config({ path: process.env.DOTENV_PATH || path.join(__dirname, '..', '.env') });
 
 const { createClient } = require('@supabase/supabase-js');
 const { systemAlert } = require('../src/utils/systemAlert');
@@ -77,14 +78,21 @@ async function checkStaleLocks() {
     return stale.length;
 }
 
-// ── CHECK 2: Pedidos pending com mp_payment_id — indica falha no processPaidMPOrder ─
+// ── CHECK 2: Pedidos pending com mp_payment_id há mais de 10 min — indica falha no processPaidMPOrder ─
 async function checkUnfinalizedPayments() {
+    // Ignora pedidos recém-criados (webhook pode ainda estar em trânsito)
+    const minAgeCutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    // Throttle: só alerta pedidos não alertados na última hora (usa coluna alerted_at)
+    const alertCutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
     const qStart = Date.now();
     const { data: unfinalized, error } = await supabase
         .from('pedidos')
-        .select('id, mp_payment_id, created_at')
+        .select('id, mp_payment_id, created_at, alerted_at')
         .eq('status', 'pending')
-        .not('mp_payment_id', 'is', null);
+        .not('mp_payment_id', 'is', null)
+        .lt('created_at', minAgeCutoff)
+        .or(`alerted_at.is.null,alerted_at.lt.${alertCutoff}`);
     console.log(JSON.stringify({ tag: 'DB_QUERY', table: 'pedidos', op: 'select_unfinalized', duration_ms: Date.now() - qStart, rows: unfinalized?.length || 0, error: !!error }));
 
     if (error) {
@@ -94,12 +102,19 @@ async function checkUnfinalizedPayments() {
 
     if (!unfinalized || unfinalized.length === 0) return 0;
 
+    const ids = [];
     for (const row of unfinalized) {
         systemAlert('ALERT_PAYMENT_NOT_FINALIZED', {
             order_id: row.id,
             mp_payment_id: row.mp_payment_id,
             created_at: row.created_at
         });
+        ids.push(row.id);
+    }
+
+    // Atualiza alerted_at para evitar spam de alertas
+    if (ids.length > 0) {
+        await supabase.from('pedidos').update({ alerted_at: new Date().toISOString() }).in('id', ids);
     }
 
     return unfinalized.length;

@@ -7,7 +7,8 @@ const PAYMENT_DELAYS = {
 };
 
 function detectPaymentMethod(order) {
-    if (order.stripe_session_id) return 'card';
+    // Pedidos MP PIX armazenam stripe_session_id = 'mp_' + mpId — não são card
+    if (order.stripe_session_id && !order.stripe_session_id.startsWith('mp_')) return 'card';
     return 'pix';
 }
 
@@ -41,7 +42,15 @@ async function resolveCustomer(supabase, order) {
     return null;
 }
 
+let _recoveryRunning = false;
+
 async function checkPendingPayments(supabase) {
+    if (_recoveryRunning) {
+        console.log(JSON.stringify({ tag: 'RECOVERY_OVERLAP_SKIP', timestamp: new Date().toISOString() }));
+        return;
+    }
+    _recoveryRunning = true;
+
     const now = new Date();
     const saoPauloTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
     const currentHour = saoPauloTime.getHours();
@@ -106,7 +115,9 @@ async function checkPendingPayments(supabase) {
             }).eq('id', order.id);
         }
     } catch (e) {
-        console.error('[PAYMENT RECOVERY] Erro no worker:', e.message);
+        console.error(JSON.stringify({ tag: 'PAYMENT_RECOVERY_ERROR', error: e.message, timestamp: new Date().toISOString() }));
+    } finally {
+        _recoveryRunning = false;
     }
 }
 

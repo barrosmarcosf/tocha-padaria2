@@ -12,11 +12,13 @@ async function reconcileMPPayments(supabase) {
     if (spHour >= 23 || spHour < 6) return;
 
     try {
+        const cutoff48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
         const { data: pending, error } = await supabase
             .from('pedidos')
             .select('id, mp_payment_id, status, total_amount')
             .eq('status', 'pending')
             .not('mp_payment_id', 'is', null)
+            .gte('created_at', cutoff48h)
             .order('created_at', { ascending: true })
             .limit(50);
 
@@ -32,9 +34,15 @@ async function reconcileMPPayments(supabase) {
 
         for (const order of pending) {
             try {
-                const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${order.mp_payment_id}`, {
-                    headers: { Authorization: `Bearer ${mpToken}` }
-                });
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), 10000);
+                let mpRes;
+                try {
+                    mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${order.mp_payment_id}`, {
+                        headers: { Authorization: `Bearer ${mpToken}` },
+                        signal: ctrl.signal
+                    });
+                } finally { clearTimeout(tid); }
                 if (!mpRes.ok) continue;
 
                 const mpData = await mpRes.json();

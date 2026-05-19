@@ -439,8 +439,21 @@ async function sendCancellationEmail(customer) {
 /**
  * Envia E-mail do formulário Fale Conosco
  */
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 async function sendContactEmail(data) {
     const { name, email, phone, message } = data;
+    const safeName    = escapeHtml(name);
+    const safeEmail   = escapeHtml(email);
+    const safePhone   = escapeHtml(phone || '');
+    const safeMessage = escapeHtml(message);
     const mailOptions = {
         from: `"Tocha Padaria - Contato" <${process.env.SMTP_USER}>`,
         to: 'tocha.padariapagamentos@gmail.com',
@@ -450,12 +463,12 @@ async function sendContactEmail(data) {
             <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; padding: 20px; border: 1px solid #eee;">
                 <h2 style="color: #c9994c;">Nova Mensagem: Fale Conosco</h2>
                 <hr>
-                <p><strong>Nome:</strong> ${name}</p>
-                <p><strong>E-mail:</strong> ${email}</p>
-                <p><strong>Telefone:</strong> ${phone}</p>
+                <p><strong>Nome:</strong> ${safeName}</p>
+                <p><strong>E-mail:</strong> ${safeEmail}</p>
+                <p><strong>Telefone:</strong> ${safePhone}</p>
                 <div style="background: #f9f9f9; padding: 15px; margin-top: 20px; border-radius: 5px;">
                     <p style="margin: 0;"><strong>Mensagem:</strong></p>
-                    <p style="white-space: pre-wrap;">${message}</p>
+                    <p style="white-space: pre-wrap;">${safeMessage}</p>
                 </div>
             </div>
         `

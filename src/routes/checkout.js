@@ -396,7 +396,7 @@ module.exports = function (supabase, stripe) {
             }
         }
 
-        console.log(`Checkout Stripe iniciado para ${customer.name}: ${session.id}`);
+        console.log(JSON.stringify({ tag: 'STRIPE_CHECKOUT_START', session_id: session.id, timestamp: new Date().toISOString() }));
 
         let newOrder;
         try {
@@ -518,7 +518,7 @@ async function processPaidSession(supabase, stripe, session) {
         const paymentMethod = session.payment_method_types?.[0] === 'card' ? 'Crédito' :
             session.payment_method_types?.[0] === 'pix' ? 'Pix' : 'Cartão/Stripe';
 
-        console.log(`📝 [INFO] Método: ${paymentMethod} | Cliente: ${session.customer_email || 'N/A'}`);
+        console.log(JSON.stringify({ tag: 'STRIPE_SESSION_START', method: paymentMethod, session_id: session.id, timestamp: new Date().toISOString() }));
 
         // Atomic guard: UPDATE só avança se status ainda for 'pending' — idempotência garantida
         const { data: orderUpdate, error: updateErr } = await supabase
@@ -580,7 +580,7 @@ async function processPaidSession(supabase, stripe, session) {
             order_id:   orderUpdate.id,
             user_id:    orderUpdate.customer_id || null,
             metadata:   { provider: 'stripe', stripe_session_id: session.id }
-        });
+        }).catch(e => console.error(JSON.stringify({ tag: 'FUNNEL_EVENT_ERROR', error: e.message, order_id: orderUpdate.id, timestamp: new Date().toISOString() })));
 
         const { data: customer, error: custErr } = await supabase
             .from('clientes').select('*').eq('id', orderUpdate.customer_id).single();

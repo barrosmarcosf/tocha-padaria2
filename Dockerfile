@@ -31,14 +31,17 @@ WORKDIR /usr/src/app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install production dependencies only
+RUN npm ci --only=production
 
 # Copy the rest of the application code
 COPY . .
 
-# Create logs directory
-RUN mkdir -p logs
+# Create logs directory and set permissions
+RUN mkdir -p logs && chown -R node:node /usr/src/app
+
+# Run as non-root user
+USER node
 
 # Expose the port the app runs on
 EXPOSE 3333

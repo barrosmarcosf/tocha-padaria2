@@ -565,7 +565,9 @@ module.exports = function (supabase) {
 
     router.post('/save-category', adminAuth, async (req, res) => {
         try {
-            const { error } = await supabase.from('categorias').upsert([req.body], { onConflict: 'slug' });
+            const ALLOWED = ['id', 'name', 'slug', 'is_active', 'display_order', 'image_url', 'description'];
+            const payload = Object.fromEntries(ALLOWED.filter(k => req.body[k] !== undefined).map(k => [k, req.body[k]]));
+            const { error } = await supabase.from('categorias').upsert([payload], { onConflict: 'slug' });
             if (error) throw error;
             if (req.app.locals.broadcastMenuUpdate) req.app.locals.broadcastMenuUpdate({ table: 'categorias' });
             res.json({ success: true });
@@ -880,9 +882,12 @@ module.exports = function (supabase) {
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
+    const VALID_ORDER_STATUSES = ['pending', 'paid', 'payment_failed', 'retirada', 'entregue', 'cancelado', 'refunded', 'pre_venda'];
+
     router.post('/update-order-status', adminAuth, async (req, res) => {
         try {
             const { id, status } = req.body;
+            if (!VALID_ORDER_STATUSES.includes(status)) return res.status(400).json({ error: `Status inválido: ${status}` });
             const { error } = await supabase.from('pedidos').update({ status }).eq('id', id);
             if (error) throw error;
             res.json({ success: true });
@@ -911,6 +916,8 @@ module.exports = function (supabase) {
             const { ids, status } = req.body;
             if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'ids obrigatório' });
             if (!status) return res.status(400).json({ error: 'status obrigatório' });
+            if (!VALID_ORDER_STATUSES.includes(status)) return res.status(400).json({ error: `Status inválido: ${status}` });
+            if (ids.length > 500) return res.status(400).json({ error: 'Máximo de 500 pedidos por bulk update' });
             const { error } = await supabase.from('pedidos').update({ status }).in('id', ids);
             if (error) throw error;
             res.json({ success: true, updated: ids.length });
@@ -1173,7 +1180,9 @@ module.exports = function (supabase) {
 
     router.post('/save-grupo-opcional', adminAuth, async (req, res) => {
         try {
-            const { error } = await supabase.from('grupos_opcionais').upsert([req.body]);
+            const ALLOWED = ['id', 'name', 'display_order', 'is_active', 'min_select', 'max_select'];
+            const payload = Object.fromEntries(ALLOWED.filter(k => req.body[k] !== undefined).map(k => [k, req.body[k]]));
+            const { error } = await supabase.from('grupos_opcionais').upsert([payload]);
             if (error) throw error;
             res.json({ success: true });
         } catch (e) { res.status(500).json({ error: e.message }); }
@@ -1181,7 +1190,9 @@ module.exports = function (supabase) {
 
     router.post('/save-opcional', adminAuth, async (req, res) => {
         try {
-            const { error } = await supabase.from('opcionais').upsert([req.body]);
+            const ALLOWED = ['id', 'grupo_id', 'name', 'price', 'is_active', 'display_order'];
+            const payload = Object.fromEntries(ALLOWED.filter(k => req.body[k] !== undefined).map(k => [k, req.body[k]]));
+            const { error } = await supabase.from('opcionais').upsert([payload]);
             if (error) throw error;
             res.json({ success: true });
         } catch (e) { res.status(500).json({ error: e.message }); }

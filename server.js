@@ -1,12 +1,17 @@
 const fs = require('fs');
 const envPath = __dirname + '/.env';
 
-console.log('[ENV PATH]', envPath);
-console.log('[ENV FILE EXISTS]', fs.existsSync(envPath));
+// startup path check removed (debug only)
 
 require('dotenv').config({ path: envPath });
 
 console.log('[ENV CHECK]', process.env.BASE_URL);
+
+// Default seguro: se NODE_ENV não definido, assume 'production' (cookies secure, auth estrita)
+if (!process.env.NODE_ENV) {
+    process.env.NODE_ENV = 'production';
+    console.warn(JSON.stringify({ tag: 'ENV_WARNING', message: 'NODE_ENV não definido — assumindo production', timestamp: new Date().toISOString() }));
+}
 
 const REQUIRED_ALWAYS = ['BASE_URL', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
 const REQUIRED_PRODUCTION = ['JWT_SECRET', 'STRIPE_WEBHOOK_SECRET', 'MERCADOPAGO_WEBHOOK_SECRET', 'ADMIN_PASS'];
@@ -21,27 +26,15 @@ if (missingEnv.length) {
     process.exit(1);
 }
 
-console.log('[ENV OK]', {
-    BASE_URL: process.env.BASE_URL,
-    NODE_ENV: process.env.NODE_ENV
-});
+console.log(JSON.stringify({ tag: 'ENV_OK', BASE_URL: process.env.BASE_URL, NODE_ENV: process.env.NODE_ENV, timestamp: new Date().toISOString() }));
+console.log(JSON.stringify({ tag: 'SERVER_BOOT', pid: process.pid, timestamp: new Date().toISOString() }));
 
-/**
- * TOCHA PADARIA — Servidor Principal
- *
- * Arquivo orquestrador: inicializa Express, Supabase, Stripe,
- * monta as rotas modulares e inicia o worker de abandono.
- */
-console.log("🚀 [SERVER] REINICIADO COM LOG DE DEPURACAO v999");
-console.log(`[BOOT] Main process started PID: ${process.pid}`);
-
-// CAPTURA DE ERROS TOTAIS (Para diagnosticar exit code 1)
 process.on('uncaughtException', (err) => {
-    console.error(`\n💥 [CRITICAL ERROR] UNCAUGHT EXCEPTION: ${err.message}`);
-    console.error(err.stack);
+    console.error(JSON.stringify({ tag: 'UNCAUGHT_EXCEPTION', error: err.message, stack: err.stack, timestamp: new Date().toISOString() }));
+    process.exit(1); // heap pode estar corrompido — PM2 reinicia automaticamente
 });
 process.on('unhandledRejection', (reason) => {
-    console.error(`\n💥 [CRITICAL ERROR] UNHANDLED REJECTION:`, reason);
+    console.error(JSON.stringify({ tag: 'UNHANDLED_REJECTION', error: String(reason), timestamp: new Date().toISOString() }));
 });
 
 const express = require('express');
@@ -60,7 +53,7 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-console.log('[SUPABASE URL]', (supabaseUrl || 'NÃO DEFINIDO').slice(0, 50));
+console.log(JSON.stringify({ tag: 'SUPABASE_INIT', url_prefix: (supabaseUrl || 'NÃO DEFINIDO').slice(0, 30), timestamp: new Date().toISOString() }));
 
 // Diagnóstico de conexão na subida
 (async () => {
@@ -77,14 +70,25 @@ console.log('[SUPABASE URL]', (supabaseUrl || 'NÃO DEFINIDO').slice(0, 50));
 // MIDDLEWARES GLOBAIS
 // ──────────────────────────────────────────────────
 
-// Log de requisições (diagnóstico)
+// Log de requisições — path apenas, sem query string (evita PII/tokens em logs)
 app.use((req, _res, next) => {
-    const timestamp = new Date().toLocaleTimeString();
-    console.log(`[${timestamp}] ${req.method} ${req.url}`);
+    console.log(JSON.stringify({ tag: 'HTTP_REQUEST', method: req.method, path: req.path, timestamp: new Date().toISOString() }));
     next();
 });
 
-app.use(cors());
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://tochapadaria.com.br,https://www.tochapadaria.com.br').split(',');
+app.use(cors({
+    origin: (origin, cb) => {
+        // Sem origin = request direto (curl, Postman, servidor interno) — permitir
+        if (!origin) return cb(null, true);
+        // Em dev, permite localhost
+        if (process.env.NODE_ENV !== 'production' && (origin.includes('localhost') || origin.includes('127.0.0.1'))) return cb(null, true);
+        if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+        cb(new Error('CORS: origem não permitida'));
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Idempotency-Key', 'X-Internal-Secret']
+}));
 
 // Security headers (noSniff, frameguard, xssFilter, basic CSP)
 app.use((_req, res, next) => {
@@ -204,35 +208,42 @@ app.use(express.static(path.join(__dirname, 'public'), { maxAge: '30d', etag: tr
 // ──────────────────────────────────────────────────
 // SISTEMA DE ATUALIZAÇÃO EM TEMPO REAL (SSE)
 // ──────────────────────────────────────────────────
+const SSE_MAX_CLIENTS = 200;
 let sseClients = [];
 
 app.get('/api/stock-stream', (req, res) => {
+    if (sseClients.length >= SSE_MAX_CLIENTS) {
+        return res.status(503).json({ error: 'Limite de conexões SSE atingido' });
+    }
+
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders();
 
-    const clientId = Date.now();
+    const clientId = Date.now() + Math.random();
     const newClient = { id: clientId, res };
     sseClients.push(newClient);
 
-    console.log(`📡 [SSE] Cliente conectado (${clientId}). Total: ${sseClients.length}`);
+    console.log(JSON.stringify({ tag: 'SSE_CONNECT', client_id: clientId, total: sseClients.length, timestamp: new Date().toISOString() }));
 
-    // Envia pulso inicial
     res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
 
     req.on('close', () => {
         sseClients = sseClients.filter(c => c.id !== clientId);
-        console.log(`📡 [SSE] Cliente desconectado (${clientId}). Restantes: ${sseClients.length}`);
+        console.log(JSON.stringify({ tag: 'SSE_DISCONNECT', client_id: clientId, remaining: sseClients.length, timestamp: new Date().toISOString() }));
     });
 });
 
-// Broadcast para todos os clientes conectados
+// Broadcast para todos os clientes conectados — remove conexões mortas ao detectar erro
 function broadcastStockUpdate(data) {
     const payload = JSON.stringify({ type: 'stock_update', ...data });
+    const dead = [];
     sseClients.forEach(client => {
-        try { client.res.write(`data: ${payload}\n\n`); } catch (_) {}
+        try { client.res.write(`data: ${payload}\n\n`); }
+        catch (_) { dead.push(client.id); }
     });
+    if (dead.length > 0) sseClients = sseClients.filter(c => !dead.includes(c.id));
 }
 
 function broadcastMenuUpdate(data) {
@@ -336,7 +347,7 @@ app.get('/comparative-audit', adminAuth, async (_req, res) => {
 // ENDPOINT DE DIAGNÓSTICO — /api/health
 // Verifica o status de todas as integrações em tempo real
 // ──────────────────────────────────────────────────
-app.get('/api/health', async (_req, res) => {
+app.get('/api/health', adminAuth, async (_req, res) => {
     const checks = {};
 
     // 1. Supabase
@@ -360,7 +371,7 @@ app.get('/api/health', async (_req, res) => {
     if (!mpToken || mpToken === 'SEU_TOKEN_AQUI') {
         checks.mercadopago = { ok: false, error: 'MERCADOPAGO_ACCESS_TOKEN não configurado (placeholder)' };
     } else {
-        checks.mercadopago = { ok: true, token_prefix: mpToken.substring(0, 12) + '...' };
+        checks.mercadopago = { ok: true, env: mpToken.startsWith('APP_USR-') ? 'production' : 'sandbox' };
     }
 
     // 4. Webhooks
@@ -648,6 +659,11 @@ async function handlePaymentWebhook(event) {
 }
 
 app.post('/webhook/payment', (req, res) => {
+    const internalSecret = req.headers['x-internal-secret'];
+    if (!internalSecret || internalSecret !== process.env.INTERNAL_WEBHOOK_SECRET) {
+        return res.status(401).json({ error: 'Não autorizado' });
+    }
+
     const event = req.body;
 
     if (!event || !event.id || !event.type) {
@@ -703,13 +719,12 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`ACESSE: http://localhost:${PORT}`);
     console.log(`-------------------------------------------\n`);
 
-    // Monitor de lag do event loop (detecta travamentos/CPU saturada)
+    // Monitor de lag do event loop — só loga se acima do threshold crítico (>200ms)
     setInterval(() => {
         const _loopStart = Date.now();
         setImmediate(() => {
             const lag = Date.now() - _loopStart;
-            if (lag > 50) console.warn(`[EVENT_LOOP_LAG] ${lag}ms`);
-            else console.log(`[EVENT_LOOP_LAG] ${lag}ms`);
+            if (lag > 200) console.warn(JSON.stringify({ tag: 'EVENT_LOOP_LAG', lag_ms: lag, timestamp: new Date().toISOString() }));
         });
     }, 5000);
 

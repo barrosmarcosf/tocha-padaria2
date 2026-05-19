@@ -6,7 +6,11 @@ module.exports = {
             cwd: __dirname,
             instances: 1,
             autorestart: true,
-            watch: false
+            watch: false,
+            max_memory_restart: '512M',
+            env_production: {
+                NODE_ENV: 'production'
+            }
         },
         {
             name: 'payments-monitor',
@@ -14,7 +18,11 @@ module.exports = {
             cwd: __dirname,
             cron_restart: '* * * * *',
             autorestart: true,
-            watch: false
+            watch: false,
+            max_memory_restart: '128M',
+            env_production: {
+                NODE_ENV: 'production'
+            }
         }
     ]
 };
