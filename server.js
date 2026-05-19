@@ -52,6 +52,14 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Cliente público (anon key) — usado em rotas de leitura sem dados de usuário.
+// Se SUPABASE_ANON_KEY não estiver definida, cai back para service key (sem RLS).
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || supabaseKey;
+const supabasePublic = createClient(supabaseUrl, supabaseAnonKey);
+if (!process.env.SUPABASE_ANON_KEY) {
+    console.warn(JSON.stringify({ tag: 'ENV_WARNING', message: 'SUPABASE_ANON_KEY não definida — rotas públicas usam service key (sem RLS)', timestamp: new Date().toISOString() }));
+}
+
 console.log(JSON.stringify({ tag: 'SUPABASE_INIT', url_prefix: (supabaseUrl || 'NÃO DEFINIDO').slice(0, 30), timestamp: new Date().toISOString() }));
 
 // Diagnóstico de conexão na subida
@@ -174,7 +182,7 @@ app.use((req, res, next) => {
 const adminRoutes = require('./src/routes/admin')(supabase);
 const checkoutRoutes = require('./src/routes/checkout')(supabase, stripe);
 const mercadopagoRoutes = require('./src/routes/mercadopago')(supabase);
-const publicRoutes = require('./src/routes/public')(supabase);
+const publicRoutes = require('./src/routes/public')(supabase, supabasePublic);
 const customerRoutes = require('./src/routes/customer')(supabase);
 const { startBot } = require('./src/notification-service');
 const { perfLog } = require('./src/utils/perf-logger');

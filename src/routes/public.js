@@ -23,7 +23,9 @@ function makeRateLimiter(windowMs, max, msg) {
 const rlContact  = makeRateLimiter(5 * 60_000, 5,  'Muitas mensagens. Aguarde 5 minutos.');
 const rlCartSync = makeRateLimiter(60_000,      60, 'Muitas requisições de carrinho. Aguarde 1 minuto.');
 
-module.exports = function (supabase) {
+// supabasePublic = cliente com anon key (respeita RLS em tabelas públicas de config)
+// supabase = service key, usado para operações com dados de usuário (carrinhos, pedidos, clientes)
+module.exports = function (supabase, supabasePublic = supabase) {
     const router = express.Router();
 
     // ──────────────────────────────────────────────────
@@ -31,9 +33,9 @@ module.exports = function (supabase) {
     // ──────────────────────────────────────────────────
     router.get('/config', async (req, res) => {
         try {
-            const { data: categorias, error: catErr } = await supabase.from('categorias').select('*').eq('is_active', true).order('display_order', { ascending: true });
-            const { data: produtosRaw, error: prodErr } = await supabase.from('produtos').select('*').eq('is_active', true).order('display_order', { ascending: true });
-            const { data: content, error: contErr } = await supabase.from('site_content').select('*');
+            const { data: categorias, error: catErr } = await supabasePublic.from('categorias').select('*').eq('is_active', true).order('display_order', { ascending: true });
+            const { data: produtosRaw, error: prodErr } = await supabasePublic.from('produtos').select('*').eq('is_active', true).order('display_order', { ascending: true });
+            const { data: content, error: contErr } = await supabasePublic.from('site_content').select('*');
 
             if (catErr || prodErr || contErr) throw new Error("Erro ao carregar configurações do banco.");
 
@@ -56,7 +58,7 @@ module.exports = function (supabase) {
     // Config pública leve (telefone + email de contato) — sem autenticação
     router.get('/site-config', async (req, res) => {
         try {
-            const { data } = await supabase
+            const { data } = await supabasePublic
                 .from('site_content')
                 .select('key, value')
                 .in('key', ['contact_phone', 'contact_email']);
@@ -75,7 +77,7 @@ module.exports = function (supabase) {
 
     router.get('/store-status', async (req, res) => {
         try {
-            const { data, error } = await supabase.from('site_content').select('value').eq('key', 'opening_hours').single();
+            const { data, error } = await supabasePublic.from('site_content').select('value').eq('key', 'opening_hours').single();
             const config = data ? data.value : null;
             const status = getCurrentStoreStatus(config);
             res.json(status);
@@ -229,7 +231,7 @@ module.exports = function (supabase) {
     // ──────────────────────────────────────────────────
     router.get('/payment-methods', async (req, res) => {
         try {
-            const { data } = await supabase.from('site_content').select('value').eq('key', 'payment_methods').maybeSingle();
+            const { data } = await supabasePublic.from('site_content').select('value').eq('key', 'payment_methods').maybeSingle();
             res.json(data?.value || { card: true, pix: true, mp_card: false, mp_pix: true });
         } catch (e) {
             res.json({ card: true, pix: true, mp_card: false, mp_pix: true });

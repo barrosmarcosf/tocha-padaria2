@@ -1,5 +1,11 @@
 const express = require('express');
 const router = express.Router();
+
+// Helper padronizado: loga o erro real internamente, retorna mensagem genérica ao cliente
+function _adminErr(res, req, e) {
+    console.error(JSON.stringify({ tag: 'ADMIN_ERROR', path: req?.path, error: e?.message || String(e), timestamp: new Date().toISOString() }));
+    res.status(500).json({ error: 'Erro interno.' });
+}
 const { adminAuth, authorize, bcrypt, jwt, JWT_SECRET, SESSION_VERSION, secLog } = require('../middleware/auth');
 const { generateCsrfToken, csrfProtection } = require('../middleware/csrf');
 const { secLog: fileSecLog } = require('../utils/secLogger');
@@ -171,7 +177,7 @@ module.exports = function (supabase) {
             }
             
             res.json(results);
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
     const PAID_STATUSES = ['paid', 'pago', 'concluido', 'concluído', 'finalizado', 'success', 'succeeded', 'completed', 'finalizado', 'entregue', 'delivered'];
 
@@ -207,7 +213,7 @@ module.exports = function (supabase) {
                 ticketVar: metrics.variacao.ticketMedio,
                 profitVar: metrics.variacao.lucro
             });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     // GET /chart-data - dados para o gráfico principal (não acumulado)
@@ -222,7 +228,7 @@ module.exports = function (supabase) {
                 averages: metrics.serieTemporal.map(s => s.ticketMedio),
                 profit: metrics.serieTemporal.map(s => s.lucro)
             });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     // GET /historical-monthly-metrics - Dados agregados mês a mês (12 meses)
@@ -288,7 +294,7 @@ module.exports = function (supabase) {
             res.json(series);
         } catch (e) { 
             console.error("Erro em historical-monthly-metrics:", e);
-            res.status(500).json({ error: e.message }); 
+            _adminErr(res, req, e); 
         }
     });
 
@@ -345,7 +351,7 @@ module.exports = function (supabase) {
             ]);
 
             res.json({ labels: current.labels, current: current.values, previous: previous.values });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     router.get('/detailed-analytics', adminAuth, async (req, res) => {
@@ -573,7 +579,7 @@ module.exports = function (supabase) {
             const produtos = await getUnifiedProductList(supabase, produtosRaw);
 
             res.json({ categorias, produtos, siteContent });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     router.post('/save-category', adminAuth, async (req, res) => {
@@ -584,7 +590,7 @@ module.exports = function (supabase) {
             if (error) throw error;
             if (req.app.locals.broadcastMenuUpdate) req.app.locals.broadcastMenuUpdate({ table: 'categorias' });
             res.json({ success: true });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     router.post('/update-categories-order', adminAuth, async (req, res) => {
@@ -605,7 +611,7 @@ module.exports = function (supabase) {
             res.json({ success: true });
         } catch (e) { 
             console.error("Erro ao atualizar ordem das categorias:", e.message);
-            res.status(500).json({ error: e.message }); 
+            _adminErr(res, req, e); 
         }
     });
     router.post('/update-products-order', adminAuth, async (req, res) => {
@@ -625,7 +631,7 @@ module.exports = function (supabase) {
             res.json({ success: true });
         } catch (e) { 
             console.error("Erro ao atualizar ordem dos produtos:", e.message);
-            res.status(500).json({ error: e.message }); 
+            _adminErr(res, req, e); 
         }
     });
 
@@ -676,7 +682,7 @@ module.exports = function (supabase) {
             res.json({ sold: totalSold });
         } catch (e) {
             console.error("Erro ao buscar contagem de vendas:", e.message);
-            res.status(500).json({ error: e.message });
+            _adminErr(res, req, e);
         }
     });
 
@@ -753,7 +759,7 @@ module.exports = function (supabase) {
             res.json({ success: true });
         } catch (e) {
             console.error("❌ Erro ao salvar produto:", e.message);
-            res.status(500).json({ error: e.message });
+            _adminErr(res, req, e);
         }
     });
 
@@ -763,7 +769,7 @@ module.exports = function (supabase) {
             const { error } = await supabase.from('site_content').upsert([{ key, value, updated_at: new Date().toISOString() }]);
             if (error) throw error;
             res.json({ success: true });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     const ALLOWED_TABLES = ['categorias', 'produtos', 'site_content', 'grupos_opcionais', 'opcionais', 'clientes'];
@@ -777,7 +783,7 @@ module.exports = function (supabase) {
                 req.app.locals.broadcastMenuUpdate({ table });
             }
             res.json({ success: true });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     router.get('/pedidos/historico', adminAuth, async (req, res) => {
@@ -835,7 +841,7 @@ module.exports = function (supabase) {
             }
 
             res.json({ orders: data, count, stats, page: Number(page), limit: Number(limit) });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     router.get('/pedidos', adminAuth, async (req, res) => {
@@ -865,7 +871,7 @@ module.exports = function (supabase) {
             const normalized = normalizeOrderCustomers(data);
             console.log('[ADMIN CUSTOMER OK]', { count: normalized.length });
             res.json(normalized);
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     router.get('/pre-orders', adminAuth, async (req, res) => {
@@ -892,7 +898,7 @@ module.exports = function (supabase) {
             });
 
             res.json(preOrders);
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     const VALID_ORDER_STATUSES = ['pending', 'paid', 'payment_failed', 'retirada', 'entregue', 'cancelado', 'refunded', 'pre_venda'];
@@ -921,7 +927,7 @@ module.exports = function (supabase) {
                     }
                 })();
             }
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     router.post('/bulk-update-status', adminAuth, async (req, res) => {
@@ -957,7 +963,7 @@ module.exports = function (supabase) {
                     }
                 })();
             }
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     // --- NOVA ROTA: VIRADA DE CICLO MANUAL ---
@@ -1032,7 +1038,7 @@ module.exports = function (supabase) {
 
         } catch (e) {
             console.error("Erro na virada de ciclo:", e);
-            res.status(500).json({ error: e.message });
+            _adminErr(res, req, e);
         }
     });
 
@@ -1041,7 +1047,7 @@ module.exports = function (supabase) {
             const { data, error } = await supabase.from('usuarios').select('id, nome, email, role, ultimo_login, criado_em');
             if (error) throw error;
             res.json(data);
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     router.get('/customers', adminAuth, async (req, res) => {
@@ -1079,7 +1085,7 @@ module.exports = function (supabase) {
             }));
 
             res.json(enriched);
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     router.post('/save-customer', adminAuth, async (req, res) => {
@@ -1121,7 +1127,7 @@ module.exports = function (supabase) {
             }
 
             res.json({ success: true });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     router.get('/customer-details/:id', adminAuth, async (req, res) => {
@@ -1145,7 +1151,7 @@ module.exports = function (supabase) {
             
             const totalSpent = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
             res.json({ customer, orders, summary: { totalSpent, totalOrders: orders.length, lastOrderDate: orders.length > 0 ? (orders[0].created_at || null) : null } });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     router.post('/save-user', adminAuth, authorize(['admin']), async (req, res) => {
@@ -1156,7 +1162,7 @@ module.exports = function (supabase) {
             const { error } = await supabase.from('usuarios').upsert([id ? { id, ...userData } : userData]);
             if (error) throw error;
             res.json({ success: true });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     const storage = multer.diskStorage({
@@ -1181,14 +1187,14 @@ module.exports = function (supabase) {
         try {
             if (!req.file) throw new Error("Falha no upload.");
             res.json({ success: true, url: `assets/uploads/${req.file.filename}` });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     router.get('/opcionais-config', adminAuth, async (req, res) => {
         try {
             const { data: grupos } = await supabase.from('grupos_opcionais').select('*, opcionais(*)').order('display_order', { ascending: true });
             res.json(grupos);
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     router.post('/save-grupo-opcional', adminAuth, async (req, res) => {
@@ -1198,7 +1204,7 @@ module.exports = function (supabase) {
             const { error } = await supabase.from('grupos_opcionais').upsert([payload]);
             if (error) throw error;
             res.json({ success: true });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     router.post('/save-opcional', adminAuth, async (req, res) => {
@@ -1208,7 +1214,7 @@ module.exports = function (supabase) {
             const { error } = await supabase.from('opcionais').upsert([payload]);
             if (error) throw error;
             res.json({ success: true });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     const { getUnifiedStoreStatus } = require('../services/storeStatusService');
@@ -1229,7 +1235,7 @@ module.exports = function (supabase) {
             ]);
             res.json({ success: true, message: "Logs de teste gerados no console do sistema." });
         } catch (e) {
-            res.status(500).json({ error: e.message });
+            _adminErr(res, req, e);
         }
     });
 
@@ -1248,7 +1254,7 @@ module.exports = function (supabase) {
                 nextBatchDate: status.nextBatchDate,
                 nextBatchLabel: status.nextBatchLabel
             });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     router.post('/toggle-store', adminAuth, async (req, res) => {
@@ -1269,7 +1275,7 @@ module.exports = function (supabase) {
 
             if (req.app.locals.broadcastStoreStatus) req.app.locals.broadcastStoreStatus({ open: status.isOpen });
             res.json({ success: true, open: status.isOpen, statusMode: status.statusMode, message: status.message, allowNextBatch: status.allowNextBatch });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     router.post('/update-profile', adminAuth, async (req, res) => {
@@ -1304,7 +1310,7 @@ module.exports = function (supabase) {
             res.json({ success: true, message: 'Perfil atualizado com sucesso!' });
         } catch (e) {
             console.error('[UPDATE_PROFILE_ERROR]', e.message, e.stack);
-            res.status(500).json({ error: e.message });
+            _adminErr(res, req, e);
         }
     });
 
@@ -1335,7 +1341,7 @@ module.exports = function (supabase) {
                 refunded:             refundedRes.count ?? 0,
                 timestamp: new Date().toISOString()
             });
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     // Cache em memória para /payment-analytics (TTL 60s por chave de período)
@@ -1499,7 +1505,7 @@ module.exports = function (supabase) {
         try {
             const { getPaymentMetrics } = require('../../metrics/payments_metrics');
             res.json(await getPaymentMetrics(supabase));
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     // Métricas baseadas em payment_events: approval_rate_24h, rejection_top_reasons, refund_rate, total_events_by_type
@@ -1510,7 +1516,7 @@ module.exports = function (supabase) {
             const metrics = await getPaymentEventMetrics(supabase, hours);
             if (!metrics) return res.status(500).json({ error: 'Falha ao agregar métricas' });
             res.json(metrics);
-        } catch (e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { _adminErr(res, req, e); }
     });
 
     const { sendOrderEmails, sendOrderWhatsApp } = require('../notification-service');
@@ -1521,7 +1527,7 @@ module.exports = function (supabase) {
             const customer = { ...lastOrder.clientes, name: lastOrder.clientes?.name || 'Cliente Teste', whatsapp: lastOrder.clientes?.whatsapp || process.env.OWNER_WHATSAPP, email: lastOrder.clientes?.email || process.env.SMTP_USER };
             const results = await Promise.allSettled([ sendOrderEmails(lastOrder, customer, 'Teste'), sendOrderWhatsApp(lastOrder, customer, 'Teste') ]);
             res.json({ success: true, summary: results.map((r, i) => ({ type: i === 0 ? "E-MAIL" : "WHATSAPP", status: r.status })), order_id: lastOrder.id });
-        } catch (error) { res.status(500).json({ error: error.message }); }
+        } catch (error) { _adminErr(res, req, error); }
     });
 
     router.get('/metrics', adminAuth, async (req, res) => {
@@ -1607,7 +1613,7 @@ module.exports = function (supabase) {
                 metrics: { avg_conversion_ms }
             });
         } catch (e) {
-            res.status(500).json({ error: e.message });
+            _adminErr(res, req, e);
         }
     });
 
@@ -1913,7 +1919,7 @@ module.exports = function (supabase) {
                 step_times: computeStepTimes(sessMaps),
             });
         } catch (e) {
-            res.status(500).json({ error: e.message });
+            _adminErr(res, req, e);
         }
     });
 
@@ -1963,7 +1969,7 @@ module.exports = function (supabase) {
                 alerts,
             });
         } catch (e) {
-            res.status(500).json({ error: e.message });
+            _adminErr(res, req, e);
         }
     });
 
@@ -1982,7 +1988,7 @@ module.exports = function (supabase) {
                 inconsistencies: result.inconsistencies,
             });
         } catch (e) {
-            res.status(500).json({ error: e.message });
+            _adminErr(res, req, e);
         }
     });
 
@@ -1998,7 +2004,7 @@ module.exports = function (supabase) {
             if (error) throw new Error(error.message);
             res.json({ alerts: data || [] });
         } catch (e) {
-            res.status(500).json({ error: e.message });
+            _adminErr(res, req, e);
         }
     });
 
@@ -2063,7 +2069,7 @@ module.exports = function (supabase) {
                 duplicate_events:    duplicate_events.slice(0, 20),
             });
         } catch (e) {
-            res.status(500).json({ error: e.message });
+            _adminErr(res, req, e);
         }
     });
 
