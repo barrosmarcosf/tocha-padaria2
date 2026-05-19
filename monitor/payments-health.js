@@ -3,6 +3,7 @@ require('dotenv').config({ path: '/root/tocha-padaria2/.env' });
 
 const { createClient } = require('@supabase/supabase-js');
 const { systemAlert } = require('../src/utils/systemAlert');
+const { perfLog } = require('../src/utils/perf-logger');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -17,6 +18,14 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let execCount = 0;
+let healthRunning = false;
+
+setInterval(() => {
+    console.log(`[METRIC] payments-health executions per 10s: ${execCount}`);
+    execCount = 0;
+}, 10000);
 
 // ── CHECK 1: Stale locks (pending + processing=true + processing_at > 2min) ─
 async function checkStaleLocks() {
@@ -97,13 +106,30 @@ async function checkSchema() {
 }
 
 async function run() {
-    console.log(JSON.stringify({ tag: 'MONITOR_START', timestamp: new Date().toISOString() }));
+    if (healthRunning) {
+        console.warn(JSON.stringify({ tag: 'MONITOR_OVERLAP', pid: process.pid, timestamp: new Date().toISOString() }));
+        return;
+    }
+    healthRunning = true;
+    execCount++;
 
+    const runStart = Date.now();
+    console.log(JSON.stringify({ tag: 'MONITOR_START', pid: process.pid, timestamp: new Date().toISOString() }));
+
+    const t1 = Date.now();
     await Promise.all([checkStaleLocks(), checkUnfinalizedPayments()]);
+    perfLog('payments-health:staleLocks+unfinalized', t1);
+
+    const t2 = Date.now();
     await checkSchema();
+    perfLog('payments-health:checkSchema', t2);
 
     console.log(JSON.stringify({ tag: 'MONITOR_DONE', timestamp: new Date().toISOString() }));
+    perfLog('payments-health:run', runStart);
+    healthRunning = false;
 }
+
+console.log(`[BOOT] payments-health PID: ${process.pid}`);
 
 run().catch(err => {
     systemAlert('MONITOR_FATAL', { error: err.message });

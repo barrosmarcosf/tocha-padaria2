@@ -4,6 +4,7 @@ const qrcodeTerminal = require('qrcode-terminal');
 const QRCode = require('qrcode');
 const path = require('path');
 const { callAntigravity } = require('./utils/antigravity-client');
+const { perfLog } = require('./utils/perf-logger');
 
 const STORE_OWNER_WA = process.env.OWNER_WHATSAPP;
 const USE_AI = process.env.USE_AI_NOTIFICATIONS === 'true';
@@ -104,6 +105,14 @@ const WA_STATE = {
 
 let isBotReady = false;
 let botStatus = WA_STATE.INITIALIZING;
+let _waMessageCount = 0;
+
+setInterval(() => {
+    if (_waMessageCount > 0) {
+        console.log(`[METRIC] whatsapp:messages-received per 10s: ${_waMessageCount}`);
+        _waMessageCount = 0;
+    }
+}, 10000);
 
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: path.resolve(__dirname, '..', '.wwebjs_auth') }),
@@ -160,9 +169,11 @@ client.on('auth_failure', (msg) => {
 
 // --- NOVO: INTERACAO INTELIGENTE (IA) ---
 client.on('message', async msg => {
+    _waMessageCount++;
     // Ignorar mensagens de grupos, status@broadcast ou se o bot nao estiver pronto
     if (!isBotReady || msg.from.includes('@g.us') || msg.from === 'status@broadcast') return;
 
+    const _msgStart = Date.now();
     const chat = await msg.getChat();
     // Nao responder se for do proprio dono (feedback loop)
     if (msg.from === `${STORE_OWNER_WA}@c.us`) return;
@@ -210,6 +221,7 @@ Responda à mensagem do cliente a seguir de forma natural:`;
             console.error("[IA] ❌ Erro ao gerar resposta automatica:", err.message);
         }
     }
+    perfLog('whatsapp:message-handler', _msgStart);
 });
 
 client.on('disconnected', async (reason) => {
@@ -453,6 +465,7 @@ async function sendContactEmail(data) {
 }
 
 async function sendOrderWhatsApp(supabase, order, customer, paymentMethod = 'Não informado') {
+    const _waOrderStart = Date.now();
     const customerName = customer.name || customer.nome || 'Cliente';
     const totalStr = `R$ ${Number(order.total_amount).toFixed(2).replace('.', ',')}`;
 
@@ -553,9 +566,11 @@ async function sendOrderWhatsApp(supabase, order, customer, paymentMethod = 'Nã
         }
 
         console.log(`✨ [WA-FINISH] Fluxo de WhatsApp concluído.`);
+        perfLog('whatsapp:sendOrderWhatsApp', _waOrderStart);
 
     } catch (error) {
         console.error("❌ [WA-ERROR] Erro bruto completo:", error);
+        perfLog('whatsapp:sendOrderWhatsApp:error', _waOrderStart);
     }
 }
 
@@ -563,6 +578,7 @@ async function sendOrderWhatsApp(supabase, order, customer, paymentMethod = 'Nã
  * Recuperação de Carrinho Abandonado
  */
 async function sendAbandonmentRecovery(supabase, customer, items, recoveryUrl) {
+    const _abandonStart = Date.now();
     const customerName = (customer.name || customer.nome || 'Cliente').split(' ')[0]; // Julia
     const itemsListText = items.map(i => `${i.qty}x ${i.name}`).join('\n'); // Sem o hífen (-)
     const itemsListHtml = items.map(i => `<li style="margin-bottom: 5px;">${i.qty}x ${i.name}</li>`).join('');
@@ -646,8 +662,10 @@ async function sendAbandonmentRecovery(supabase, customer, items, recoveryUrl) {
             await client.sendMessage(jid, waMessage);
         }
         console.log(`✅ [RECUPERACAO] Processo finalizado para ${customerName}`);
-    } catch (e) { 
-        console.error("❌ Erro no envio de recuperação:", e.message); 
+        perfLog('whatsapp:sendAbandonmentRecovery', _abandonStart);
+    } catch (e) {
+        console.error("❌ Erro no envio de recuperação:", e.message);
+        perfLog('whatsapp:sendAbandonmentRecovery:error', _abandonStart);
     }
 }
 
@@ -655,6 +673,7 @@ async function sendAbandonmentRecovery(supabase, customer, items, recoveryUrl) {
  * Recuperação de Pagamento Pendente (PIX ou Cartão)
  */
 async function sendPaymentRecovery(supabase, customer, order, recoveryUrl, step, method) {
+    const _payRecovStart = Date.now();
     const customerName = (customer.name || customer.nome || 'Cliente').split(' ')[0];
     const totalStr = `R$ ${Number(order.total_amount).toFixed(2).replace('.', ',')}`;
     const methodLabel = method === 'card' ? 'Cartão' : 'PIX';
@@ -724,6 +743,7 @@ async function sendPaymentRecovery(supabase, customer, order, recoveryUrl, step,
             console.warn('[PAYMENT RECOVERY] Email falhou:', e.message);
         }
     }
+    perfLog('whatsapp:sendPaymentRecovery', _payRecovStart);
 }
 
 /**

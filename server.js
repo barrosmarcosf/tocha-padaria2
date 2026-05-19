@@ -33,6 +33,7 @@ console.log('[ENV OK]', {
  * monta as rotas modulares e inicia o worker de abandono.
  */
 console.log("🚀 [SERVER] REINICIADO COM LOG DE DEPURACAO v999");
+console.log(`[BOOT] Main process started PID: ${process.pid}`);
 
 // CAPTURA DE ERROS TOTAIS (Para diagnosticar exit code 1)
 process.on('uncaughtException', (err) => {
@@ -156,6 +157,7 @@ const mercadopagoRoutes = require('./src/routes/mercadopago')(supabase);
 const publicRoutes = require('./src/routes/public')(supabase);
 const customerRoutes = require('./src/routes/customer')(supabase);
 const { startBot } = require('./src/notification-service');
+const { perfLog } = require('./src/utils/perf-logger');
 
 app.use('/api/admin', adminRoutes);
 app.use('/api/mercadopago', mercadopagoRoutes);
@@ -423,28 +425,54 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`ACESSE: http://localhost:${PORT}`);
     console.log(`-------------------------------------------\n`);
 
+    // Monitor de lag do event loop (detecta travamentos/CPU saturada)
+    setInterval(() => {
+        const _loopStart = Date.now();
+        setImmediate(() => {
+            const lag = Date.now() - _loopStart;
+            if (lag > 50) console.warn(`[EVENT_LOOP_LAG] ${lag}ms`);
+            else console.log(`[EVENT_LOOP_LAG] ${lag}ms`);
+        });
+    }, 5000);
+
     // Worker de Abandono: verificar carrinhos a cada 5 minutos
     const { checkAbandonedCarts } = require('./src/workers/cart-abandonment');
     const WORKER_INTERVAL = 5 * 60 * 1000; // 5 minutos
     console.log("🚀 [WORKER] Trabalhador de Abandono Iniciado (intervalo: 5min).");
-    setInterval(() => checkAbandonedCarts(supabase), WORKER_INTERVAL);
+    setInterval(async () => {
+        const _t = Date.now();
+        await checkAbandonedCarts(supabase);
+        perfLog('worker:cart-abandonment', _t);
+    }, WORKER_INTERVAL);
     checkAbandonedCarts(supabase);
 
     // Worker de Pagamento Pendente: verificar pedidos a cada 5 minutos
     const { checkPendingPayments } = require('./src/workers/payment-recovery');
     console.log("🚀 [WORKER] Trabalhador de Recuperação de Pagamento Iniciado (intervalo: 5min).");
-    setInterval(() => checkPendingPayments(supabase), WORKER_INTERVAL);
+    setInterval(async () => {
+        const _t = Date.now();
+        await checkPendingPayments(supabase);
+        perfLog('worker:payment-recovery', _t);
+    }, WORKER_INTERVAL);
     checkPendingPayments(supabase);
 
     // Worker DLQ: reprocessar pagamentos que falharam (a cada 2 min)
     const { retryFailedPayments } = require('./src/workers/retry-failed-payments');
     console.log("🚀 [WORKER] Dead Letter Queue Iniciado (intervalo: 2min).");
-    setInterval(() => retryFailedPayments(supabase), 2 * 60 * 1000);
+    setInterval(async () => {
+        const _t = Date.now();
+        await retryFailedPayments(supabase);
+        perfLog('worker:retry-failed-payments', _t);
+    }, 2 * 60 * 1000);
 
     // Worker de Reconciliação MP: corrigir pagamentos aprovados não processados (a cada 5 min)
     const { reconcileMPPayments } = require('./src/workers/mp-reconciliation');
     console.log("🚀 [WORKER] Reconciliação Mercado Pago Iniciada (intervalo: 5min).");
-    setInterval(() => reconcileMPPayments(supabase), WORKER_INTERVAL);
+    setInterval(async () => {
+        const _t = Date.now();
+        await reconcileMPPayments(supabase);
+        perfLog('worker:mp-reconciliation', _t);
+    }, WORKER_INTERVAL);
 
     // Iniciar o WhatsApp Bot com um pequeno delay para não impactar o boot
     setTimeout(() => {
