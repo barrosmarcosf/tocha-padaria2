@@ -19,6 +19,8 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+const CYCLE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutos
+
 let execCount = 0;
 let healthRunning = false;
 
@@ -129,9 +131,37 @@ async function run() {
     healthRunning = false;
 }
 
-console.log(`[BOOT] payments-health PID: ${process.pid}`);
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-run().catch(err => {
-    systemAlert('MONITOR_FATAL', { error: err.message });
-    process.exit(1);
+async function startWorker() {
+    console.log(`[BOOT] payments-health worker iniciado PID: ${process.pid}`);
+
+    while (true) {
+        const cycleStart = Date.now();
+
+        try {
+            await run();
+        } catch (err) {
+            console.error(JSON.stringify({ tag: 'WORKER_CYCLE_ERROR', error: err.message, timestamp: new Date().toISOString() }));
+        }
+
+        const elapsed = Date.now() - cycleStart;
+        const delay = Math.max(0, CYCLE_INTERVAL_MS - elapsed);
+
+        console.log(JSON.stringify({ tag: 'WORKER_SLEEP', next_in_ms: delay, timestamp: new Date().toISOString() }));
+
+        await sleep(delay);
+    }
+}
+
+process.on('unhandledRejection', err => {
+    console.error(JSON.stringify({ tag: 'FATAL_UNHANDLED_REJECTION', error: err && err.message, timestamp: new Date().toISOString() }));
 });
+
+process.on('uncaughtException', err => {
+    console.error(JSON.stringify({ tag: 'FATAL_UNCAUGHT_EXCEPTION', error: err.message, stack: err.stack, timestamp: new Date().toISOString() }));
+});
+
+startWorker();
