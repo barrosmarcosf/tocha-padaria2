@@ -603,21 +603,16 @@ async function processPaidSession(supabase, stripe, session) {
             console.log(JSON.stringify({ tag: 'STOCK_DEDUCTION_SUCCESS', correlation_id: correlationId, order_id: orderUpdate.id, timestamp: new Date().toISOString() }));
         } catch (stockErr) {
             if (stockErr.code === 'RPC_NOT_FOUND') {
-                console.warn('⚠️ [Estoque] processar_venda_completa ausente — fallback individual (execute a migration)');
-                const itemsToReduce = originalItems.actual_items || [];
-                const orderBakeDate = originalItems.batch_date || originalItems.fornada_date;
-                if (orderBakeDate && itemsToReduce.length > 0) {
-                    for (const item of itemsToReduce) {
-                        await supabase.rpc('processar_venda_estoque', {
-                            p_id: String(item.id), f_date: String(orderBakeDate), amount: parseInt(item.qty)
-                        }).catch(e => console.warn(`⚠️ [Estoque] Fallback RPC ${item.name}:`, e.message));
-                    }
-                }
+                // Fallback não-atômico removido — era race condition garantida.
+                // A migration processar_venda_completa DEVE estar aplicada em produção.
+                console.error(JSON.stringify({ tag: 'STOCK_RPC_MISSING', order_id: orderUpdate.id, error: 'processar_venda_completa não encontrada — execute a migration', timestamp: new Date().toISOString() }));
+                systemAlert('STOCK_RPC_MISSING', { order_id: orderUpdate.id, error: 'migration não aplicada' });
             } else {
                 console.error(JSON.stringify({ tag: 'STOCK_DEDUCTION_FAILED', order_id: orderUpdate.id, error: stockErr.message, timestamp: new Date().toISOString() }));
                 systemAlert('STOCK_DEDUCTION_FAILED', { correlation_id: correlationId, order_id: orderUpdate.id, error: stockErr.message });
-                supabase.from('pedidos').update({ stock_deduction_failed: true }).eq('id', orderUpdate.id).catch(() => {});
             }
+            supabase.from('pedidos').update({ stock_deduction_failed: true }).eq('id', orderUpdate.id)
+                .catch(e => console.error(JSON.stringify({ tag: 'STOCK_FLAG_FAILED', order_id: orderUpdate.id, error: e.message, timestamp: new Date().toISOString() })));
         }
 
         if (session.metadata?.sessionId) {
@@ -784,7 +779,9 @@ async function processStripeChargeback(supabase, dispute) {
         metadata: { stripe_payment_intent: dispute.payment_intent, reason: dispute.reason }
     });
 
-    console.log(`[Stripe] Chargeback: pedido ${order.id}, motivo: ${dispute.reason}`);
+    console.log(JSON.stringify({ tag: 'CHARGEBACK_RECEIVED', provider: 'stripe', order_id: order.id, reason: dispute.reason, amount: disputeAmount, timestamp: new Date().toISOString() }));
+    const { systemAlert } = require('../utils/systemAlert');
+    systemAlert('CHARGEBACK_RECEIVED', { order_id: order.id, provider: 'stripe', amount: disputeAmount, reason: dispute.reason });
 }
 
 // Stripe: pagamento aprovado — registra evento de approval

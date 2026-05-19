@@ -5,8 +5,6 @@ const envPath = __dirname + '/.env';
 
 require('dotenv').config({ path: envPath });
 
-console.log('[ENV CHECK]', process.env.BASE_URL);
-
 // Default seguro: se NODE_ENV não definido, assume 'production' (cookies secure, auth estrita)
 if (!process.env.NODE_ENV) {
     process.env.NODE_ENV = 'production';
@@ -39,6 +37,7 @@ process.on('unhandledRejection', (reason) => {
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const path = require('path');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { createClient } = require('@supabase/supabase-js');
@@ -70,9 +69,15 @@ console.log(JSON.stringify({ tag: 'SUPABASE_INIT', url_prefix: (supabaseUrl || '
 // MIDDLEWARES GLOBAIS
 // ──────────────────────────────────────────────────
 
+// correlation_id: propaga header do cliente ou gera novo UUID por requisição
+app.use((req, _res, next) => {
+    req.correlationId = req.headers['x-correlation-id'] || require('crypto').randomUUID();
+    next();
+});
+
 // Log de requisições — path apenas, sem query string (evita PII/tokens em logs)
 app.use((req, _res, next) => {
-    console.log(JSON.stringify({ tag: 'HTTP_REQUEST', method: req.method, path: req.path, timestamp: new Date().toISOString() }));
+    console.log(JSON.stringify({ tag: 'HTTP_REQUEST', method: req.method, path: req.path, correlation_id: req.correlationId, timestamp: new Date().toISOString() }));
     next();
 });
 
@@ -90,15 +95,26 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Idempotency-Key', 'X-Internal-Secret']
 }));
 
-// Security headers (noSniff, frameguard, xssFilter, basic CSP)
-app.use((_req, res, next) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.setHeader('Content-Security-Policy', `default-src 'self'; script-src 'self' 'unsafe-inline' https://sdk.mercadopago.com https://http2.mlstatic.com https://cdn.jsdelivr.net; connect-src 'self' https://api.mercadopago.com https://api.mercadolibre.com https://*.mercadolibre.com https://http2.mlstatic.com https://secure-fields.mercadopago.com https://api-static.mercadopago.com; frame-src 'self' https://sdk.mercadopago.com https://www.mercadopago.com https://www.mercadolibre.com https://secure-fields.mercadopago.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; base-uri 'self'; form-action 'self'; worker-src 'none';`);
-    next();
-});
+// Security headers via helmet (HSTS, noSniff, frameguard, referrer-policy, CSP, etc.)
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc:  ["'self'"],
+            scriptSrc:   ["'self'", "'unsafe-inline'", "https://sdk.mercadopago.com", "https://http2.mlstatic.com", "https://cdn.jsdelivr.net"],
+            connectSrc:  ["'self'", "https://api.mercadopago.com", "https://api.mercadolibre.com", "https://*.mercadolibre.com", "https://http2.mlstatic.com", "https://secure-fields.mercadopago.com", "https://api-static.mercadopago.com"],
+            frameSrc:    ["'self'", "https://sdk.mercadopago.com", "https://www.mercadopago.com", "https://www.mercadolibre.com", "https://secure-fields.mercadopago.com"],
+            imgSrc:      ["'self'", "data:", "https:"],
+            styleSrc:    ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc:     ["'self'", "https://fonts.gstatic.com", "data:"],
+            baseUri:     ["'self'"],
+            formAction:  ["'self'"],
+            workerSrc:   ["'none'"],
+        }
+    },
+    // crossOriginEmbedderPolicy desativado: MP SDK carrega recursos cross-origin
+    crossOriginEmbedderPolicy: false,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+}));
 
 // Middleware de Cache-Busting para área administrativa PREMIUM V2
 app.use((req, res, next) => {
@@ -173,9 +189,6 @@ app.use('/api', require('./src/routes/events')(supabase));
 // ──────────────────────────────────────────────────
 // MIDDLEWARES GLOBAIS (Arquivos Estáticos após API)
 // ──────────────────────────────────────────────────
-app.get('/debug', (req, res) => {
-  res.send('VERSAO NOVA 123');
-});
 const _homeV2HtmlPath = path.join(__dirname, 'public', 'home-v2', 'index.html');
 
 app.get('/', (_req, res) => {
@@ -610,22 +623,31 @@ async function handlePaymentWebhook(event) {
                 }
             }
 
-            // ── Check 2: Pagamentos não finalizados ───────────────────────────
+            // ── Check 2: Pagamentos não finalizados (age > 10min, throttle 1h) ─
+            const _minAge = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+            const _alertCutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
             const { data: unfinalized, error: e2 } = await supabase
                 .from('pedidos')
                 .select('id, mp_payment_id, created_at')
                 .eq('status', 'pending')
-                .not('mp_payment_id', 'is', null);
+                .not('mp_payment_id', 'is', null)
+                .lt('created_at', _minAge)
+                .or(`alerted_at.is.null,alerted_at.lt.${_alertCutoff}`);
 
             if (e2) {
                 console.error(JSON.stringify({ tag: 'WEBHOOK_DB_ERROR', context: 'unfinalized', error: e2.message }));
             } else if (unfinalized && unfinalized.length > 0) {
+                const ids = [];
                 for (const row of unfinalized) {
                     systemAlert('ALERT_PAYMENT_NOT_FINALIZED', {
                         order_id: row.id,
                         mp_payment_id: row.mp_payment_id,
                         created_at: row.created_at
                     });
+                    ids.push(row.id);
+                }
+                if (ids.length > 0) {
+                    supabase.from('pedidos').update({ alerted_at: new Date().toISOString() }).in('id', ids).catch(() => {});
                 }
                 console.log(JSON.stringify({
                     tag: 'PAYMENT_PROCESSED',

@@ -135,18 +135,30 @@ module.exports = function (supabase) {
     router.get('/recover/:token', async (req, res) => {
         try {
             const { token } = req.params;
+            if (!token || token.length > 128) return res.status(400).json({ error: 'Token inválido.' });
+
             const { data: cartData, error } = await supabase
                 .from('carrinhos')
-                .select('*')
+                .select('items, customer_data, last_activity_at, status')
                 .eq('recovery_token', token)
                 .single();
 
             if (error || !cartData) return res.status(404).json({ error: 'Carrinho não encontrado.' });
 
+            // Tokens expiram após 72h de inatividade
+            const EXPIRY_MS = 72 * 60 * 60 * 1000;
+            const lastActivity = new Date(cartData.last_activity_at || 0).getTime();
+            if (Date.now() - lastActivity > EXPIRY_MS) {
+                return res.status(410).json({ error: 'Link expirado.' });
+            }
+
             let cartItems;
             try { cartItems = typeof cartData.items === 'string' ? JSON.parse(cartData.items) : cartData.items; }
             catch (_) { return res.status(500).json({ error: 'Dados do carrinho corrompidos.' }); }
-            res.json({ cart: cartItems, customer: cartData.customer_data });
+
+            // Retorna apenas o nome do cliente (não email/whatsapp) — suficiente para UI
+            const customerData = cartData.customer_data || {};
+            res.json({ cart: cartItems, customer: { name: customerData.name || '' } });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 

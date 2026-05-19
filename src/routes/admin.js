@@ -91,10 +91,23 @@ module.exports = function (supabase) {
                 }
             }
 
-            // Fallback para credenciais do .env
-            if (!authenticated && email === process.env.ADMIN_USER && password === process.env.ADMIN_PASS) {
-                authenticated = true;
-                userData = { id: 0, nome: 'Administrador', email: process.env.ADMIN_USER, role: 'admin' };
+            // Fallback para credenciais do .env (timing-safe — evita ataques de temporização)
+            if (!authenticated && email === process.env.ADMIN_USER) {
+                const envPass = process.env.ADMIN_PASS || '';
+                let passOk = false;
+                if (envPass.startsWith('$2')) {
+                    // ADMIN_PASS armazenada como hash bcrypt
+                    passOk = await bcrypt.compare(password, envPass);
+                } else {
+                    // Plaintext — comparação de tempo constante para evitar timing attack
+                    const a = Buffer.alloc(72); Buffer.from(password).copy(a);
+                    const b = Buffer.alloc(72); Buffer.from(envPass).copy(b);
+                    passOk = require('crypto').timingSafeEqual(a, b) && password.length === envPass.length;
+                }
+                if (passOk) {
+                    authenticated = true;
+                    userData = { id: 0, nome: 'Administrador', email: process.env.ADMIN_USER, role: 'admin' };
+                }
             }
 
             if (!authenticated) {

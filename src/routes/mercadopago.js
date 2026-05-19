@@ -461,10 +461,13 @@ module.exports = function (supabase) {
                 return res.status(400).json({ error: 'Pedido expirado.' });
             }
 
-            // pending / rejected / payment_failed: permitir fluxo normalmente
-            // Log de diagnóstico para ajudar o usuário se a sessão falhar
+            // Em produção: bloqueia se a sessão não corresponde ao pedido (previne enumeração)
             if (itemsData.client_session_id && itemsData.client_session_id !== sid) {
-                console.warn(`⚠️ [MP Summary] Divergência de sessão (Esperada: ${itemsData.client_session_id}, Recebida: ${sid}). Prosseguindo para permitir homologação.`);
+                if (process.env.NODE_ENV === 'production') {
+                    console.warn(JSON.stringify({ tag: 'ORDER_SUMMARY_SESSION_MISMATCH', order_id: order.id, timestamp: new Date().toISOString() }));
+                    return res.status(403).json({ error: 'Acesso negado.' });
+                }
+                console.warn(JSON.stringify({ tag: 'ORDER_SUMMARY_SESSION_MISMATCH_DEV', order_id: order.id, timestamp: new Date().toISOString() }));
             }
 
             res.json({
@@ -1212,7 +1215,8 @@ async function processMPChargeback(supabase, mpId, mpPayment) {
         metadata: { mp_payment_id: mpId }
     });
 
-    console.log(`[MP Chargeback] Pedido ${order.id} com chargeback registrado.`);
+    console.log(JSON.stringify({ tag: 'CHARGEBACK_RECEIVED', provider: 'mercadopago', order_id: order.id, mp_payment_id: mpId, amount: mpPayment.transaction_amount, timestamp: new Date().toISOString() }));
+    systemAlert('CHARGEBACK_RECEIVED', { order_id: order.id, provider: 'mercadopago', mp_payment_id: mpId, amount: mpPayment.transaction_amount });
 }
 
 // Processamento de pedido pago via Mercado Pago
@@ -1318,19 +1322,15 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
         console.log(JSON.stringify({ tag: 'STOCK_DEDUCTION_SUCCESS', correlation_id: correlationId, order_id: order.id, provider: 'mercadopago', timestamp: new Date().toISOString() }));
     } catch (stockErr) {
         if (stockErr.code === 'RPC_NOT_FOUND') {
-            console.warn('⚠️ [MP Estoque] processar_venda_completa ausente — fallback individual (execute a migration)');
-            if (batchDate && cart.length > 0) {
-                for (const item of cart) {
-                    await supabase.rpc('processar_venda_estoque', {
-                        p_id: String(item.id), f_date: String(batchDate), amount: parseInt(item.qty)
-                    }).catch(e => console.warn(`⚠️ [MP Estoque] Fallback RPC ${item.name}:`, e.message));
-                }
-            }
+            // Fallback não-atômico removido — era race condition garantida.
+            console.error(JSON.stringify({ tag: 'STOCK_RPC_MISSING', order_id: order.id, error: 'processar_venda_completa não encontrada — execute a migration', timestamp: new Date().toISOString() }));
+            systemAlert('STOCK_RPC_MISSING', { order_id: order.id, error: 'migration não aplicada' });
         } else {
             console.error(JSON.stringify({ tag: 'STOCK_DEDUCTION_FAILED', correlation_id: correlationId, order_id: order.id, error: stockErr.message, timestamp: new Date().toISOString() }));
             systemAlert('STOCK_DEDUCTION_FAILED', { correlation_id: correlationId, order_id: order.id, error: stockErr.message });
-            supabase.from('pedidos').update({ stock_deduction_failed: true }).eq('id', order.id).catch(() => {});
         }
+        supabase.from('pedidos').update({ stock_deduction_failed: true }).eq('id', order.id)
+            .catch(e => console.error(JSON.stringify({ tag: 'STOCK_FLAG_FAILED', order_id: order.id, error: e.message, timestamp: new Date().toISOString() })));
     }
 
     // Enviar notificações

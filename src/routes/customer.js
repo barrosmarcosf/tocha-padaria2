@@ -3,6 +3,8 @@ const express = require('express');
 module.exports = function (supabase) {
     const router = express.Router();
 
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
     // POST /api/customer/save — upsert cliente + vincula sessão
     router.post('/save', async (req, res) => {
         try {
@@ -10,6 +12,9 @@ module.exports = function (supabase) {
             if (!name || !email || !whatsapp) {
                 return res.status(400).json({ error: 'name, email e whatsapp são obrigatórios.' });
             }
+            if (typeof name !== 'string' || name.length > 120) return res.status(400).json({ error: 'name inválido.' });
+            if (typeof email !== 'string' || email.length > 254 || !EMAIL_RE.test(email)) return res.status(400).json({ error: 'email inválido.' });
+            if (typeof whatsapp !== 'string' || whatsapp.replace(/\D/g, '').length < 10) return res.status(400).json({ error: 'whatsapp inválido.' });
 
             const { data: existing } = await supabase
                 .from('clientes')
