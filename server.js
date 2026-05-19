@@ -755,10 +755,17 @@ app.listen(PORT, '0.0.0.0', () => {
     // Worker de monitoramento: pedidos com falha de dedução de estoque (a cada 15 min)
     const { checkStockDeductionFailures } = require('./src/workers/stock-monitor');
     console.log("🚀 [WORKER] Monitor de Falhas de Estoque Iniciado (intervalo: 15min).");
+    let _stockMonitorRunning = false;
     setInterval(async () => {
-        const _t = Date.now();
-        await checkStockDeductionFailures(supabase);
-        perfLog('worker:stock-monitor', _t);
+        if (_stockMonitorRunning) return;
+        _stockMonitorRunning = true;
+        try {
+            const _t = Date.now();
+            await checkStockDeductionFailures(supabase);
+            perfLog('worker:stock-monitor', _t);
+        } finally {
+            _stockMonitorRunning = false;
+        }
     }, 15 * 60 * 1000);
 
     // Iniciar o WhatsApp Bot com um pequeno delay para não impactar o boot
