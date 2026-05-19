@@ -551,6 +551,7 @@ module.exports = function (supabase) {
                 customerId = newCustomer.id;
             }
 
+            const correlationId = crypto.randomUUID();
             let newOrder;
             try {
                 const orderData = {
@@ -558,6 +559,7 @@ module.exports = function (supabase) {
                     stripe_session_id: `mp_pix_pending_${Date.now()}`,
                     total_amount: totalAmount,
                     status: 'pending',
+                    correlation_id: correlationId,
                     items: JSON.stringify({
                         actual_items: cartItems,
                         order_type: storeStatusResult.orderType,
@@ -588,6 +590,7 @@ module.exports = function (supabase) {
                 throw err;
             }
 
+            console.log(JSON.stringify({ tag: 'CHECKOUT_PIX_PREPARED', correlation_id: correlationId, order_id: newOrder.id, timestamp: new Date().toISOString() }));
             res.json({ order_id: newOrder.id });
         } catch (e) {
             console.error('❌ [MP Prepare PIX] Erro:', e);
@@ -675,6 +678,7 @@ module.exports = function (supabase) {
             }
 
             // Criar Pedido Pendente
+            const correlationId = crypto.randomUUID();
             let newOrder;
             try {
                 const orderData = {
@@ -682,6 +686,7 @@ module.exports = function (supabase) {
                     stripe_session_id: `mp_pending_${Date.now()}`,
                     total_amount: totalAmount,
                     status: 'pending',
+                    correlation_id: correlationId,
                     items: JSON.stringify({
                         actual_items: cartItems,
                         order_type: storeStatusResult.orderType,
@@ -714,6 +719,7 @@ module.exports = function (supabase) {
                 throw err;
             }
 
+            console.log(JSON.stringify({ tag: 'CHECKOUT_CARD_PREPARED', correlation_id: correlationId, order_id: newOrder.id, timestamp: new Date().toISOString() }));
             res.json({ order_id: newOrder.id });
         } catch (e) {
             console.error('❌ [MP Prepare] Erro:', e);
@@ -1279,7 +1285,8 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
         return;
     }
 
-    console.log(`✅ [MP] Processando pagamento aprovado: ${mpId} (pedido ${order.id})`);
+    const correlationId = order.correlation_id || 'unknown';
+    console.log(JSON.stringify({ tag: 'PAYMENT_APPROVED', correlation_id: correlationId, order_id: order.id, provider: 'mercadopago', payment_id: mpId, timestamp: new Date().toISOString() }));
 
     let itemsData = order.items;
     try { if (typeof itemsData === 'string') itemsData = JSON.parse(itemsData); } catch (_) { itemsData = {}; }
@@ -1320,8 +1327,8 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
                 }
             }
         } else {
-            console.error(JSON.stringify({ tag: 'STOCK_DEDUCTION_FAILED', order_id: order.id, error: stockErr.message, timestamp: new Date().toISOString() }));
-            systemAlert('STOCK_DEDUCTION_FAILED', { order_id: order.id, error: stockErr.message });
+            console.error(JSON.stringify({ tag: 'STOCK_DEDUCTION_FAILED', correlation_id: correlationId, order_id: order.id, error: stockErr.message, timestamp: new Date().toISOString() }));
+            systemAlert('STOCK_DEDUCTION_FAILED', { correlation_id: correlationId, order_id: order.id, error: stockErr.message });
             supabase.from('pedidos').update({ stock_deduction_failed: true }).eq('id', order.id).catch(() => {});
         }
     }

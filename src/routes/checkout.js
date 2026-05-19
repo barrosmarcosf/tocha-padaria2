@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const { MercadoPagoConfig, Payment } = require('mercadopago');
 const QRCode = require('qrcode');
 const { sendOrderEmails, sendOrderWhatsApp } = require('../notification-service');
@@ -79,12 +80,13 @@ function mapCartToMPItems(cart, priceMap) {
     }));
 }
 
-function buildPendingOrder(customerId, sessionId, totalAmount, storeStatus, batchDate, cart, paymentMethod) {
+function buildPendingOrder(customerId, sessionId, totalAmount, storeStatus, batchDate, cart, paymentMethod, correlationId) {
     return {
         customer_id: customerId,
         stripe_session_id: sessionId,
         total_amount: totalAmount,
         status: 'pending',
+        ...(correlationId ? { correlation_id: correlationId } : {}),
         items: JSON.stringify({
             actual_items: cart,
             order_type: storeStatus.orderType,
@@ -198,10 +200,11 @@ module.exports = function (supabase, stripe) {
     // ──────────────────────────────────────────────────
     async function handleMpPix(req, res, supabase, cart, customer, customerId, storeStatus, batchDate) {
         const mpPayment = getMPPayment();
+        const correlationId = crypto.randomUUID();
         const { total: totalAmount, priceMap } = await recalcularTotal(supabase, cart);
 
         const { data: newOrder, error: orderErr } = await supabase.from('pedidos').insert([
-            buildPendingOrder(customerId, `mp_pix_pending_${Date.now()}`, totalAmount, storeStatus, batchDate, cart, 'Pix (Mercado Pago)')
+            buildPendingOrder(customerId, `mp_pix_pending_${Date.now()}`, totalAmount, storeStatus, batchDate, cart, 'Pix (Mercado Pago)', correlationId)
         ]).select().single();
         if (orderErr) throw orderErr;
 
@@ -243,7 +246,7 @@ module.exports = function (supabase, stripe) {
             stripe_session_id: `mp_${mpId}`
         }).eq('id', newOrder.id);
 
-        console.log(`[Checkout PIX] order_id=${newOrder.id} payment_id=${mpId} status=pending`);
+        console.log(JSON.stringify({ tag: 'CHECKOUT_PIX_INITIATED', correlation_id: correlationId, order_id: newOrder.id, payment_id: mpId, timestamp: new Date().toISOString() }));
         return res.json({ tipo: 'pix', qr_code: qrCodeBase64, copia_e_cola: pixString, payment_id: mpId });
     }
 
@@ -256,10 +259,11 @@ module.exports = function (supabase, stripe) {
             return res.status(400).json({ error: 'card_token obrigatório para mp_card.' });
         }
 
+        const correlationId = crypto.randomUUID();
         const { total: totalAmount, priceMap: cardPriceMap } = await recalcularTotal(supabase, cart);
 
         const { data: newOrder, error: orderErr } = await supabase.from('pedidos').insert([
-            buildPendingOrder(customerId, `mp_card_pending_${Date.now()}`, totalAmount, storeStatus, batchDate, cart, 'Cartão (Mercado Pago)')
+            buildPendingOrder(customerId, `mp_card_pending_${Date.now()}`, totalAmount, storeStatus, batchDate, cart, 'Cartão (Mercado Pago)', correlationId)
         ]).select().single();
         if (orderErr) throw orderErr;
 
@@ -301,8 +305,8 @@ module.exports = function (supabase, stripe) {
                 stripe_session_id: `mp_${mpId}`
             }).eq('id', newOrder.id);
             processPaidMPOrder(supabase, mpId, mpData).catch(err => {
-                console.error(JSON.stringify({ tag: 'PROCESS_PAID_MP_FAILED', payment_id: mpId, error: err.message, timestamp: new Date().toISOString() }));
-                systemAlert('MP_PROCESS_FAILED', { payment_id: mpId, error: err.message });
+                console.error(JSON.stringify({ tag: 'PROCESS_PAID_MP_FAILED', correlation_id: correlationId, payment_id: mpId, error: err.message, timestamp: new Date().toISOString() }));
+                systemAlert('MP_PROCESS_FAILED', { correlation_id: correlationId, payment_id: mpId, error: err.message });
             });
             return res.json({ tipo: 'success' });
         }
@@ -329,6 +333,7 @@ module.exports = function (supabase, stripe) {
     // HANDLER: Stripe (redireciona para Stripe Checkout)
     // ──────────────────────────────────────────────────
     async function handleStripeCard(req, res, supabase, stripe, cart, customer, customerId, storeStatus, batchDate, PORT) {
+        const correlationId = crypto.randomUUID();
         const idemKey = req.headers['x-idempotency-key'] || `fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
         // Idempotência
@@ -376,7 +381,7 @@ module.exports = function (supabase, stripe) {
             success_url: `${origin}/?status=success&session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${origin}/?status=cancel`,
             customer_email: customer.email,
-            metadata: { whatsapp: customer.whatsapp, customerName: customer.name, sessionId: req.session_id }
+            metadata: { whatsapp: customer.whatsapp, customerName: customer.name, sessionId: req.session_id, correlation_id: correlationId }
         };
 
         let session;
@@ -396,7 +401,7 @@ module.exports = function (supabase, stripe) {
         let newOrder;
         try {
             const orderData = {
-                ...buildPendingOrder(customerId, session.id, totalAmount, storeStatus, batchDate, cart, 'Stripe'),
+                ...buildPendingOrder(customerId, session.id, totalAmount, storeStatus, batchDate, cart, 'Stripe', correlationId),
                 items: JSON.stringify({
                     actual_items: cart,
                     order_type: storeStatus.orderType,
@@ -537,6 +542,8 @@ async function processPaidSession(supabase, stripe, session) {
             return;
         }
 
+        const correlationId = orderUpdate.correlation_id || session.metadata?.correlation_id || 'unknown';
+
         // Extrai itens da linha retornada pelo UPDATE
         let originalItems = {};
         try {
@@ -560,6 +567,7 @@ async function processPaidSession(supabase, stripe, session) {
         }
 
         console.log(`✅ [UPDATE] Pedido ${orderUpdate.id} marcado como pago.`);
+        console.log(JSON.stringify({ tag: 'PAYMENT_APPROVED', correlation_id: correlationId, order_id: orderUpdate.id, provider: 'stripe', amount: session.amount_total / 100, timestamp: new Date().toISOString() }));
 
         // Registrar evento de aprovação em payment_events
         recordStripeApproval(supabase, orderUpdate, session).catch(() => {});
@@ -607,7 +615,7 @@ async function processPaidSession(supabase, stripe, session) {
                 }
             } else {
                 console.error(JSON.stringify({ tag: 'STOCK_DEDUCTION_FAILED', order_id: orderUpdate.id, error: stockErr.message, timestamp: new Date().toISOString() }));
-                systemAlert('STOCK_DEDUCTION_FAILED', { order_id: orderUpdate.id, error: stockErr.message });
+                systemAlert('STOCK_DEDUCTION_FAILED', { correlation_id: correlationId, order_id: orderUpdate.id, error: stockErr.message });
                 supabase.from('pedidos').update({ stock_deduction_failed: true }).eq('id', orderUpdate.id).catch(() => {});
             }
         }
