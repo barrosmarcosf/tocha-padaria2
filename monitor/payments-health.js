@@ -20,6 +20,11 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const CYCLE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutos
+const MIN_DELAY_MS      = 10 * 1000;     // 10 segundos — anti-loop agressivo
+const CYCLE_TIMEOUT_MS  = 4 * 60 * 1000; // 4 minutos — timeout por ciclo
+const MAX_CYCLES        = 100;            // reinício preventivo após 100 ciclos (~8h)
+
+let cycleCount = 0;
 
 let execCount = 0;
 let healthRunning = false;
@@ -135,22 +140,38 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function withTimeout(promise, ms) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`Timeout exceeded (${ms}ms)`)), ms)
+        )
+    ]);
+}
+
 async function startWorker() {
     console.log(`[BOOT] payments-health worker iniciado PID: ${process.pid}`);
 
     while (true) {
         const cycleStart = Date.now();
+        cycleCount++;
 
         try {
-            await run();
+            await withTimeout(run(), CYCLE_TIMEOUT_MS);
         } catch (err) {
-            console.error(JSON.stringify({ tag: 'WORKER_CYCLE_ERROR', error: err.message, timestamp: new Date().toISOString() }));
+            console.error(JSON.stringify({ tag: 'WORKER_CYCLE_ERROR', cycle: cycleCount, error: err.message, timestamp: new Date().toISOString() }));
+            healthRunning = false; // libera o overlap guard em caso de timeout
+        }
+
+        if (cycleCount >= MAX_CYCLES) {
+            console.log(JSON.stringify({ tag: 'WORKER_PREVENTIVE_RESTART', cycles: cycleCount, pid: process.pid, timestamp: new Date().toISOString() }));
+            process.exit(0);
         }
 
         const elapsed = Date.now() - cycleStart;
-        const delay = Math.max(0, CYCLE_INTERVAL_MS - elapsed);
+        const delay = Math.max(MIN_DELAY_MS, CYCLE_INTERVAL_MS - elapsed);
 
-        console.log(JSON.stringify({ tag: 'WORKER_SLEEP', next_in_ms: delay, timestamp: new Date().toISOString() }));
+        console.log(JSON.stringify({ tag: 'WORKER_SLEEP', next_in_ms: delay, cycle: cycleCount, timestamp: new Date().toISOString() }));
 
         await sleep(delay);
     }
