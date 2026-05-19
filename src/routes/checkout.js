@@ -6,6 +6,26 @@ const { getUnifiedAvailableStock } = require('../services/stockService');
 const { getUnifiedStoreStatus } = require('../services/storeStatusService');
 const { processPaidMPOrder } = require('./mercadopago');
 const { deductStockAtomico } = require('../utils/deductStock');
+const { systemAlert } = require('../utils/systemAlert');
+
+// Rate limiter para /confirm-session (máx 5 req/min por IP)
+const _confirmSessionRateMap = new Map();
+setInterval(() => {
+    const cutoff = Date.now() - 60_000;
+    _confirmSessionRateMap.forEach((rec, ip) => { if (rec.first < cutoff) _confirmSessionRateMap.delete(ip); });
+}, 5 * 60_000).unref();
+function rateLimitConfirmSession(req, res, next) {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
+    const now = Date.now();
+    const rec = _confirmSessionRateMap.get(ip);
+    if (!rec || now - rec.first > 60_000) {
+        _confirmSessionRateMap.set(ip, { count: 1, first: now });
+        return next();
+    }
+    if (rec.count >= 5) return res.status(429).json({ error: 'Muitas requisições. Aguarde 1 minuto.' });
+    rec.count++;
+    next();
+}
 
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{2,}$/;
 const VALID_METHODS = new Set(['stripe_card', 'mp_pix', 'mp_card']);
@@ -51,11 +71,11 @@ async function recalcularTotal(supabase, cart) {
     return { total: Math.round(total * 100) / 100, priceMap };
 }
 
-function mapCartToMPItems(cart) {
+function mapCartToMPItems(cart, priceMap) {
     return cart.map(item => ({
         id: String(item.id), title: item.name,
         description: `${item.name}${item.weight ? ' ' + item.weight : ''}${item.category ? ' - ' + item.category : ''} - Retirada sábado`,
-        quantity: item.qty, unit_price: item.price, category_id: 'food'
+        quantity: item.qty, unit_price: priceMap ? priceMap[String(item.id)] : item.price, category_id: 'food'
     }));
 }
 
@@ -131,12 +151,7 @@ module.exports = function (supabase, stripe) {
             if (batchDate) {
                 for (const item of cart) {
                     const available = await getUnifiedAvailableStock(supabase, item.id);
-                    console.log('STOCK DEBUG:', { productId: item.id, available, type: typeof available });
-                    if (available === null) {
-                        console.warn('CHECKOUT_WITH_UNKNOWN_PRODUCT', { productId: item.id });
-                    }
                     if (available !== null && available < item.qty) {
-                        console.log('VALIDATION_TRIGGERED', { available, qty: item.qty });
                         const { data: pInfo } = await supabase.from('produtos').select('name').eq('id', item.id).maybeSingle();
                         return res.status(400).json({
                             error: `Estoque insuficiente para "${pInfo?.name || item.id}". Disponível: ${available}`
@@ -183,7 +198,7 @@ module.exports = function (supabase, stripe) {
     // ──────────────────────────────────────────────────
     async function handleMpPix(req, res, supabase, cart, customer, customerId, storeStatus, batchDate) {
         const mpPayment = getMPPayment();
-        const { total: totalAmount } = await recalcularTotal(supabase, cart);
+        const { total: totalAmount, priceMap } = await recalcularTotal(supabase, cart);
 
         const { data: newOrder, error: orderErr } = await supabase.from('pedidos').insert([
             buildPendingOrder(customerId, `mp_pix_pending_${Date.now()}`, totalAmount, storeStatus, batchDate, cart, 'Pix (Mercado Pago)')
@@ -215,7 +230,7 @@ module.exports = function (supabase, stripe) {
                 external_reference: String(newOrder.id),
                 date_of_expiration: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
                 notification_url: notificationUrl,
-                additional_info: { items: mapCartToMPItems(cart) }
+                additional_info: { items: mapCartToMPItems(cart, priceMap) }
             }
         });
 
@@ -241,7 +256,7 @@ module.exports = function (supabase, stripe) {
             return res.status(400).json({ error: 'card_token obrigatório para mp_card.' });
         }
 
-        const { total: totalAmount } = await recalcularTotal(supabase, cart);
+        const { total: totalAmount, priceMap: cardPriceMap } = await recalcularTotal(supabase, cart);
 
         const { data: newOrder, error: orderErr } = await supabase.from('pedidos').insert([
             buildPendingOrder(customerId, `mp_card_pending_${Date.now()}`, totalAmount, storeStatus, batchDate, cart, 'Cartão (Mercado Pago)')
@@ -265,7 +280,7 @@ module.exports = function (supabase, stripe) {
                 issuer_id,
                 external_reference: String(newOrder.id),
                 payer: { ...payer, email: payer?.email || customer.email },
-                additional_info: { items: mapCartToMPItems(cart) }
+                additional_info: { items: mapCartToMPItems(cart, cardPriceMap) }
             })
         });
 
@@ -285,9 +300,10 @@ module.exports = function (supabase, stripe) {
                 mp_payment_id: mpId,
                 stripe_session_id: `mp_${mpId}`
             }).eq('id', newOrder.id);
-            processPaidMPOrder(supabase, mpId, mpData).catch(err =>
-                console.error('[Checkout Card] processPaidMPOrder error:', err.message)
-            );
+            processPaidMPOrder(supabase, mpId, mpData).catch(err => {
+                console.error(JSON.stringify({ tag: 'PROCESS_PAID_MP_FAILED', payment_id: mpId, error: err.message, timestamp: new Date().toISOString() }));
+                systemAlert('MP_PROCESS_FAILED', { payment_id: mpId, error: err.message });
+            });
             return res.json({ tipo: 'success' });
         }
 
@@ -464,7 +480,7 @@ module.exports = function (supabase, stripe) {
     // ──────────────────────────────────────────────────
     // CONFIRMAÇÃO VIA FRONTEND (Fallback para ambiente local)
     // ──────────────────────────────────────────────────
-    router.post('/confirm-session', async (req, res) => {
+    router.post('/confirm-session', rateLimitConfirmSession, async (req, res) => {
         try {
             const { sessionId } = req.body;
             if (!sessionId) return res.status(400).json({ error: 'Session ID obrigatório.' });
@@ -499,35 +515,10 @@ async function processPaidSession(supabase, stripe, session) {
 
         console.log(`📝 [INFO] Método: ${paymentMethod} | Cliente: ${session.customer_email || 'N/A'}`);
 
-        const { data: existingOrder, error: checkErr } = await supabase
-            .from('pedidos').select('items').eq('stripe_session_id', session.id).maybeSingle();
-
-        if (checkErr) {
-            console.error("❌ [CHECK] Erro ao buscar pedido:", checkErr.message);
-            return;
-        }
-        if (!existingOrder) {
-            console.warn(`⚠️ [CHECK] Pedido não encontrado para sessão ${session.id}. Ignorando.`);
-            return;
-        }
-
-        let originalItems = {};
-        try {
-            originalItems = typeof existingOrder.items === 'string'
-                ? JSON.parse(existingOrder.items)
-                : (existingOrder.items || {});
-        } catch (e) {
-            console.warn("⚠️ [PARSE] Erro ao parsear itens:", e.message);
-            originalItems = { raw: existingOrder.items };
-        }
-
+        // Atomic guard: UPDATE só avança se status ainda for 'pending' — idempotência garantida
         const { data: orderUpdate, error: updateErr } = await supabase
             .from('pedidos')
-            .update({
-                status: 'paid',
-                stripe_payment_intent: session.payment_intent || null,
-                items: JSON.stringify({ ...originalItems, payment_method: paymentMethod })
-            })
+            .update({ status: 'paid', stripe_payment_intent: session.payment_intent || null })
             .eq('stripe_session_id', session.id)
             .eq('status', 'pending')
             .select()
@@ -542,9 +533,24 @@ async function processPaidSession(supabase, stripe, session) {
             return;
         }
         if (!orderUpdate) {
-            console.log(`⚠️ [UPDATE] Sessão ${session.id} ignorada — pedido já processado.`);
+            console.log(`⚠️ [UPDATE] Sessão ${session.id} ignorada — pedido não encontrado ou já processado.`);
             return;
         }
+
+        // Extrai itens da linha retornada pelo UPDATE
+        let originalItems = {};
+        try {
+            originalItems = typeof orderUpdate.items === 'string'
+                ? JSON.parse(orderUpdate.items) : (orderUpdate.items || {});
+        } catch (e) {
+            console.warn("⚠️ [PARSE] Erro ao parsear itens:", e.message);
+        }
+
+        // Persiste payment_method nos itens (analytics — non-critical)
+        supabase.from('pedidos')
+            .update({ items: JSON.stringify({ ...originalItems, payment_method: paymentMethod }) })
+            .eq('id', orderUpdate.id)
+            .catch(() => {});
 
         const diff = Math.abs((session.amount_total / 100) - orderUpdate.total_amount);
         if (diff > 0.01) {
@@ -600,7 +606,9 @@ async function processPaidSession(supabase, stripe, session) {
                     }
                 }
             } else {
-                console.error('❌ [ESTOQUE] Erro fatal:', stockErr.message);
+                console.error(JSON.stringify({ tag: 'STOCK_DEDUCTION_FAILED', order_id: orderUpdate.id, error: stockErr.message, timestamp: new Date().toISOString() }));
+                systemAlert('STOCK_DEDUCTION_FAILED', { order_id: orderUpdate.id, error: stockErr.message });
+                supabase.from('pedidos').update({ stock_deduction_failed: true }).eq('id', orderUpdate.id).catch(() => {});
             }
         }
 

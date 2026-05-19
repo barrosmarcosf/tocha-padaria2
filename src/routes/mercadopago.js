@@ -21,6 +21,8 @@ function verifyMPWebhookSignature(req, secret) {
     });
     const { ts, v1 } = parts;
     if (!ts || !v1) return false;
+    const tsSeconds = parseInt(ts, 10);
+    if (isNaN(tsSeconds) || Math.abs(Date.now() / 1000 - tsSeconds) > 300) return false;
     const mpId = req.body?.data?.id || req.query['data.id'] || '';
     const manifest = `id:${mpId};request-id:${requestId};ts:${ts};`;
     const hmac = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
@@ -227,7 +229,8 @@ module.exports = function (supabase) {
             if (cartErr) return res.status(400).json({ error: cartErr });
 
             // idemKey usado apenas para gravar no pedido (não bloqueia retry)
-            const idemKey = req.headers['x-idempotency-key'] || `session_${req.session_id}`;
+            const sessionFallback = req.session_id || `anon_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+            const idemKey = req.headers['x-idempotency-key'] || `session_${sessionFallback}`;
 
             // Validar status da loja e estoque (mesma lógica do Stripe)
             const storeStatusResult = await getUnifiedStoreStatus(supabase);
@@ -239,17 +242,15 @@ module.exports = function (supabase) {
             if (batchDate) {
                 for (const item of cart) {
                     const available = await getUnifiedAvailableStock(supabase, item.id);
-                    console.log('STOCK DEBUG:', { productId: item.id, available, type: typeof available });
                     if (available !== null && available < item.qty) {
-                        console.log('VALIDATION_TRIGGERED', { available, qty: item.qty });
                         return res.status(400).json({ error: `Estoque insuficiente para ${item.name}.` });
                     }
                 }
             }
 
             // Recalcular total no backend — nunca confiar no valor do frontend
-            const totalAmount = await recalcularTotal(supabase, cart);
-            console.log(`💰 [PIX] Total recalculado no backend: R$ ${totalAmount}`);
+            const { total: totalAmount, priceMap } = await recalcularTotal(supabase, cart);
+            console.log(JSON.stringify({ tag: 'PIX_TOTAL_CALC', amount: totalAmount, order_id, timestamp: new Date().toISOString() }));
 
             // Registrar/Atualizar Cliente
             let customerId = lockedOrder.customer_id;
@@ -289,7 +290,7 @@ module.exports = function (supabase) {
                             id: String(item.id || item._id || ''),
                             title: item.name,
                             quantity: item.qty,
-                            unit_price: item.price,
+                            unit_price: priceMap[String(item.id)],
                             category_id: 'food'
                         }))
                     }
@@ -396,28 +397,33 @@ module.exports = function (supabase) {
         try {
             const mpId = req.params.id;
             const orderId = req.query.order_id;
+
+            // order_id obrigatório — previne enumeração de pagamentos MP por ID sequencial
+            if (!orderId) {
+                return res.status(400).json({ error: 'order_id obrigatório.' });
+            }
+
             const mpStatus = await payment.get({ id: mpId });
 
             let status = 'pending';
             if (mpStatus.status === 'approved') status = 'approved';
             if (['cancelled', 'rejected'].includes(mpStatus.status)) status = 'cancelled';
 
-            // Idempotência garante que processPaidMPOrder não execute duas vezes
+            // Só processa se external_reference corresponde ao order_id — bloqueia pagamentos de terceiros
             if (status === 'approved') {
-                await processPaidMPOrder(supabase, mpId, mpStatus);
-            }
-
-            // Quando order_id está presente, valida o vínculo entre pagamento e pedido
-            if (orderId) {
-                const valid = mpStatus.status === 'approved' &&
-                    String(mpStatus.external_reference) === String(orderId);
-                if (!valid) {
-                    console.warn(`[MP BACKEND REDIRECT BLOCK] payment_id=${mpId} mp_status=${mpStatus.status} external_reference=${mpStatus.external_reference} order_id=${orderId}`);
+                if (String(mpStatus.external_reference) === String(orderId)) {
+                    await processPaidMPOrder(supabase, mpId, mpStatus);
+                } else {
+                    console.warn(JSON.stringify({ tag: 'CHECK_PAYMENT_REF_MISMATCH', payment_id: mpId, expected: orderId, got: mpStatus.external_reference, timestamp: new Date().toISOString() }));
                 }
-                return res.json({ status, valid });
             }
 
-            res.json({ status });
+            const valid = mpStatus.status === 'approved' &&
+                String(mpStatus.external_reference) === String(orderId);
+            if (!valid && status === 'approved') {
+                console.warn(`[MP BACKEND REDIRECT BLOCK] payment_id=${mpId} mp_status=${mpStatus.status} external_reference=${mpStatus.external_reference} order_id=${orderId}`);
+            }
+            return res.json({ status, valid });
         } catch (error) {
             console.error('Erro ao checar pagamento MP:', error);
             res.status(500).json({ error: 'Erro ao verificar status.' });
@@ -507,7 +513,8 @@ module.exports = function (supabase) {
                 return res.status(400).json({ error: 'Dados do cliente ausentes.' });
             }
 
-            const idemKey = req.headers['x-idempotency-key'] || `session_${req.session_id}`;
+            const sessionFallback = req.session_id || `anon_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+            const idemKey = req.headers['x-idempotency-key'] || `session_${sessionFallback}`;
 
             const { data: existingPix, error: idemPixErr } = await supabase
                 .from('pedidos')
@@ -532,7 +539,7 @@ module.exports = function (supabase) {
 
             const storeStatusResult = await getUnifiedStoreStatus(supabase);
             const batchDate = storeStatusResult.batchDate || storeStatusResult.nextBatchDate;
-            const totalAmount = await recalcularTotal(supabase, cartItems);
+            const { total: totalAmount } = await recalcularTotal(supabase, cartItems);
 
             let customerId;
             const { data: existingCustomer } = await supabase.from('clientes').select('id').eq('email', customer.email).maybeSingle();
@@ -590,7 +597,7 @@ module.exports = function (supabase) {
 
     // 3.3 PREPARAR PEDIDO DE CARTÃO (Cria o pedido pendente antes de ir para a página de checkout)
     router.post('/prepare-card-order', async (req, res) => {
-        console.log("🚀 [MP Prepare] BODY RECEBIDO:", JSON.stringify(req.body, null, 2));
+        console.log(JSON.stringify({ tag: 'MP_PREPARE_CARD', has_customer: !!req.body?.customer, cart_size: req.body?.cart?.length || 0, timestamp: new Date().toISOString() }));
         try {
             let { customer, cart: cartItems } = req.body;
 
@@ -625,7 +632,8 @@ module.exports = function (supabase) {
             }
 
             // 🔒 IDEMPOTÊNCIA
-            const idemKey = req.headers['x-idempotency-key'] || `session_${req.session_id}`;
+            const sessionFallback = req.session_id || `anon_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+            const idemKey = req.headers['x-idempotency-key'] || `session_${sessionFallback}`;
 
             const { data: existingCard, error: idemCardErr } = await supabase
                 .from('pedidos')
@@ -653,7 +661,7 @@ module.exports = function (supabase) {
             const batchDate = storeStatusResult.batchDate || storeStatusResult.nextBatchDate;
 
             // Recalcular total
-            const totalAmount = await recalcularTotal(supabase, cartItems);
+            const { total: totalAmount } = await recalcularTotal(supabase, cartItems);
 
             // Registrar/Atualizar Cliente
             let customerId;
@@ -1026,6 +1034,9 @@ module.exports = function (supabase) {
                 fileSecLog('WEBHOOK_MP_LEGACY_ERRO_VERIFICACAO', ip, req.path);
                 return res.status(401).send('Erro ao verificar assinatura.');
             }
+        } else if (process.env.NODE_ENV === 'production') {
+            fileSecLog('WEBHOOK_MP_LEGACY_SEM_SECRET_PRODUCAO', ip, req.path);
+            return res.status(401).send('Webhook não configurado.');
         }
 
         res.status(200).send('OK');
@@ -1065,21 +1076,17 @@ function validateCart(cart) {
 // Recalcula o total do pedido buscando preços no banco.
 // Lança erro se qualquer produto não for encontrado — nunca usa preço do frontend.
 async function recalcularTotal(supabase, cart) {
+    const ids = cart.map(i => String(i.id));
+    const { data: products, error } = await supabase.from('produtos').select('id, price').in('id', ids);
+    if (error) throw new Error('Erro ao buscar preços dos produtos.');
+    const priceMap = Object.fromEntries(products.map(p => [String(p.id), Number(p.price)]));
     let total = 0;
     for (const item of cart) {
-        const { data: product, error } = await supabase
-            .from('produtos')
-            .select('price')
-            .eq('id', item.id)
-            .maybeSingle();
-
-        if (error || !product) {
-            throw new Error(`Produto "${item.id}" não encontrado no catálogo. Atualize seu carrinho.`);
-        }
-
-        total += Number(product.price) * parseInt(item.qty);
+        const price = priceMap[String(item.id)];
+        if (price == null) throw new Error(`Produto "${item.id}" não encontrado no catálogo. Atualize seu carrinho.`);
+        total += price * parseInt(item.qty);
     }
-    return Math.round(total * 100) / 100;
+    return { total: Math.round(total * 100) / 100, priceMap };
 }
 
 // Persiste rejeição de pagamento MP e registra tentativa no histórico
@@ -1214,7 +1221,7 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
     // Guard: ignora pagamentos antigos quando o pedido já tem um mp_payment_id mais recente.
     // external_reference é o order_id numérico (definido em create-pix-payment e create-card-payment).
     const extRef = _mpPayment?.external_reference;
-    if (extRef && /^\d+$/.test(String(extRef))) {
+    if (extRef) {
         const { data: pedidoCheck } = await supabase
             .from('pedidos')
             .select('mp_payment_id')
@@ -1313,7 +1320,9 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
                 }
             }
         } else {
-            console.error('❌ [MP ESTOQUE] Erro fatal:', stockErr.message);
+            console.error(JSON.stringify({ tag: 'STOCK_DEDUCTION_FAILED', order_id: order.id, error: stockErr.message, timestamp: new Date().toISOString() }));
+            systemAlert('STOCK_DEDUCTION_FAILED', { order_id: order.id, error: stockErr.message });
+            supabase.from('pedidos').update({ stock_deduction_failed: true }).eq('id', order.id).catch(() => {});
         }
     }
 

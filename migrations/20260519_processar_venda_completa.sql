@@ -67,9 +67,10 @@ BEGIN
     END IF;
 
     -- FASE 1: Validar estoque de TODOS os itens e bloquear as linhas (FOR UPDATE)
-    -- Qualquer falha aqui encerra a função sem ter modificado nada
+    -- ORDER BY id garante ordem determinística — elimina deadlock entre transações concorrentes
     FOR v_item IN
         SELECT value FROM jsonb_array_elements(v_items -> 'actual_items')
+        ORDER BY value->>'id'
     LOOP
         v_product_id := v_item ->> 'id';
         v_qty        := (v_item ->> 'qty')::INTEGER;
@@ -103,6 +104,7 @@ BEGIN
     -- FASE 2: Deduzir tudo — todas as linhas já bloqueadas, sem race condition possível
     FOR v_item IN
         SELECT value FROM jsonb_array_elements(v_items -> 'actual_items')
+        ORDER BY value->>'id'
     LOOP
         v_product_id := v_item ->> 'id';
         v_qty        := (v_item ->> 'qty')::INTEGER;
