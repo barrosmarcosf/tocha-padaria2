@@ -422,6 +422,41 @@ setInterval(() => {
     }
 }, 60_000).unref();
 
+// Fila de persistência assíncrona: eventos processados durante falha do banco aguardam retry
+const _pendingDbWrites = [];
+
+async function retryPendingWrites() {
+    if (_pendingDbWrites.length === 0) return;
+
+    const item = _pendingDbWrites[0];
+    const err = await markEventProcessed(item.id, item.type);
+
+    if (!err || err.code === '23505') {
+        // Sucesso ou PK conflict (já persistido por outra via) → remove da fila
+        _pendingDbWrites.shift();
+        if (!err) {
+            console.log(JSON.stringify({
+                tag: 'WEBHOOK_DB_RECOVERY_SUCCESS',
+                event_id: item.id,
+                type: item.type,
+                queued_at: new Date(item.queued_at).toISOString(),
+                queue_remaining: _pendingDbWrites.length,
+                timestamp: new Date().toISOString()
+            }));
+        }
+    } else {
+        console.error(JSON.stringify({
+            tag: 'WEBHOOK_DB_RETRY_FAILED',
+            event_id: item.id,
+            error: err.message,
+            queue_size: _pendingDbWrites.length,
+            timestamp: new Date().toISOString()
+        }));
+    }
+}
+
+setInterval(retryPendingWrites, 10_000).unref();
+
 // Tenta registrar o evento no banco. Retorna o objeto de erro (ou null em caso de sucesso).
 // Erro code '23505' = PK conflict = evento já processado.
 // Outros erros = falha de infra (não deve bloquear o processamento).
@@ -480,6 +515,22 @@ async function handlePaymentWebhook(event) {
             tag: 'WEBHOOK_IDEMPOTENCY_DB_ERROR',
             event_id: event.id,
             error: insertErr.message,
+            timestamp: new Date().toISOString()
+        }));
+        // Enfileira para persistência eventual — retry a cada 10s até o banco voltar
+        if (_pendingDbWrites.length >= 1000) {
+            console.warn(JSON.stringify({
+                tag: 'WEBHOOK_QUEUE_OVERFLOW',
+                queue_size: _pendingDbWrites.length,
+                timestamp: new Date().toISOString()
+            }));
+            _pendingDbWrites.splice(0, 500);
+        }
+        _pendingDbWrites.push({ id: event.id, type: event.type, queued_at: Date.now() });
+        console.log(JSON.stringify({
+            tag: 'WEBHOOK_DB_QUEUED',
+            event_id: event.id,
+            queue_size: _pendingDbWrites.length,
             timestamp: new Date().toISOString()
         }));
     }
