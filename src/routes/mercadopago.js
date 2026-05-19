@@ -714,32 +714,23 @@ module.exports = function (supabase) {
 
     // 4. CHECKOUT TRANSPARENTE — CARTÃO (Bricks)
     router.post('/create-card-payment', async (req, res) => {
-        console.log('🔥 HEADERS:', req.headers);
-        console.log('🔥 BODY RECEBIDO:', req.body);
         const startTime = Date.now();
         const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
         let paymentStatus = 'unknown';
         let orderLocked = false;
-        console.log('[MP START]', { requestId, order_id: req.body?.order_id || 'unknown' });
+        console.log(JSON.stringify({ tag: 'MP_CARD_START', requestId, order_id: req.body?.order_id || 'unknown', timestamp: new Date().toISOString() }));
         try {
             if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
                 return res.status(503).json({ error: 'Integração Mercado Pago não configurada.' });
             }
 
             if (!req.body || !req.body.token) {
-                console.error('❌ TOKEN NÃO CHEGOU NO BACKEND');
                 return res.status(400).json({ error: 'Token não recebido no backend' });
             }
 
-            console.log('TOKEN BACKEND:', req.body.token);
-            console.log('BODY COMPLETO:', req.body);
-
-            const { token, amount, payer, order_id, attempt_id } = req.body;
+            const { token, payer, order_id, attempt_id } = req.body;
             if (!token || typeof token !== 'string' || token.length < 10) {
                 return res.status(400).json({ error: 'token obrigatório e deve ser válido.' });
-            }
-            if (amount == null || isNaN(Number(amount)) || Number(amount) <= 0) {
-                return res.status(400).json({ error: 'transaction_amount obrigatório e deve ser positivo.' });
             }
             if (!payer?.email) {
                 return res.status(400).json({ error: 'payer.email obrigatório.' });
@@ -812,7 +803,7 @@ module.exports = function (supabase) {
             } catch (_) {}
 
             const paymentData = {
-                transaction_amount: Number(req.body.amount),
+                transaction_amount: Number(lockedOrder.total_amount),
                 token: req.body.token,
                 description: 'Pedido Tocha Padaria',
                 installments: Number(req.body.installments || 1),
@@ -1070,7 +1061,8 @@ function validateCart(cart) {
     return null;
 }
 
-// Recalcula o total do pedido buscando preços no banco — nunca confia no frontend
+// Recalcula o total do pedido buscando preços no banco.
+// Lança erro se qualquer produto não for encontrado — nunca usa preço do frontend.
 async function recalcularTotal(supabase, cart) {
     let total = 0;
     for (const item of cart) {
@@ -1081,9 +1073,7 @@ async function recalcularTotal(supabase, cart) {
             .maybeSingle();
 
         if (error || !product) {
-            console.warn('PRODUCT_NOT_FOUND_PRICE:', { productId: item.id, usingCartPrice: item.price });
-            total += Number(item.price) * parseInt(item.qty);
-            continue;
+            throw new Error(`Produto "${item.id}" não encontrado no catálogo. Atualize seu carrinho.`);
         }
 
         total += Number(product.price) * parseInt(item.qty);

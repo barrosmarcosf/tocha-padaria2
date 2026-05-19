@@ -31,7 +31,8 @@ function validateCart(cart) {
     return null;
 }
 
-// Busca preços do banco em um único query — nunca confia no valor do frontend
+// Recalcula total e mapa de preços exclusivamente a partir do banco.
+// Lança erro se qualquer produto não for encontrado — nunca usa preço do frontend.
 async function recalcularTotal(supabase, cart) {
     const ids = cart.map(i => String(i.id));
     const { data: products, error } = await supabase
@@ -42,13 +43,11 @@ async function recalcularTotal(supabase, cart) {
     for (const item of cart) {
         const price = priceMap[String(item.id)];
         if (price == null) {
-            console.warn('PRODUCT_NOT_FOUND_PRICE:', { productId: item.id, usingCartPrice: item.price });
-            total += Number(item.price) * parseInt(item.qty);
-            continue;
+            throw new Error(`Produto "${item.id}" não encontrado no catálogo. Atualize seu carrinho.`);
         }
         total += price * parseInt(item.qty);
     }
-    return Math.round(total * 100) / 100;
+    return { total: Math.round(total * 100) / 100, priceMap };
 }
 
 function mapCartToMPItems(cart) {
@@ -183,7 +182,7 @@ module.exports = function (supabase, stripe) {
     // ──────────────────────────────────────────────────
     async function handleMpPix(req, res, supabase, cart, customer, customerId, storeStatus, batchDate) {
         const mpPayment = getMPPayment();
-        const totalAmount = await recalcularTotal(supabase, cart);
+        const { total: totalAmount } = await recalcularTotal(supabase, cart);
 
         const { data: newOrder, error: orderErr } = await supabase.from('pedidos').insert([
             buildPendingOrder(customerId, `mp_pix_pending_${Date.now()}`, totalAmount, storeStatus, batchDate, cart, 'Pix (Mercado Pago)')
@@ -241,7 +240,7 @@ module.exports = function (supabase, stripe) {
             return res.status(400).json({ error: 'card_token obrigatório para mp_card.' });
         }
 
-        const totalAmount = await recalcularTotal(supabase, cart);
+        const { total: totalAmount } = await recalcularTotal(supabase, cart);
 
         const { data: newOrder, error: orderErr } = await supabase.from('pedidos').insert([
             buildPendingOrder(customerId, `mp_card_pending_${Date.now()}`, totalAmount, storeStatus, batchDate, cart, 'Cartão (Mercado Pago)')
@@ -313,7 +312,6 @@ module.exports = function (supabase, stripe) {
     // HANDLER: Stripe (redireciona para Stripe Checkout)
     // ──────────────────────────────────────────────────
     async function handleStripeCard(req, res, supabase, stripe, cart, customer, customerId, storeStatus, batchDate, PORT) {
-        const totalAmount = req.body.totalAmount;
         const idemKey = req.headers['x-idempotency-key'] || `fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
         // Idempotência
@@ -342,11 +340,13 @@ module.exports = function (supabase, stripe) {
         if (s.pix) active_methods.push('pix');
         if (active_methods.length === 0) active_methods = ['card'];
 
+        const { total: totalAmount, priceMap } = await recalcularTotal(supabase, cart);
+
         const line_items = cart.map(item => ({
             price_data: {
                 currency: 'brl',
                 product_data: { name: item.name },
-                unit_amount: Math.round(Number(item.price) * 100),
+                unit_amount: Math.round(priceMap[String(item.id)] * 100),
             },
             quantity: parseInt(item.qty),
         }));
