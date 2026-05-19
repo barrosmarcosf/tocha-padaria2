@@ -411,6 +411,17 @@ setInterval(() => {
     }
 }, 3_600_000).unref(); // .unref() não impede shutdown limpo do processo
 
+// Cache TTL de 5 minutos: proteção contra duplicidade na janela de falha do banco (cenário fail-open)
+const _processedEventsTTL = new Map();
+const _TTL_MS = 5 * 60 * 1000;
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [id, ts] of _processedEventsTTL) {
+        if (now - ts > _TTL_MS) _processedEventsTTL.delete(id);
+    }
+}, 60_000).unref();
+
 // Tenta registrar o evento no banco. Retorna o objeto de erro (ou null em caso de sucesso).
 // Erro code '23505' = PK conflict = evento já processado.
 // Outros erros = falha de infra (não deve bloquear o processamento).
@@ -436,7 +447,19 @@ async function handlePaymentWebhook(event) {
         return;
     }
 
-    // ── Idempotência — camada 2: banco (persiste entre restarts e instâncias) ─
+    // ── Idempotência — camada 2: TTL (proteção janela de falha do banco) ────────
+    if (_processedEventsTTL.has(event.id)) {
+        console.log(JSON.stringify({
+            tag: 'WEBHOOK_DUPLICATE',
+            event_id: event.id,
+            type: event.type,
+            layer: 'memory_ttl',
+            timestamp: new Date().toISOString()
+        }));
+        return;
+    }
+
+    // ── Idempotência — camada 3: banco (persiste entre restarts e instâncias) ─
     const insertErr = await markEventProcessed(event.id, event.type);
     if (insertErr) {
         if (insertErr.code === '23505') {
@@ -532,6 +555,7 @@ async function handlePaymentWebhook(event) {
             }
         }
 
+        _processedEventsTTL.set(event.id, Date.now());
         perfLog(`webhook:handlePaymentWebhook:${event.type}`, start);
         console.log(JSON.stringify({
             tag: 'WEBHOOK_PROCESSED',
