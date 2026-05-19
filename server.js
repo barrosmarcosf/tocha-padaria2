@@ -392,6 +392,151 @@ app.get('/api/health', async (_req, res) => {
 });
 
 // ──────────────────────────────────────────────────
+// WEBHOOK INTERNO DE PAGAMENTOS — webhook-first + worker fallback
+//
+// Recebe eventos de pagamento para executar health checks imediatos.
+// O worker de 5min permanece como fallback para eventos perdidos.
+// ──────────────────────────────────────────────────
+const { systemAlert } = require('./src/utils/systemAlert');
+
+// Idempotência em memória: event_id → timestamp de processamento
+// Evita reprocessamento duplo (webhook retry, network blip, etc.)
+const _processedWebhookEvents = new Map();
+
+// Limpa entradas com mais de 1h para evitar memory leak em uptime longo
+setInterval(() => {
+    const cutoff = Date.now() - 3_600_000;
+    for (const [id, ts] of _processedWebhookEvents) {
+        if (ts < cutoff) _processedWebhookEvents.delete(id);
+    }
+}, 3_600_000).unref(); // .unref() não impede shutdown limpo do processo
+
+async function handlePaymentWebhook(event) {
+    const start = Date.now();
+
+    // ── Idempotência ──────────────────────────────────────────────────────────
+    if (_processedWebhookEvents.has(event.id)) {
+        console.log(JSON.stringify({
+            tag: 'WEBHOOK_DUPLICATE',
+            event_id: event.id,
+            type: event.type,
+            timestamp: new Date().toISOString()
+        }));
+        return;
+    }
+    _processedWebhookEvents.set(event.id, Date.now());
+
+    console.log(JSON.stringify({
+        tag: 'WEBHOOK_PROCESSING',
+        event_id: event.id,
+        type: event.type,
+        timestamp: new Date().toISOString()
+    }));
+
+    try {
+        if (event.type === 'payment.approved') {
+            // ── Check 1: Stale locks ──────────────────────────────────────────
+            const cutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+            const { data: stale, error: e1 } = await supabase
+                .from('pedidos')
+                .select('id, processing_at')
+                .eq('status', 'pending')
+                .eq('processing', true)
+                .lt('processing_at', cutoff);
+
+            if (e1) {
+                console.error(JSON.stringify({ tag: 'WEBHOOK_DB_ERROR', context: 'stale_locks', error: e1.message }));
+            } else if (stale && stale.length > 0) {
+                for (const row of stale) {
+                    systemAlert('ALERT_STALE_LOCK', { order_id: row.id, processing_at: row.processing_at });
+                    const { error: fixErr } = await supabase
+                        .from('pedidos')
+                        .update({ processing: false, processing_at: null })
+                        .eq('id', row.id)
+                        .eq('processing', true);
+
+                    if (!fixErr) {
+                        console.log(JSON.stringify({
+                            tag: 'PAYMENT_PROCESSED',
+                            source: 'webhook',
+                            action: 'stale_lock_fixed',
+                            order_id: row.id,
+                            timestamp: new Date().toISOString()
+                        }));
+                    }
+                }
+            }
+
+            // ── Check 2: Pagamentos não finalizados ───────────────────────────
+            const { data: unfinalized, error: e2 } = await supabase
+                .from('pedidos')
+                .select('id, mp_payment_id, created_at')
+                .eq('status', 'pending')
+                .not('mp_payment_id', 'is', null);
+
+            if (e2) {
+                console.error(JSON.stringify({ tag: 'WEBHOOK_DB_ERROR', context: 'unfinalized', error: e2.message }));
+            } else if (unfinalized && unfinalized.length > 0) {
+                for (const row of unfinalized) {
+                    systemAlert('ALERT_PAYMENT_NOT_FINALIZED', {
+                        order_id: row.id,
+                        mp_payment_id: row.mp_payment_id,
+                        created_at: row.created_at
+                    });
+                }
+                console.log(JSON.stringify({
+                    tag: 'PAYMENT_PROCESSED',
+                    source: 'webhook',
+                    action: 'unfinalized_detected',
+                    count: unfinalized.length,
+                    timestamp: new Date().toISOString()
+                }));
+            }
+        }
+
+        perfLog(`webhook:handlePaymentWebhook:${event.type}`, start);
+        console.log(JSON.stringify({
+            tag: 'WEBHOOK_PROCESSED',
+            event_id: event.id,
+            type: event.type,
+            duration_ms: Date.now() - start,
+            timestamp: new Date().toISOString()
+        }));
+
+    } catch (err) {
+        console.error(JSON.stringify({
+            tag: 'WEBHOOK_HANDLER_ERROR',
+            event_id: event.id,
+            error: err.message,
+            timestamp: new Date().toISOString()
+        }));
+        throw err;
+    }
+}
+
+app.post('/webhook/payment', (req, res) => {
+    const event = req.body;
+
+    if (!event || !event.id || !event.type) {
+        return res.status(400).json({ error: 'event.id e event.type são obrigatórios' });
+    }
+
+    console.log(JSON.stringify({
+        tag: 'WEBHOOK_RECEIVED',
+        event_id: event.id,
+        type: event.type,
+        timestamp: new Date().toISOString()
+    }));
+
+    // Responde imediatamente — processa em background para não bloquear o gateway
+    res.status(200).json({ ok: true, event_id: event.id });
+
+    handlePaymentWebhook(event).catch(err =>
+        console.error(JSON.stringify({ tag: 'WEBHOOK_BG_ERROR', error: err.message, timestamp: new Date().toISOString() }))
+    );
+});
+
+// ──────────────────────────────────────────────────
 // MIDDLEWARE 404 — Fallback para SPA (Público e Admin)
 // ──────────────────────────────────────────────────
 app.use((req, res) => {

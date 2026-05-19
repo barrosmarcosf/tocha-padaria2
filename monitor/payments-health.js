@@ -70,6 +70,7 @@ async function checkStaleLocks() {
             console.error(JSON.stringify({ tag: 'MONITOR_FIX_ERROR', order_id: row.id, error: fixErr.message, timestamp: new Date().toISOString() }));
         } else {
             console.log(JSON.stringify({ tag: 'STALE_LOCK_FIXED', order_id: row.id, timestamp: new Date().toISOString() }));
+            console.log(JSON.stringify({ tag: 'PAYMENT_PROCESSED', source: 'worker', action: 'stale_lock_fixed', order_id: row.id, timestamp: new Date().toISOString() }));
         }
     }
 
