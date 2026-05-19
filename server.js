@@ -411,19 +411,57 @@ setInterval(() => {
     }
 }, 3_600_000).unref(); // .unref() não impede shutdown limpo do processo
 
+// Tenta registrar o evento no banco. Retorna o objeto de erro (ou null em caso de sucesso).
+// Erro code '23505' = PK conflict = evento já processado.
+// Outros erros = falha de infra (não deve bloquear o processamento).
+async function markEventProcessed(eventId, type) {
+    const { error } = await supabase
+        .from('webhook_events')
+        .insert([{ id: eventId, type }]);
+    return error;
+}
+
 async function handlePaymentWebhook(event) {
     const start = Date.now();
 
-    // ── Idempotência ──────────────────────────────────────────────────────────
+    // ── Idempotência — camada 1: memória (fast path, zero latência) ───────────
     if (_processedWebhookEvents.has(event.id)) {
         console.log(JSON.stringify({
             tag: 'WEBHOOK_DUPLICATE',
             event_id: event.id,
             type: event.type,
+            layer: 'memory',
             timestamp: new Date().toISOString()
         }));
         return;
     }
+
+    // ── Idempotência — camada 2: banco (persiste entre restarts e instâncias) ─
+    const insertErr = await markEventProcessed(event.id, event.type);
+    if (insertErr) {
+        if (insertErr.code === '23505') {
+            // PK conflict = evento já foi processado antes
+            _processedWebhookEvents.set(event.id, Date.now()); // aquece cache local
+            console.log(JSON.stringify({
+                tag: 'WEBHOOK_DUPLICATE',
+                event_id: event.id,
+                type: event.type,
+                layer: 'db',
+                timestamp: new Date().toISOString()
+            }));
+            return;
+        }
+        // Falha de infra (rede, timeout) — fail-open: melhor processar duas vezes
+        // do que silenciosamente descartar um evento de pagamento
+        console.error(JSON.stringify({
+            tag: 'WEBHOOK_IDEMPOTENCY_DB_ERROR',
+            event_id: event.id,
+            error: insertErr.message,
+            timestamp: new Date().toISOString()
+        }));
+    }
+
+    // Aquece cache local para evitar round-trip ao DB em retries imediatos
     _processedWebhookEvents.set(event.id, Date.now());
 
     console.log(JSON.stringify({
