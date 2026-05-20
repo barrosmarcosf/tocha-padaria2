@@ -64,6 +64,14 @@ setInterval(() => {
     csrfRateMap.forEach((rec, ip) => { if (rec.first < cutoff) csrfRateMap.delete(ip); });
 }, 5 * 60 * 1000);
 
+// Mascara email para logs — preserva domínio e 1º/último char do local (LGPD)
+function maskEmail(email) {
+    if (!email || typeof email !== 'string' || !email.includes('@')) return '[email]';
+    const [local, domain] = email.split('@');
+    const m = local.length > 2 ? local[0] + '***' + local[local.length - 1] : '***';
+    return `${m}@${domain}`;
+}
+
 module.exports = function (supabase) {
 
     // Proteção CSRF em todas as rotas POST/PUT/DELETE (exceto /login)
@@ -81,6 +89,22 @@ module.exports = function (supabase) {
     router.post('/login', rateLimitLogin, async (req, res) => {
         const ip = req.ip || req.socket?.remoteAddress || 'unknown';
         try {
+            // Blocklist persistente — sobrevive a pm2 restart (SEC-01)
+            // Inserida quando o rate limit in-memory é esgotado; janela de 2h
+            try {
+                const cutoff2h = new Date(Date.now() - 2 * 3_600_000).toISOString();
+                const { count: blocked } = await supabase
+                    .from('system_incidents')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('type', 'ADMIN_LOGIN_BLOCKED')
+                    .filter('payload->>ip', 'eq', ip)
+                    .gte('created_at', cutoff2h);
+                if ((blocked || 0) >= 1) {
+                    fileSecLog('LOGIN_BLOCKED_PERSISTENT', ip, req.path, 'IP na blocklist persistente (2h)');
+                    return res.status(429).json({ error: 'Muitas tentativas. Acesso bloqueado temporariamente.' });
+                }
+            } catch (_) { /* fail-open: não bloquear se banco indisponível */ }
+
             const { email, password } = req.body;
 
             const { data: user, error } = await supabase.from('usuarios').select('*').eq('email', email).maybeSingle();
@@ -102,10 +126,8 @@ module.exports = function (supabase) {
                 const envPass = process.env.ADMIN_PASS || '';
                 let passOk = false;
                 if (envPass.startsWith('$2')) {
-                    // ADMIN_PASS armazenada como hash bcrypt
                     passOk = await bcrypt.compare(password, envPass);
                 } else {
-                    // Plaintext — comparação de tempo constante para evitar timing attack
                     const a = Buffer.alloc(72); Buffer.from(password).copy(a);
                     const b = Buffer.alloc(72); Buffer.from(envPass).copy(b);
                     passOk = require('crypto').timingSafeEqual(a, b) && password.length === envPass.length;
@@ -117,7 +139,19 @@ module.exports = function (supabase) {
             }
 
             if (!authenticated) {
-                fileSecLog('LOGIN_FALHA', ip, req.path, `Email: ${email}`);
+                // SEC-09: email mascarado no log (LGPD — minimização de PII)
+                fileSecLog('LOGIN_FALHA', ip, req.path, `Email: ${maskEmail(email)}`);
+
+                // Persiste blocklist quando o rate limit in-memory for esgotado (SEC-01)
+                const rec = loginAttempts.get(ip);
+                if (rec && rec.count >= 10) {
+                    supabase.from('system_incidents').insert({
+                        type: 'ADMIN_LOGIN_BLOCKED',
+                        payload: { ip, reason: 'rate_limit_exceeded' }
+                    }).catch(() => {});
+                    fileSecLog('LOGIN_BLOCKED_PERSISTIDO', ip, req.path, 'Blocklist persistida por 2h');
+                }
+
                 return res.status(401).json({ error: 'Credenciais inválidas!' });
             }
 
@@ -128,7 +162,8 @@ module.exports = function (supabase) {
             }
 
             const token = jwt.sign({ ...userData, sv: SESSION_VERSION }, JWT_SECRET, { expiresIn: '8h' });
-            fileSecLog('LOGIN_SUCESSO', ip, req.path, `Email: ${email}`);
+            // SEC-09: email mascarado no log de sucesso (LGPD)
+            fileSecLog('LOGIN_SUCESSO', ip, req.path, `Email: ${maskEmail(email)}`);
             res.json({ success: true, token, user: userData });
 
         } catch (e) {

@@ -391,13 +391,14 @@ module.exports = function (supabase, stripe) {
             quantity: parseInt(item.qty),
         }));
 
-        const origin = req.headers.origin || `http://localhost:${PORT}`;
+        // SEC-03: BASE_URL fixo do .env evita que origin manipulado altere o redirect (SEC-03)
+        const _baseUrl = process.env.BASE_URL || req.headers.origin || `http://localhost:${PORT}`;
         const sessionParams = {
             payment_method_types: active_methods,
             line_items,
             mode: 'payment',
-            success_url: `${origin}/?status=success&session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${origin}/?status=cancel`,
+            success_url: `${_baseUrl}/?status=success&session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${_baseUrl}/?status=cancel`,
             customer_email: customer.email,
             metadata: { whatsapp: customer.whatsapp, customerName: customer.name, sessionId: req.session_id, correlation_id: correlationId }
         };
