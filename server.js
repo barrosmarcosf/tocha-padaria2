@@ -302,10 +302,8 @@ const { getRedis: _getRlRedis } = require('./src/utils/rateLimiter');
 if (process.env.REDIS_URL) {
     const _RedisCls = require('ioredis');
     const _sseSub = new _RedisCls(process.env.REDIS_URL, {
-        lazyConnect:        false,
-        enableOfflineQueue: false,
-        retryStrategy:      (times) => Math.min(times * 2000, 30000),
-        connectTimeout:     3000,
+        retryStrategy:  (times) => Math.min(times * 2000, 30000),
+        connectTimeout: 3000,
     });
     _sseSub.subscribe('menu-updates', 'store-status', (err) => {
         if (err) console.error(JSON.stringify({ tag: 'REDIS_SSE_SUB_ERROR', error: err.message, timestamp: new Date().toISOString() }));
