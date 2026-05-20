@@ -36,6 +36,8 @@ function validateCart(cart) {
 // Rate limiter: máx 10 req/min por IP em endpoints de criação de pedido/pagamento
 const _rlCheckoutMap = new Map();
 setInterval(() => { const c = Date.now() - 60_000; for (const [k, r] of _rlCheckoutMap) if (r.first < c) _rlCheckoutMap.delete(k); }, 60_000).unref();
+const _rlCheckPayment = new Map();
+setInterval(() => { const c = Date.now() - 60_000; for (const [k, r] of _rlCheckPayment) if (r.first < c) _rlCheckPayment.delete(k); }, 60_000).unref();
 function rlCheckout(req, res, next) {
     const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     const now = Date.now();
@@ -434,10 +436,16 @@ module.exports = function (supabase) {
             const mpId = req.params.id;
             const orderId = req.query.order_id;
 
-            // order_id obrigatório — previne enumeração de pagamentos MP por ID sequencial
             if (!orderId) {
                 return res.status(400).json({ error: 'order_id obrigatório.' });
             }
+
+            const _rlKey = String(orderId);
+            const _rlNow = Date.now();
+            const _rlRec = _rlCheckPayment.get(_rlKey);
+            if (!_rlRec || _rlNow - _rlRec.first > 60_000) { _rlCheckPayment.set(_rlKey, { count: 1, first: _rlNow }); }
+            else if (_rlRec.count >= 20) { return res.status(429).json({ error: 'Muitas requisições. Aguarde.' }); }
+            else _rlRec.count++;
 
             const mpStatus = await payment.get({ id: mpId });
 
