@@ -616,7 +616,7 @@ async function processPaidSession(supabase, stripe, session) {
 
         if (custErr || !customer) {
             console.error(JSON.stringify({ tag: 'STRIPE_CUSTOMER_NOT_FOUND', order_id: orderUpdate.id, error: custErr?.message, timestamp: new Date().toISOString() }));
-            const { error: sfErr } = await supabase.from('pedidos').update({ stock_deduction_failed: true }).eq('id', orderUpdate.id);
+            const { error: sfErr } = await supabase.from('pedidos').update({ stock_deduction_failed: true, stock_deducted_at: null }).eq('id', orderUpdate.id);
             if (sfErr) console.error(JSON.stringify({ tag: 'STOCK_FLAG_FAILED', order_id: orderUpdate.id, error: sfErr.message, timestamp: new Date().toISOString() }));
             systemAlert('STRIPE_CUSTOMER_NOT_FOUND', { order_id: orderUpdate.id, error: custErr?.message });
             return;
