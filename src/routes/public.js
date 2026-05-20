@@ -22,6 +22,7 @@ function makeRateLimiter(windowMs, max, msg) {
 }
 const rlContact  = makeRateLimiter(5 * 60_000, 5,  'Muitas mensagens. Aguarde 5 minutos.');
 const rlCartSync = makeRateLimiter(60_000,      60, 'Muitas requisições de carrinho. Aguarde 1 minuto.');
+const rlOrders   = makeRateLimiter(60_000,      60, 'Muitas requisições.');
 
 // supabasePublic = cliente com anon key (respeita RLS em tabelas públicas de config)
 // supabase = service key, usado para operações com dados de usuário (carrinhos, pedidos, clientes)
@@ -200,7 +201,7 @@ module.exports = function (supabase, supabasePublic = supabase) {
     // ──────────────────────────────────────────────────
     // STATUS DO PEDIDO (usado pelo checkout-mp.html)
     // ──────────────────────────────────────────────────
-    router.get('/orders/:id', async (req, res) => {
+    router.get('/orders/:id', rlOrders, async (req, res) => {
         const { id } = req.params;
         const sid = req.cookies?.session_id || req.session_id;
         try {

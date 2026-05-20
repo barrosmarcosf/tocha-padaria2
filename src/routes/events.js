@@ -58,9 +58,8 @@ module.exports = function (supabase) {
             if (!ALLOWED_EVENTS.has(eventName)) return;
 
             const sid  = session_id ? String(session_id).slice(0, 128) : null;
-            const meta = metadata && typeof metadata === 'object' && !Array.isArray(metadata)
-                ? metadata
-                : {};
+            const _meta = metadata && typeof metadata === 'object' && !Array.isArray(metadata) ? metadata : {};
+            const meta  = JSON.stringify(_meta).length <= 4096 ? _meta : {};
 
             await supabase.from('events').insert({
                 event_name: eventName,
