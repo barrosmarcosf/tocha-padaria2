@@ -941,10 +941,12 @@ app.listen(PORT, '0.0.0.0', () => {
     }, 6 * 60 * 60 * 1000);
     console.log(JSON.stringify({ tag: 'WORKER_STARTED', worker: 'wa-session-backup', interval_ms: 21600000, timestamp: new Date().toISOString() }));
 
-    // Iniciar o WhatsApp Bot com um pequeno delay para não impactar o boot
-    setTimeout(() => {
-        console.log("🤖 [SERVER] Iniciando Tocha Bot (WhatsApp)...");
-        startBot();
-    }, 2000);
+    // WhatsApp Bot só inicia no worker 0 — evita conflito de browser lock em cluster mode
+    if (!process.env.NODE_APP_INSTANCE || process.env.NODE_APP_INSTANCE === '0') {
+        setTimeout(() => {
+            console.log("🤖 [SERVER] Iniciando Tocha Bot (WhatsApp)...");
+            startBot();
+        }, 2000);
+    }
 });
 
