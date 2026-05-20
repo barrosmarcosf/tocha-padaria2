@@ -11,7 +11,7 @@ if (!process.env.NODE_ENV) {
     console.warn(JSON.stringify({ tag: 'ENV_WARNING', message: 'NODE_ENV não definido — assumindo production', timestamp: new Date().toISOString() }));
 }
 
-const REQUIRED_ALWAYS = ['BASE_URL', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
+const REQUIRED_ALWAYS = ['BASE_URL', 'SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'INTERNAL_WEBHOOK_SECRET'];
 const REQUIRED_PRODUCTION = ['JWT_SECRET', 'STRIPE_WEBHOOK_SECRET', 'MERCADOPAGO_WEBHOOK_SECRET', 'ADMIN_PASS'];
 
 const missingEnv = [
@@ -89,7 +89,7 @@ app.use((req, _res, next) => {
     next();
 });
 
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://tochapadaria.com.br,https://www.tochapadaria.com.br').split(',');
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://tochapadaria.com,https://www.tochapadaria.com').split(',');
 app.use(cors({
     origin: (origin, cb) => {
         // Sem origin = request direto (curl, Postman, servidor interno) — permitir
@@ -99,7 +99,7 @@ app.use(cors({
         if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
         cb(new Error('CORS: origem não permitida'));
     },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Idempotency-Key', 'X-Internal-Secret']
 }));
 
@@ -233,6 +233,9 @@ const SSE_MAX_CLIENTS = 200;
 let sseClients = [];
 
 app.get('/api/stock-stream', (req, res) => {
+    if (!req.cookies.session_id) {
+        return res.status(401).json({ error: 'Sessão inválida.' });
+    }
     if (sseClients.length >= SSE_MAX_CLIENTS) {
         return res.status(503).json({ error: 'Limite de conexões SSE atingido' });
     }
@@ -762,10 +765,17 @@ app.listen(PORT, '0.0.0.0', () => {
     const { checkAbandonedCarts } = require('./src/workers/cart-abandonment');
     const WORKER_INTERVAL = 5 * 60 * 1000; // 5 minutos
     console.log("🚀 [WORKER] Trabalhador de Abandono Iniciado (intervalo: 5min).");
+    let _abandonmentRunning = false;
     setInterval(async () => {
-        const _t = Date.now();
-        await checkAbandonedCarts(supabase);
-        perfLog('worker:cart-abandonment', _t);
+        if (_abandonmentRunning) return;
+        _abandonmentRunning = true;
+        try {
+            const _t = Date.now();
+            await checkAbandonedCarts(supabase);
+            perfLog('worker:cart-abandonment', _t);
+        } finally {
+            _abandonmentRunning = false;
+        }
     }, WORKER_INTERVAL);
     checkAbandonedCarts(supabase);
 
@@ -791,10 +801,17 @@ app.listen(PORT, '0.0.0.0', () => {
     // Worker de Reconciliação MP: corrigir pagamentos aprovados não processados (a cada 5 min)
     const { reconcileMPPayments } = require('./src/workers/mp-reconciliation');
     console.log("🚀 [WORKER] Reconciliação Mercado Pago Iniciada (intervalo: 5min).");
+    let _reconcileRunning = false;
     setInterval(async () => {
-        const _t = Date.now();
-        await reconcileMPPayments(supabase);
-        perfLog('worker:mp-reconciliation', _t);
+        if (_reconcileRunning) return;
+        _reconcileRunning = true;
+        try {
+            const _t = Date.now();
+            await reconcileMPPayments(supabase);
+            perfLog('worker:mp-reconciliation', _t);
+        } finally {
+            _reconcileRunning = false;
+        }
     }, WORKER_INTERVAL);
 
     // Worker de monitoramento: pedidos com falha de dedução de estoque (a cada 15 min)

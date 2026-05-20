@@ -79,6 +79,11 @@ async function retryFailedPayments(supabase) {
                 if (newRetries >= MAX_RETRIES) {
                     systemAlert('ALERT_DLQ_MAX_RETRIES', { order_id, mp_payment_id, retries: newRetries });
                     sendAlert({ tipo: 'ALERT_DLQ_MAX_RETRIES', order_id, detail: `${newRetries} tentativas falharam — intervenção manual necessária` }).catch(() => {});
+                    await supabase.from('failed_payments_queue')
+                        .update({ status: 'dead', last_error: `MAX_RETRIES (${MAX_RETRIES}) atingido` })
+                        .eq('id', entry.id)
+                        .catch(() => {});
+                    console.log(JSON.stringify({ tag: 'DLQ_DEAD', order_id, mp_payment_id, retries: newRetries, timestamp: new Date().toISOString() }));
                 }
             } catch (entryErr) {
                 const newRetries = entry.retries + 1;

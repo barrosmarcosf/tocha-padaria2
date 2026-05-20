@@ -28,7 +28,7 @@ function validateCart(cart) {
     for (const item of cart) {
         if (!item.id) return 'Item sem ID.';
         const qty = parseInt(item.qty);
-        if (!Number.isInteger(qty) || qty < 1 || qty > 999) return `Quantidade inválida no item ${item.id}.`;
+        if (!Number.isInteger(qty) || qty < 1 || qty > 50) return `Quantidade inválida no item ${item.id}.`;
     }
     return null;
 }
@@ -37,7 +37,7 @@ function validateCart(cart) {
 const _rlCheckoutMap = new Map();
 setInterval(() => { const c = Date.now() - 60_000; for (const [k, r] of _rlCheckoutMap) if (r.first < c) _rlCheckoutMap.delete(k); }, 60_000).unref();
 function rlCheckout(req, res, next) {
-    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     const now = Date.now();
     const r = _rlCheckoutMap.get(ip);
     if (!r || now - r.first > 60_000) { _rlCheckoutMap.set(ip, { count: 1, first: now }); return next(); }
@@ -1040,10 +1040,10 @@ module.exports = function (supabase) {
     });
 
     // 5. WEBHOOK MERCADO PAGO — rota principal
-    router.get('/webhook', (_req, res) => res.status(200).send('MP webhook endpoint OK'));
+    router.get('/webhook', (_req, res) => res.status(404).json({ error: 'Not found.' }));
 
     router.post('/webhook', async (req, res) => {
-        const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
+        const ip = req.ip || req.socket?.remoteAddress || 'unknown';
         const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
 
         if (webhookSecret) {
@@ -1070,7 +1070,7 @@ module.exports = function (supabase) {
 
     // Alias legado — mesmo handler com idempotência garantida no banco
     router.post('/webhook/mercadopago', async (req, res) => {
-        const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
+        const ip = req.ip || req.socket?.remoteAddress || 'unknown';
         const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
 
         if (webhookSecret) {
@@ -1117,7 +1117,7 @@ function validateCart(cart) {
     for (const item of cart) {
         if (!item.id) return 'Item sem ID.';
         const qty = parseInt(item.qty);
-        if (!Number.isInteger(qty) || qty < 1 || qty > 999) return `Quantidade inválida no item ${item.id}.`;
+        if (!Number.isInteger(qty) || qty < 1 || qty > 50) return `Quantidade inválida no item ${item.id}.`;
     }
     return null;
 }
@@ -1369,7 +1369,7 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
             console.error(JSON.stringify({ tag: 'STOCK_DEDUCTION_FAILED', correlation_id: correlationId, order_id: order.id, error: stockErr.message, timestamp: new Date().toISOString() }));
             systemAlert('STOCK_DEDUCTION_FAILED', { correlation_id: correlationId, order_id: order.id, error: stockErr.message });
         }
-        supabase.from('pedidos').update({ stock_deduction_failed: true }).eq('id', order.id)
+        await supabase.from('pedidos').update({ stock_deduction_failed: true }).eq('id', order.id)
             .catch(e => console.error(JSON.stringify({ tag: 'STOCK_FLAG_FAILED', order_id: order.id, error: e.message, timestamp: new Date().toISOString() })));
     }
 

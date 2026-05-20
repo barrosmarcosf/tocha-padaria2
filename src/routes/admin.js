@@ -9,7 +9,6 @@ function _adminErr(res, req, e) {
 const { adminAuth, authorize, bcrypt, jwt, JWT_SECRET, SESSION_VERSION, secLog } = require('../middleware/auth');
 const { generateCsrfToken, csrfProtection } = require('../middleware/csrf');
 const { secLog: fileSecLog } = require('../utils/secLogger');
-const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { getDashboardMetrics, getDateRange, fetchPaidOrders, buildCostMap, calcAggregates, getBRDate, buildTimeSeries } = require('../services/dashboardMetrics');
@@ -21,7 +20,7 @@ const { getUnifiedProductList } = require('../services/stockService');
 // Rate limiting simples em memória para o login (máx 10 tentativas / 15 min por IP)
 const loginAttempts = new Map();
 function rateLimitLogin(req, res, next) {
-    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     const now = Date.now();
     const window = 15 * 60 * 1000;
     const max = 10;
@@ -44,7 +43,7 @@ setInterval(() => {
 // Rate limiting para /csrf-token (máx 30 req/min por IP)
 const csrfRateMap = new Map();
 function rateLimitCsrfToken(req, res, next) {
-    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     const now = Date.now();
     const window = 60 * 1000;
     const max = 30;
@@ -79,7 +78,7 @@ module.exports = function (supabase) {
 
     // Rota de Login
     router.post('/login', rateLimitLogin, async (req, res) => {
-        const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
+        const ip = req.ip || req.socket?.remoteAddress || 'unknown';
         try {
             const { email, password } = req.body;
 

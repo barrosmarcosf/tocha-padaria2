@@ -11,7 +11,7 @@ function makeRateLimiter(windowMs, max, msg) {
         for (const [k, r] of map) if (r.first < cut) map.delete(k);
     }, windowMs).unref();
     return function (req, res, next) {
-        const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
+        const ip = req.ip || req.socket?.remoteAddress || 'unknown';
         const now = Date.now();
         const r = map.get(ip);
         if (!r || now - r.first > windowMs) { map.set(ip, { count: 1, first: now }); return next(); }
@@ -33,8 +33,8 @@ module.exports = function (supabase, supabasePublic = supabase) {
     // ──────────────────────────────────────────────────
     router.get('/config', async (req, res) => {
         try {
-            const { data: categorias, error: catErr } = await supabasePublic.from('categorias').select('*').eq('is_active', true).order('display_order', { ascending: true });
-            const { data: produtosRaw, error: prodErr } = await supabasePublic.from('produtos').select('*').eq('is_active', true).order('display_order', { ascending: true });
+            const { data: categorias, error: catErr } = await supabasePublic.from('categorias').select('*').eq('is_active', true).order('display_order', { ascending: true }).limit(500);
+            const { data: produtosRaw, error: prodErr } = await supabasePublic.from('produtos').select('*').eq('is_active', true).order('display_order', { ascending: true }).limit(500);
             const { data: content, error: contErr } = await supabasePublic.from('site_content').select('*');
 
             if (catErr || prodErr || contErr) throw new Error("Erro ao carregar configurações do banco.");
@@ -97,7 +97,7 @@ module.exports = function (supabase, supabasePublic = supabase) {
             if (!item || typeof item !== 'object') return 'Item do carrinho inválido.';
             if (!item.id || typeof item.id !== 'string' || item.id.trim() === '') return 'Item sem identificador válido.';
             const qty = parseInt(item.qty);
-            if (!Number.isInteger(qty) || qty < 1 || qty > 999) return `Quantidade inválida para o item "${item.id}".`;
+            if (!Number.isInteger(qty) || qty < 1 || qty > 50) return `Quantidade inválida para o item "${item.id}".`;
         }
         return null;
     }

@@ -16,7 +16,7 @@ setInterval(() => {
     _confirmSessionRateMap.forEach((rec, ip) => { if (rec.first < cutoff) _confirmSessionRateMap.delete(ip); });
 }, 5 * 60_000).unref();
 function rateLimitConfirmSession(req, res, next) {
-    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     const now = Date.now();
     const rec = _confirmSessionRateMap.get(ip);
     if (!rec || now - rec.first > 60_000) {
@@ -48,7 +48,7 @@ function validateCart(cart) {
     for (const item of cart) {
         if (!item.id) return 'Item sem ID.';
         const qty = parseInt(item.qty);
-        if (!Number.isInteger(qty) || qty < 1 || qty > 999) return `Quantidade inválida no item ${item.id}.`;
+        if (!Number.isInteger(qty) || qty < 1 || qty > 50) return `Quantidade inválida no item ${item.id}.`;
     }
     return null;
 }
@@ -102,7 +102,7 @@ function buildPendingOrder(customerId, sessionId, totalAmount, storeStatus, batc
 const _rlCheckoutMap = new Map();
 setInterval(() => { const c = Date.now() - 60_000; for (const [k, r] of _rlCheckoutMap) if (r.first < c) _rlCheckoutMap.delete(k); }, 60_000).unref();
 function rlCheckout(req, res, next) {
-    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     const now = Date.now();
     const r = _rlCheckoutMap.get(ip);
     if (!r || now - r.first > 60_000) { _rlCheckoutMap.set(ip, { count: 1, first: now }); return next(); }
@@ -203,8 +203,8 @@ module.exports = function (supabase, stripe) {
             return await handleStripeCard(req, res, supabase, stripe, cart, customer, customerId, storeStatusResult, batchDate, PORT);
 
         } catch (err) {
-            console.error('❌ [Checkout] Erro fatal:', err);
-            return res.status(500).json({ tipo: 'error_generic', error: err.message || 'Erro interno.' });
+            console.error(JSON.stringify({ tag: 'CHECKOUT_ERROR', error: err.message, timestamp: new Date().toISOString() }));
+            return res.status(500).json({ tipo: 'error_generic', error: 'Erro interno. Tente novamente.' });
         }
     });
 
@@ -624,7 +624,7 @@ async function processPaidSession(supabase, stripe, session) {
                 console.error(JSON.stringify({ tag: 'STOCK_DEDUCTION_FAILED', order_id: orderUpdate.id, error: stockErr.message, timestamp: new Date().toISOString() }));
                 systemAlert('STOCK_DEDUCTION_FAILED', { correlation_id: correlationId, order_id: orderUpdate.id, error: stockErr.message });
             }
-            supabase.from('pedidos').update({ stock_deduction_failed: true }).eq('id', orderUpdate.id)
+            await supabase.from('pedidos').update({ stock_deduction_failed: true }).eq('id', orderUpdate.id)
                 .catch(e => console.error(JSON.stringify({ tag: 'STOCK_FLAG_FAILED', order_id: orderUpdate.id, error: e.message, timestamp: new Date().toISOString() })));
         }
 
