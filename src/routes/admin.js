@@ -1524,7 +1524,7 @@ module.exports = function (supabase) {
             const { data: lastOrder, error: orderErr } = await supabase.from('pedidos').select('*, clientes(*)').order('created_at', { ascending: false }).limit(1).single();
             if (orderErr || !lastOrder) return res.status(404).json({ error: "Pedido não encontrado." });
             const customer = { ...lastOrder.clientes, name: lastOrder.clientes?.name || 'Cliente Teste', whatsapp: lastOrder.clientes?.whatsapp || process.env.OWNER_WHATSAPP, email: lastOrder.clientes?.email || process.env.SMTP_USER };
-            const results = await Promise.allSettled([ sendOrderEmails(lastOrder, customer, 'Teste'), sendOrderWhatsApp(lastOrder, customer, 'Teste') ]);
+            const results = await Promise.allSettled([ sendOrderEmails(supabase, lastOrder, customer, 'Teste'), sendOrderWhatsApp(supabase, lastOrder, customer, 'Teste') ]);
             res.json({ success: true, summary: results.map((r, i) => ({ type: i === 0 ? "E-MAIL" : "WHATSAPP", status: r.status })), order_id: lastOrder.id });
         } catch (error) { _adminErr(res, req, error); }
     });
