@@ -260,7 +260,7 @@ module.exports = function (supabase, stripe) {
         }).eq('id', newOrder.id);
 
         console.log(JSON.stringify({ tag: 'CHECKOUT_PIX_INITIATED', correlation_id: correlationId, order_id: newOrder.id, payment_id: mpId, timestamp: new Date().toISOString() }));
-        return res.json({ tipo: 'pix', qr_code: qrCodeBase64, copia_e_cola: pixString, payment_id: mpId });
+        return res.json({ tipo: 'pix', qr_code: qrCodeBase64, copia_e_cola: pixString, payment_id: mpId, order_id: newOrder.id });
     }
 
     // ──────────────────────────────────────────────────

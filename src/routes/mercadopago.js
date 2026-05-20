@@ -498,11 +498,24 @@ module.exports = function (supabase) {
             }
 
             // Em produção: bloqueia se a sessão não corresponde ao pedido (previne enumeração)
-            if (itemsData.client_session_id && itemsData.client_session_id !== sid) {
-                if (process.env.NODE_ENV === 'production') {
+            if (process.env.NODE_ENV === 'production') {
+                if (!sid) {
+                    return res.status(403).json({ error: 'Acesso negado.' });
+                }
+                if (itemsData.client_session_id && itemsData.client_session_id !== sid) {
                     console.warn(JSON.stringify({ tag: 'ORDER_SUMMARY_SESSION_MISMATCH', order_id: order.id, timestamp: new Date().toISOString() }));
                     return res.status(403).json({ error: 'Acesso negado.' });
                 }
+                // Sem client_session_id: valida via customer_sessions
+                if (!itemsData.client_session_id) {
+                    const { data: sess } = await supabase
+                        .from('customer_sessions').select('customer_email').eq('session_id', sid).maybeSingle();
+                    if (!sess) {
+                        console.warn(JSON.stringify({ tag: 'ORDER_SUMMARY_NO_SESSION', order_id: order.id, timestamp: new Date().toISOString() }));
+                        return res.status(403).json({ error: 'Acesso negado.' });
+                    }
+                }
+            } else if (itemsData.client_session_id && itemsData.client_session_id !== sid) {
                 console.warn(JSON.stringify({ tag: 'ORDER_SUMMARY_SESSION_MISMATCH_DEV', order_id: order.id, timestamp: new Date().toISOString() }));
             }
 
@@ -1222,7 +1235,8 @@ async function processMPRefund(supabase, mpId, mpPayment) {
         metadata: { mp_payment_id: mpId, is_partial: isPartial }
     });
 
-    console.log(`[MP Refund] Pedido ${order.id} estornado. Valor: R$${totalRefunded}`);
+    console.log(JSON.stringify({ tag: 'REFUND_RECEIVED', provider: 'mercadopago', order_id: order.id, mp_payment_id: mpId, amount: totalRefunded, is_partial: isPartial, timestamp: new Date().toISOString() }));
+    systemAlert('REFUND_RECEIVED', { order_id: order.id, provider: 'mercadopago', mp_payment_id: mpId, amount: totalRefunded, is_partial: isPartial });
 }
 
 // Persiste chargeback via Mercado Pago

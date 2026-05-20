@@ -13,6 +13,7 @@ async function retryFailedPayments(supabase) {
             .from('failed_payments_queue')
             .select('*')
             .lt('retries', MAX_RETRIES)
+            .neq('status', 'dead')
             .order('created_at', { ascending: true })
             .limit(20);
 

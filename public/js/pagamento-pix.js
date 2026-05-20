@@ -31,12 +31,33 @@ async function checkStatus() {
     }
     _pollAttempts++;
     try {
-        const res = await fetch(`/api/mercadopago/check-payment/${pixData.payment_id}`);
+        // Prefere polling direto no banco (mais confiável — detecta logo que o webhook processa)
+        const orderId = pixData.order_id || localStorage.getItem('tocha-order-id');
+        if (orderId) {
+            const r = await fetch(`/api/orders/${encodeURIComponent(orderId)}`);
+            if (r.ok) {
+                const d = await r.json();
+                if (d.status === 'paid') { clearTimeout(_pollTimer); showSuccess(); return; }
+                if (d.status === 'error') {
+                    clearTimeout(_pollTimer);
+                    alert("Ocorreu um erro no pagamento. Entre em contato com a loja.");
+                    window.location.href = "/";
+                    return;
+                }
+                _pollTimer = setTimeout(checkStatus, 5000);
+                return;
+            }
+        }
+        // Fallback: check-payment com order_id obrigatório
+        if (!orderId) {
+            console.warn("[PIX] order_id não disponível — polling indisponível.");
+            _pollTimer = setTimeout(checkStatus, 10000);
+            return;
+        }
+        const res = await fetch(`/api/mercadopago/check-payment/${pixData.payment_id}?order_id=${encodeURIComponent(orderId)}`);
         const data = await res.json();
-
         if (data.status === 'approved') {
-            clearTimeout(_pollTimer);
-            showSuccess();
+            clearTimeout(_pollTimer); showSuccess();
         } else if (data.status === 'cancelled' || data.status === 'rejected') {
             clearTimeout(_pollTimer);
             alert("O pagamento foi cancelado ou expirou.");

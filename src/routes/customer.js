@@ -1,12 +1,25 @@
 const express = require('express');
 
+// Rate limiter: máx 10 req/min por IP em /save (previne spam de inserções)
+const _rlSaveMap = new Map();
+setInterval(() => { const c = Date.now() - 60_000; for (const [k, r] of _rlSaveMap) if (r.first < c) _rlSaveMap.delete(k); }, 60_000).unref();
+function rlSave(req, res, next) {
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+    const now = Date.now();
+    const r = _rlSaveMap.get(ip);
+    if (!r || now - r.first > 60_000) { _rlSaveMap.set(ip, { count: 1, first: now }); return next(); }
+    if (r.count >= 10) return res.status(429).json({ error: 'Muitas requisições. Aguarde 1 minuto.' });
+    r.count++;
+    next();
+}
+
 module.exports = function (supabase) {
     const router = express.Router();
 
     const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
     // POST /api/customer/save — upsert cliente + vincula sessão
-    router.post('/save', async (req, res) => {
+    router.post('/save', rlSave, async (req, res) => {
         try {
             const { name, email, whatsapp } = req.body;
             if (!name || !email || !whatsapp) {

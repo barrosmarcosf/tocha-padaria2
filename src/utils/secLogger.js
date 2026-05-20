@@ -18,7 +18,9 @@ function secLog(event, ip, route, details = '') {
     const entry = JSON.stringify({ tag: 'SECURITY', event, ip, route, details: details || undefined, timestamp: new Date().toISOString() });
     console.log(entry);
     rotatIfNeeded();
-    fs.appendFile(LOG_FILE, entry + '\n', () => {});
+    fs.appendFile(LOG_FILE, entry + '\n', (err) => {
+        if (err) console.error(JSON.stringify({ tag: 'SECLOG_WRITE_ERROR', error: err.message, timestamp: new Date().toISOString() }));
+    });
 }
 
 module.exports = { secLog };

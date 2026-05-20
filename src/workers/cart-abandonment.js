@@ -66,11 +66,12 @@ async function checkAbandonedCarts(supabase) {
         // Busca carrinhos ativos com recovery_step < 3 e recovery_sent=false (backward compat)
         const { data: candidates, error } = await supabase
             .from('carrinhos')
-            .select('*')
+            .select('id, session_id, customer_id, customer_data, items, total_amount, recovery_token, recovery_step, last_activity_at, last_recovery_at, order_id')
             .eq('status', 'active')
             .eq('recovery_sent', false)
             .lt('recovery_step', STEP_DELAYS_MINUTES.length)
-            .order('last_activity_at', { ascending: true });
+            .order('last_activity_at', { ascending: true })
+            .limit(100);
 
         if (error) throw error;
 

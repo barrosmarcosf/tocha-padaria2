@@ -62,9 +62,10 @@ async function checkPendingPayments(supabase) {
     try {
         const { data: pending, error } = await supabase
             .from('pedidos')
-            .select('*')
+            .select('id, customer_id, stripe_session_id, mp_payment_id, total_amount, created_at, items, payment_recovery_step, payment_last_recovery_at')
             .eq('status', 'pending')
-            .order('created_at', { ascending: true });
+            .order('created_at', { ascending: true })
+            .limit(50);
 
         if (error) throw error;
 

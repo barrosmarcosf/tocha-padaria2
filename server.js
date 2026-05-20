@@ -373,10 +373,12 @@ app.get('/comparative-audit', adminAuth, async (_req, res) => {
 // ──────────────────────────────────────────────────
 app.get('/api/health', adminAuth, async (_req, res) => {
     const checks = {};
+    const _withTimeout = (promise, ms = 5000) =>
+        Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
 
     // 1. Supabase
     try {
-        const { error } = await supabase.from('clientes').select('id').limit(1);
+        const { error } = await _withTimeout(supabase.from('clientes').select('id').limit(1));
         checks.supabase = error ? { ok: false, error: error.message } : { ok: true };
     } catch (e) {
         checks.supabase = { ok: false, error: e.message };
@@ -384,7 +386,7 @@ app.get('/api/health', adminAuth, async (_req, res) => {
 
     // 2. Stripe
     try {
-        await stripe.balance.retrieve();
+        await _withTimeout(stripe.balance.retrieve());
         checks.stripe = { ok: true };
     } catch (e) {
         checks.stripe = { ok: false, error: e.message };

@@ -39,15 +39,26 @@ transporter.verify((error, success) => {
 // Controle de inicialização
 let isInitializing = false;
 let initTimeoutId = null;
+let _waRetryCount = 0;
+const WA_MAX_RETRIES = 5;
+
+function _waBackoffMs(attempt) {
+    // Exponential backoff: 5s, 15s, 45s, 135s, 405s
+    return Math.min(5000 * Math.pow(3, attempt), 600_000);
+}
 
 // Singleton global — impede múltiplas instâncias mesmo com hot-reload
 async function startBot() {
     if (global.whatsappClient) return;
     if (isInitializing || isBotReady) return;
+    if (_waRetryCount >= WA_MAX_RETRIES) {
+        console.error(JSON.stringify({ tag: 'WA_RETRY_EXHAUSTED', retries: _waRetryCount, timestamp: new Date().toISOString() }));
+        return;
+    }
     isInitializing = true;
     global.whatsappClient = client;
 
-    console.log("[WA] Inicializando bot...");
+    console.log(JSON.stringify({ tag: 'WA_INIT', attempt: _waRetryCount + 1, timestamp: new Date().toISOString() }));
 
     initTimeoutId = setTimeout(() => {
         if (!isBotReady) {
@@ -60,10 +71,16 @@ async function startBot() {
 
     client.initialize().catch(err => {
         if (initTimeoutId) { clearTimeout(initTimeoutId); initTimeoutId = null; }
-        console.error('[WA INIT ERROR]', err.message);
         isInitializing = false;
         global.whatsappClient = null;
-        setTimeout(() => startBot(), 5000);
+        _waRetryCount++;
+        const delay = _waBackoffMs(_waRetryCount - 1);
+        console.error(JSON.stringify({ tag: 'WA_INIT_ERROR', error: err.message, retry: _waRetryCount, next_retry_ms: delay, timestamp: new Date().toISOString() }));
+        if (_waRetryCount < WA_MAX_RETRIES) {
+            setTimeout(() => startBot(), delay);
+        } else {
+            console.error(JSON.stringify({ tag: 'WA_INIT_GIVE_UP', retries: _waRetryCount, timestamp: new Date().toISOString() }));
+        }
     });
 }
 
@@ -163,7 +180,8 @@ client.on('ready', () => {
     botStatus = WA_STATE.READY;
     isBotReady = true;
     isInitializing = false;
-    console.log('[WA READY]');
+    _waRetryCount = 0;
+    console.log(JSON.stringify({ tag: 'WA_READY', timestamp: new Date().toISOString() }));
 });
 
 client.on('auth_failure', (msg) => {
@@ -400,10 +418,11 @@ async function sendOrderEmails(supabase, order, customer, paymentMethod = 'Não 
     };
 
     try {
-        console.log(`📡 [EMAIL-START] Iniciando disparos independentes...`);
-        
+        console.log(JSON.stringify({ tag: 'EMAIL_START', timestamp: new Date().toISOString() }));
+
         // --- E-MAIL CLIENTE ---
-        console.log(`📧 [EMAIL-CLIENT-START] Enviando para: ${customer.email}`);
+        const _maskedEmail = customer.email ? customer.email.replace(/(?<=.).(?=[^@]*@)/g, '*') : '?';
+        console.log(JSON.stringify({ tag: 'EMAIL_CLIENT_START', email: _maskedEmail, timestamp: new Date().toISOString() }));
         const sendToClient = transporter.sendMail(clientMailOptions)
             .then(() => console.log("✅ [EMAIL-CLIENT-SUCCESS] E-mail entregue ao cliente."))
             .catch(err => console.error("❌ [EMAIL-CLIENT-FAIL] Erro no e-mail do cliente:", err.message));
@@ -670,7 +689,7 @@ async function sendAbandonmentRecovery(supabase, customer, items, recoveryUrl) {
 
     try {
         if (customer.email) {
-            console.log(`📡 [RECUPERACAO] Enviando e-mail para ${customer.email}...`);
+            console.log(JSON.stringify({ tag: 'RECOVERY_EMAIL_START', timestamp: new Date().toISOString() }));
             await transporter.sendMail(mailOptions);
         }
         if (customer.whatsapp && isBotReady) {
