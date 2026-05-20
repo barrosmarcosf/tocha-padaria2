@@ -534,13 +534,15 @@ async function processPaidSession(supabase, stripe, session) {
         console.log(JSON.stringify({ tag: 'STRIPE_SESSION_START', method: paymentMethod, session_id: session.id, timestamp: new Date().toISOString() }));
 
         // Atomic guard: UPDATE só avança se status ainda for 'pending' — idempotência garantida
-        const { data: orderUpdate, error: updateErr } = await supabase
+        const _doStripeUpdate = () => supabase
             .from('pedidos')
             .update({ status: 'paid', stripe_payment_intent: session.payment_intent || null })
             .eq('stripe_session_id', session.id)
             .eq('status', 'pending')
             .select()
             .maybeSingle();
+
+        let { data: orderUpdate, error: updateErr } = await _doStripeUpdate();
 
         if (updateErr) {
             if (updateErr.code === '23505') {
@@ -551,8 +553,16 @@ async function processPaidSession(supabase, stripe, session) {
             return;
         }
         if (!orderUpdate) {
-            console.log(`⚠️ [UPDATE] Sessão ${session.id} ignorada — pedido não encontrado ou já processado.`);
-            return;
+            // Race condition: webhook chegou antes do INSERT do pedido. Retenta até 3x com backoff.
+            for (let _r = 1; _r <= 3 && !orderUpdate; _r++) {
+                await new Promise(r => setTimeout(r, _r * 400));
+                ({ data: orderUpdate } = await _doStripeUpdate());
+            }
+            if (!orderUpdate) {
+                console.log(`⚠️ [UPDATE] Sessão ${session.id} ignorada — pedido não encontrado ou já processado.`);
+                return;
+            }
+            console.log(JSON.stringify({ tag: 'STRIPE_WEBHOOK_LATE_MATCH', session_id: session.id, timestamp: new Date().toISOString() }));
         }
 
         const correlationId = orderUpdate.correlation_id || session.metadata?.correlation_id || 'unknown';

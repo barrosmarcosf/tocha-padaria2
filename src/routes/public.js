@@ -202,16 +202,50 @@ module.exports = function (supabase, supabasePublic = supabase) {
     // ──────────────────────────────────────────────────
     router.get('/orders/:id', async (req, res) => {
         const { id } = req.params;
+        const sid = req.cookies?.session_id || req.session_id;
         try {
             const { data: pedido, error } = await supabase
                 .from('pedidos')
-                .select('id, status, mp_payment_id, created_at')
+                .select('id, status, mp_payment_id, created_at, customer_id, items')
                 .eq('id', id)
                 .single();
 
             if (error || !pedido) {
                 console.warn('[ORDER NOT FOUND]', { id });
                 return res.status(404).json({ error: 'Pedido não encontrado.' });
+            }
+
+            // Verificação de propriedade: session deve estar vinculada a este pedido
+            let authorized = false;
+            let itemsData = {};
+            try { itemsData = typeof pedido.items === 'string' ? JSON.parse(pedido.items) : (pedido.items || {}); } catch (_) {}
+
+            // Check 1: client_session_id direto nos items (caso PIX polling — zero queries extras)
+            if (sid && itemsData.client_session_id && itemsData.client_session_id === sid) {
+                authorized = true;
+            }
+
+            // Check 2: sessão vinculada ao cliente dono do pedido (fallback para pedidos antigos)
+            if (!authorized && sid && pedido.customer_id) {
+                const { data: sess } = await supabase
+                    .from('customer_sessions')
+                    .select('customer_email')
+                    .eq('session_id', sid)
+                    .maybeSingle();
+                if (sess?.customer_email) {
+                    const { data: cust } = await supabase
+                        .from('clientes')
+                        .select('id')
+                        .eq('email', sess.customer_email)
+                        .eq('id', pedido.customer_id)
+                        .maybeSingle();
+                    if (cust) authorized = true;
+                }
+            }
+
+            if (!authorized) {
+                console.warn(JSON.stringify({ tag: 'ORDER_ACCESS_DENIED', order_id: id, timestamp: new Date().toISOString() }));
+                return res.status(403).json({ error: 'Acesso negado.' });
             }
 
             res.json({

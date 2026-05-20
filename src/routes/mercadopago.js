@@ -1331,6 +1331,27 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
     }
 
     if (!order) {
+        // Pode ser pedido já pago com stock_deduction_failed=true (C5 — retry de estoque)
+        if (extRef) {
+            const { data: failedStock } = await supabase
+                .from('pedidos')
+                .select('id')
+                .eq('id', extRef)
+                .eq('status', 'paid')
+                .eq('stock_deduction_failed', true)
+                .maybeSingle();
+            if (failedStock) {
+                console.log(JSON.stringify({ tag: 'STOCK_DEDUCTION_RETRY', order_id: failedStock.id, mp_payment_id: mpId, timestamp: new Date().toISOString() }));
+                try {
+                    await deductStockAtomico(supabase, failedStock.id);
+                    await supabase.from('pedidos').update({ stock_deduction_failed: false }).eq('id', failedStock.id);
+                    console.log(JSON.stringify({ tag: 'STOCK_DEDUCTION_RETRY_SUCCESS', order_id: failedStock.id, timestamp: new Date().toISOString() }));
+                } catch (stockErr) {
+                    console.error(JSON.stringify({ tag: 'STOCK_DEDUCTION_RETRY_FAILED', order_id: failedStock.id, error: stockErr.message, timestamp: new Date().toISOString() }));
+                }
+                return;
+            }
+        }
         console.log(`[MP] DUPLICADO IGNORADO: mpId=${mpId} — pedido não encontrado ou já processado.`);
         return;
     }
