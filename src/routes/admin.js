@@ -916,14 +916,14 @@ module.exports = function (supabase) {
                     try {
                         const { data: order } = await supabase.from('pedidos').select('*, clientes(*)').eq('id', id).single();
                         if (!order?.clientes?.whatsapp) return;
-                        const name = (order.clientes.name || 'Cliente').split(' ')[0];
+                        const name = (order.clientes.name || 'Cliente').split(' ')[0].replace(/[*_~`]/g, '');
                         const phone = String(order.clientes.whatsapp).replace(/\D/g, '');
                         const fallback = `🍞 *{nome}, seu pedido está pronto!*\n\nSeu pedido já está pronto para retirada.\n\n📍 *Retirada*\nAv. Presidente Kennedy, 627 — Vila Jurandir\n(Em frente à Tetraforma)\n\nObrigado por escolher a Padaria! 🤍`;
                         const { data: tpl } = await supabase.from('site_content').select('value').eq('key', 'whatsapp_ready_for_pickup').maybeSingle();
                         const msg = (tpl?.value || fallback).replace(/{nome}/g, name);
                         await sendWhatsAppMessage(phone, msg);
                     } catch (e) {
-                        console.warn('[WA-PRONTO] Falha ao notificar cliente:', e.message);
+                        console.warn(JSON.stringify({ tag: 'WA_PRONTO_FAIL', order_id: order?.id, error: e.message, timestamp: new Date().toISOString() }));
                     }
                 })();
             }
@@ -951,15 +951,15 @@ module.exports = function (supabase) {
                         for (const order of (orders || [])) {
                             if (!order?.clientes?.whatsapp) continue;
                             try {
-                                const name = (order.clientes.name || 'Cliente').split(' ')[0];
+                                const name = (order.clientes.name || 'Cliente').split(' ')[0].replace(/[*_~`]/g, '');
                                 const phone = String(order.clientes.whatsapp).replace(/\D/g, '');
                                 await sendWhatsAppMessage(phone, template.replace(/{nome}/g, name));
                             } catch (e) {
-                                console.warn('[WA-PRONTO-BULK] Falha ao notificar:', order.id, e.message);
+                                console.warn(JSON.stringify({ tag: 'WA_PRONTO_BULK_FAIL', order_id: order?.id, error: e.message, timestamp: new Date().toISOString() }));
                             }
                         }
                     } catch (e) {
-                        console.warn('[WA-PRONTO-BULK] Erro geral:', e.message);
+                        console.warn(JSON.stringify({ tag: 'WA_PRONTO_BULK_ERROR', error: e.message, timestamp: new Date().toISOString() }));
                     }
                 })();
             }

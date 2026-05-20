@@ -47,20 +47,14 @@ async function recordFunnelEvent(supabase, { event_type, session_id, order_id, u
 
     const sid = session_id ? String(session_id).slice(0, 128) : null;
 
-    console.log('[FUNNEL EVENT]', {
-        event_type,
-        session_id: sid,
-        user_id:    user_id || null,
-        order_id:   order_id || null,
-        timestamp:  new Date().toISOString(),
-    });
+    console.log(JSON.stringify({ tag: 'FUNNEL_EVENT', event_type, session_id: sid, user_id: user_id || null, order_id: order_id || null, timestamp: new Date().toISOString() }));
 
     let flag_inconsistency = false;
     if (sid && REQUIRED_UPSTREAM[event_type]) {
         try {
             flag_inconsistency = await checkIntegrity(supabase, sid, event_type);
             if (flag_inconsistency) {
-                console.warn('[FUNNEL INTEGRITY]', { event_type, session_id: sid, missing_upstream: REQUIRED_UPSTREAM[event_type] });
+                console.warn(JSON.stringify({ tag: 'FUNNEL_INTEGRITY', event_type, session_id: sid, missing_upstream: REQUIRED_UPSTREAM[event_type], timestamp: new Date().toISOString() }));
             }
         } catch (_) {}
     }

@@ -22,11 +22,20 @@ function systemAlert(tag, data = {}) {
     const throttled = _alertThrottle.has(throttleKey);
     if (!throttled) _alertThrottle.set(throttleKey, Date.now());
 
-    // Persiste incidente no banco (fire-and-forget, não bloqueia)
+    // Persiste incidente no banco (fire-and-forget, 1 retry)
     if (_supabase) {
-        _supabase.from('system_incidents').insert({ type: tag, payload }).then(({ error }) => {
-            if (error) console.error(JSON.stringify({ tag: 'SYSTEM_ALERT_DB_FAIL', error: error.message, original_tag: tag, timestamp: new Date().toISOString() }));
-        }, e => console.error(JSON.stringify({ tag: 'SYSTEM_ALERT_DB_FAIL', error: e.message, original_tag: tag, timestamp: new Date().toISOString() })));
+        const _dbInsert = () => _supabase.from('system_incidents').insert({ type: tag, payload });
+        _dbInsert().then(({ error }) => {
+            if (!error) return;
+            // 1 retry após 2s
+            setTimeout(() => _dbInsert().then(({ error: e2 }) => {
+                if (e2) console.error(JSON.stringify({ tag: 'SYSTEM_ALERT_DB_FAIL', error: e2.message, original_tag: tag, timestamp: new Date().toISOString() }));
+            }, e2 => console.error(JSON.stringify({ tag: 'SYSTEM_ALERT_DB_FAIL', error: e2.message, original_tag: tag, timestamp: new Date().toISOString() }))), 2000);
+        }, e => {
+            setTimeout(() => _dbInsert().then(({ error: e2 }) => {
+                if (e2) console.error(JSON.stringify({ tag: 'SYSTEM_ALERT_DB_FAIL', error: e2.message, original_tag: tag, timestamp: new Date().toISOString() }));
+            }, e2 => console.error(JSON.stringify({ tag: 'SYSTEM_ALERT_DB_FAIL', error: e2.message, original_tag: tag, timestamp: new Date().toISOString() }))), 2000);
+        });
     }
 
     if (throttled) return;

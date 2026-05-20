@@ -80,8 +80,10 @@ async function getUnifiedAvailableStock(supabase, productId) {
                             console.log(JSON.stringify({ tag: 'STOCK_ADJUSTED', productId, raw, reserved, adjusted, timestamp: new Date().toISOString() }));
                         }
                         return adjusted;
-                    } catch (_) {
-                        return raw; // fallback: retorna estoque bruto se a query de pending falhar
+                    } catch (pendingErr) {
+                        const { systemAlert } = require('../utils/systemAlert');
+                        systemAlert('STOCK_PENDING_QUERY_FAIL', { productId, error: pendingErr.message });
+                        return raw;
                     }
                 }
             }

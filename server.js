@@ -770,7 +770,7 @@ app.listen(PORT, '0.0.0.0', () => {
     // Worker de Abandono: verificar carrinhos a cada 5 minutos
     const { checkAbandonedCarts } = require('./src/workers/cart-abandonment');
     const WORKER_INTERVAL = 5 * 60 * 1000; // 5 minutos
-    console.log("🚀 [WORKER] Trabalhador de Abandono Iniciado (intervalo: 5min).");
+    console.log(JSON.stringify({ tag: 'WORKER_STARTED', worker: 'cart-abandonment', interval_ms: WORKER_INTERVAL, timestamp: new Date().toISOString() }));
     let _abandonmentRunning = false;
     setInterval(async () => {
         if (_abandonmentRunning) return;
@@ -787,26 +787,40 @@ app.listen(PORT, '0.0.0.0', () => {
 
     // Worker de Pagamento Pendente: verificar pedidos a cada 5 minutos
     const { checkPendingPayments } = require('./src/workers/payment-recovery');
-    console.log("🚀 [WORKER] Trabalhador de Recuperação de Pagamento Iniciado (intervalo: 5min).");
+    console.log(JSON.stringify({ tag: 'WORKER_STARTED', worker: 'payment-recovery', interval_ms: WORKER_INTERVAL, timestamp: new Date().toISOString() }));
+    let _paymentRecoveryRunning = false;
     setInterval(async () => {
-        const _t = Date.now();
-        await checkPendingPayments(supabase);
-        perfLog('worker:payment-recovery', _t);
+        if (_paymentRecoveryRunning) return;
+        _paymentRecoveryRunning = true;
+        try {
+            const _t = Date.now();
+            await checkPendingPayments(supabase);
+            perfLog('worker:payment-recovery', _t);
+        } finally {
+            _paymentRecoveryRunning = false;
+        }
     }, WORKER_INTERVAL);
     checkPendingPayments(supabase);
 
     // Worker DLQ: reprocessar pagamentos que falharam (a cada 2 min)
     const { retryFailedPayments } = require('./src/workers/retry-failed-payments');
-    console.log("🚀 [WORKER] Dead Letter Queue Iniciado (intervalo: 2min).");
+    console.log(JSON.stringify({ tag: 'WORKER_STARTED', worker: 'retry-failed-payments', interval_ms: 120000, timestamp: new Date().toISOString() }));
+    let _dlqRunning = false;
     setInterval(async () => {
-        const _t = Date.now();
-        await retryFailedPayments(supabase);
-        perfLog('worker:retry-failed-payments', _t);
+        if (_dlqRunning) return;
+        _dlqRunning = true;
+        try {
+            const _t = Date.now();
+            await retryFailedPayments(supabase);
+            perfLog('worker:retry-failed-payments', _t);
+        } finally {
+            _dlqRunning = false;
+        }
     }, 2 * 60 * 1000);
 
     // Worker de Reconciliação MP: corrigir pagamentos aprovados não processados (a cada 5 min)
     const { reconcileMPPayments } = require('./src/workers/mp-reconciliation');
-    console.log("🚀 [WORKER] Reconciliação Mercado Pago Iniciada (intervalo: 5min).");
+    console.log(JSON.stringify({ tag: 'WORKER_STARTED', worker: 'mp-reconciliation', interval_ms: WORKER_INTERVAL, timestamp: new Date().toISOString() }));
     let _reconcileRunning = false;
     setInterval(async () => {
         if (_reconcileRunning) return;
@@ -822,7 +836,7 @@ app.listen(PORT, '0.0.0.0', () => {
 
     // Worker de monitoramento: pedidos com falha de dedução de estoque (a cada 15 min)
     const { checkStockDeductionFailures, retryStockDeduction } = require('./src/workers/stock-monitor');
-    console.log("🚀 [WORKER] Monitor de Falhas de Estoque Iniciado (intervalo: 15min).");
+    console.log(JSON.stringify({ tag: 'WORKER_STARTED', worker: 'stock-monitor', interval_ms: 900000, timestamp: new Date().toISOString() }));
     let _stockMonitorRunning = false;
     setInterval(async () => {
         if (_stockMonitorRunning) return;
@@ -837,7 +851,7 @@ app.listen(PORT, '0.0.0.0', () => {
     }, 15 * 60 * 1000);
 
     // Worker de retry: re-tenta dedução de estoque para pedidos com falha (a cada 10 min, máx 3x)
-    console.log("🚀 [WORKER] Retry de Falhas de Estoque Iniciado (intervalo: 10min, máx 3 tentativas).");
+    console.log(JSON.stringify({ tag: 'WORKER_STARTED', worker: 'stock-retry', interval_ms: 600000, timestamp: new Date().toISOString() }));
     let _stockRetryRunning = false;
     setInterval(async () => {
         if (_stockRetryRunning) return;

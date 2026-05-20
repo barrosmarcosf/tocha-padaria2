@@ -163,8 +163,8 @@ async function reprocessFunnel(supabase, days = 30) {
     const sessMaps = {};
     const byType   = {};
 
-    (rows || []).forEach(({ session_id: sid, event_type: type, created_at: ts }) => {
-        if (!sid || !TYPES.has(type)) return;
+    (rows || []).forEach(({ session_id: sid, event_type: type, created_at: ts, flag_inconsistency }) => {
+        if (!sid || !TYPES.has(type) || flag_inconsistency) return;
         if (!byType[type]) byType[type] = new Set();
         byType[type].add(sid);
         if (!sessMaps[sid]) sessMaps[sid] = {};
@@ -191,7 +191,9 @@ async function reprocessFunnel(supabase, days = 30) {
         step_times:        stepTimes,
         anomalies:         [],
         computed_at:       new Date().toISOString(),
-    }).catch(() => {});
+    }).then(({ error: insErr }) => {
+        if (insErr) console.warn(JSON.stringify({ tag: 'FUNNEL_AGGREGATE_PERSIST_FAIL', error: insErr.message, timestamp: new Date().toISOString() }));
+    }, e => console.warn(JSON.stringify({ tag: 'FUNNEL_AGGREGATE_PERSIST_FAIL', error: e.message, timestamp: new Date().toISOString() })));
 
     return { sv, stepTimes, missingEvts, inconsistencies, totalSessions: Object.keys(sessMaps).length };
 }
