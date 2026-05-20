@@ -66,21 +66,22 @@ async function recordFunnelEvent(supabase, { event_type, session_id, order_id, u
     }
 
     // Dedup write-time: ON CONFLICT (session_id, event_type) DO NOTHING
-    supabase.from('funnel_events').upsert({
-        event_type,
-        session_id: sid,
-        order_id:   order_id || null,
-        user_id:    user_id  || null,
-        metadata,
-        flag_inconsistency,
-    }, { onConflict: 'session_id,event_type', ignoreDuplicates: true }).catch(() => {});
-
-    // Tabela events (backward compat)
-    supabase.from('events').insert({
-        event_name: event_type,
-        session_id: sid,
-        metadata:   { ...metadata, ...(order_id ? { order_id } : {}), ...(user_id ? { user_id } : {}) },
-    }).catch(() => {});
+    // Promise.allSettled nunca rejeita — compatível com Supabase v2 (sem .catch() nos builders)
+    await Promise.allSettled([
+        supabase.from('funnel_events').upsert({
+            event_type,
+            session_id: sid,
+            order_id:   order_id || null,
+            user_id:    user_id  || null,
+            metadata,
+            flag_inconsistency,
+        }, { onConflict: 'session_id,event_type', ignoreDuplicates: true }),
+        supabase.from('events').insert({
+            event_name: event_type,
+            session_id: sid,
+            metadata:   { ...metadata, ...(order_id ? { order_id } : {}), ...(user_id ? { user_id } : {}) },
+        }),
+    ]);
 }
 
 module.exports = { recordFunnelEvent, FUNNEL_ORDER };
