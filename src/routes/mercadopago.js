@@ -33,20 +33,8 @@ function validateCart(cart) {
     return null;
 }
 
-// Rate limiter: máx 10 req/min por IP em endpoints de criação de pedido/pagamento
-const _rlCheckoutMap = new Map();
-setInterval(() => { const c = Date.now() - 60_000; for (const [k, r] of _rlCheckoutMap) if (r.first < c) _rlCheckoutMap.delete(k); }, 60_000).unref();
-const _rlCheckPayment = new Map();
-setInterval(() => { const c = Date.now() - 60_000; for (const [k, r] of _rlCheckPayment) if (r.first < c) _rlCheckPayment.delete(k); }, 60_000).unref();
-function rlCheckout(req, res, next) {
-    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
-    const now = Date.now();
-    const r = _rlCheckoutMap.get(ip);
-    if (!r || now - r.first > 60_000) { _rlCheckoutMap.set(ip, { count: 1, first: now }); return next(); }
-    if (r.count >= 10) return res.status(429).json({ error: 'Muitas requisições. Aguarde 1 minuto.' });
-    r.count++;
-    next();
-}
+const { makeRateLimiter, checkRateLimit } = require('../utils/rateLimiter');
+const rlCheckout = makeRateLimiter(60_000, 10, 'Muitas requisições. Aguarde 1 minuto.');
 
 function verifyMPWebhookSignature(req, secret) {
     const signature = req.headers['x-signature'];
@@ -441,12 +429,8 @@ module.exports = function (supabase) {
             }
 
             // SEC-05: limite reduzido de 20→10 req/min para dificultar enumeração
-            const _rlKey = String(orderId);
-            const _rlNow = Date.now();
-            const _rlRec = _rlCheckPayment.get(_rlKey);
-            if (!_rlRec || _rlNow - _rlRec.first > 60_000) { _rlCheckPayment.set(_rlKey, { count: 1, first: _rlNow }); }
-            else if (_rlRec.count >= 10) { return res.status(429).json({ error: 'Muitas requisições. Aguarde.' }); }
-            else _rlRec.count++;
+            const _rlAllowed = await checkRateLimit(`rl:checkpay:${orderId}`, 60_000, 10);
+            if (!_rlAllowed) return res.status(429).json({ error: 'Muitas requisições. Aguarde.' });
 
             const mpStatus = await payment.get({ id: mpId });
 

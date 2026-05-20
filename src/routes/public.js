@@ -3,23 +3,7 @@ const { sendContactEmail } = require('../notification-service');
 const { getCurrentStoreStatus } = require('../services/storeStatusService');
 const { getUnifiedProductList } = require('../services/stockService');
 
-// Rate limiter genérico em memória
-function makeRateLimiter(windowMs, max, msg) {
-    const map = new Map();
-    setInterval(() => {
-        const cut = Date.now() - windowMs;
-        for (const [k, r] of map) if (r.first < cut) map.delete(k);
-    }, windowMs).unref();
-    return function (req, res, next) {
-        const ip = req.ip || req.socket?.remoteAddress || 'unknown';
-        const now = Date.now();
-        const r = map.get(ip);
-        if (!r || now - r.first > windowMs) { map.set(ip, { count: 1, first: now }); return next(); }
-        if (r.count >= max) return res.status(429).json({ error: msg });
-        r.count++;
-        next();
-    };
-}
+const { makeRateLimiter } = require('../utils/rateLimiter');
 const rlContact  = makeRateLimiter(5 * 60_000, 5,  'Muitas mensagens. Aguarde 5 minutos.');
 const rlCartSync = makeRateLimiter(60_000,      60, 'Muitas requisições de carrinho. Aguarde 1 minuto.');
 const rlOrders   = makeRateLimiter(60_000,      60, 'Muitas requisições.');

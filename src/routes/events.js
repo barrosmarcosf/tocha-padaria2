@@ -23,25 +23,8 @@ const FUNNEL_NORM = {
     'payment_failed':    'payment_failed',
 };
 
-// Rate limiter: 60 req/min por IP
-const _eventsRateMap = new Map();
-setInterval(() => {
-    const cutoff = Date.now() - 60_000;
-    _eventsRateMap.forEach((rec, ip) => { if (rec.first < cutoff) _eventsRateMap.delete(ip); });
-}, 5 * 60_000).unref();
-
-function rateLimitEvents(req, res, next) {
-    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || 'unknown';
-    const now = Date.now();
-    const rec = _eventsRateMap.get(ip);
-    if (!rec || now - rec.first > 60_000) {
-        _eventsRateMap.set(ip, { count: 1, first: now });
-        return next();
-    }
-    if (rec.count >= 60) return res.status(429).json({ error: 'Muitas requisições.' });
-    rec.count++;
-    next();
-}
+const { makeRateLimiter } = require('../utils/rateLimiter');
+const rateLimitEvents = makeRateLimiter(60_000, 60, 'Muitas requisições.');
 
 module.exports = function (supabase) {
     router.post('/events', rateLimitEvents, async (req, res) => {

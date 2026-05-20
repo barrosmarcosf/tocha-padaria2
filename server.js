@@ -282,18 +282,57 @@ function broadcastStockUpdate(data) {
     if (dead.length > 0) sseClients = sseClients.filter(c => !dead.includes(c.id));
 }
 
-function broadcastMenuUpdate(data) {
+function _localBroadcastMenuUpdate(data) {
     const payload = JSON.stringify({ type: 'menu_update', ...(data || {}) });
     sseClients.forEach(client => {
         try { client.res.write(`data: ${payload}\n\n`); } catch (_) {}
     });
 }
 
-function broadcastStoreStatus(data) {
+function _localBroadcastStoreStatus(data) {
     const payload = JSON.stringify({ type: 'store_status', ...(data || {}) });
     sseClients.forEach(client => {
         try { client.res.write(`data: ${payload}\n\n`); } catch (_) {}
     });
+}
+
+// Redis pub/sub: propaga eventos de menu/loja para todos os workers em cluster mode.
+// broadcastStockUpdate não precisa disso — cada worker tem sua própria subscrição Supabase.
+const { getRedis: _getRlRedis } = require('./src/utils/rateLimiter');
+if (process.env.REDIS_URL) {
+    const _RedisCls = require('ioredis');
+    const _sseSub = new _RedisCls(process.env.REDIS_URL, {
+        lazyConnect:        false,
+        enableOfflineQueue: false,
+        retryStrategy:      (times) => Math.min(times * 2000, 30000),
+        connectTimeout:     3000,
+    });
+    _sseSub.subscribe('menu-updates', 'store-status', (err) => {
+        if (err) console.error(JSON.stringify({ tag: 'REDIS_SSE_SUB_ERROR', error: err.message, timestamp: new Date().toISOString() }));
+        else     console.log(JSON.stringify({ tag: 'REDIS_SSE_READY', channels: ['menu-updates', 'store-status'], timestamp: new Date().toISOString() }));
+    });
+    _sseSub.on('message', (channel, message) => {
+        try {
+            const _d = JSON.parse(message);
+            if (channel === 'menu-updates')  _localBroadcastMenuUpdate(_d);
+            else if (channel === 'store-status') _localBroadcastStoreStatus(_d);
+        } catch (_) {}
+    });
+    _sseSub.on('error', (err) => {
+        console.error(JSON.stringify({ tag: 'REDIS_SSE_SUB_ERROR', error: err.message, timestamp: new Date().toISOString() }));
+    });
+}
+
+function broadcastMenuUpdate(data) {
+    const _r = _getRlRedis();
+    if (_r) { _r.publish('menu-updates',  JSON.stringify(data || {})).catch(() => _localBroadcastMenuUpdate(data)); }
+    else    { _localBroadcastMenuUpdate(data); }
+}
+
+function broadcastStoreStatus(data) {
+    const _r = _getRlRedis();
+    if (_r) { _r.publish('store-status', JSON.stringify(data || {})).catch(() => _localBroadcastStoreStatus(data)); }
+    else    { _localBroadcastStoreStatus(data); }
 }
 
 app.locals.broadcastMenuUpdate = broadcastMenuUpdate;
