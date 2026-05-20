@@ -1276,6 +1276,7 @@ async function processMPChargeback(supabase, mpId, mpPayment) {
 // Processamento de pedido pago via Mercado Pago
 // Executado pelo webhook (e pelo polling como fallback com idempotência)
 async function processPaidMPOrder(supabase, mpId, _mpPayment) {
+    const _processStart = Date.now();
     // Fail-safe: nunca processar sem mp_payment_id — evita cobranças duplicadas silenciosas
     if (!mpId) {
         systemAlert('MP_ERROR', { error: '[CRITICAL] mp_payment_id ausente — operação abortada' });
@@ -1465,6 +1466,7 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
         metadata:   { provider: 'mercadopago', method: resolvedMethod, mp_payment_id: mpId }
     }).catch(e => console.error(JSON.stringify({ tag: 'FUNNEL_EVENT_ERROR', error: e.message, order_id: order.id, timestamp: new Date().toISOString() })));
 
+    console.log(JSON.stringify({ tag: 'PAYMENT_LATENCY', provider: 'mercadopago', order_id: order.id, duration_ms: Date.now() - _processStart, timestamp: new Date().toISOString() }));
     console.log(`✅ [MP] Pedido ${order.id} processado com sucesso.`);
 }
 

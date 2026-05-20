@@ -2072,6 +2072,54 @@ module.exports = function (supabase) {
         }
     });
 
+    // ─── NOC: painel operacional (read-only) ────────────────────────
+    router.get('/noc', adminAuth, async (req, res) => {
+        try {
+            const { data: incidents, error } = await supabase
+                .from('system_incidents')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(20);
+            if (error) throw error;
+
+            const openCount = (incidents || []).filter(i => i.status === 'open').length;
+
+            const { data: stockFailed } = await supabase
+                .from('pedidos')
+                .select('id', { count: 'exact', head: true })
+                .eq('stock_deduction_failed', true);
+
+            res.json({
+                status: 'ok',
+                incidents_open: openCount,
+                incidents: incidents || [],
+                stock_failures_pending: stockFailed?.length ?? 0,
+                workers: {
+                    stock_monitor:    'running',
+                    stock_retry:      'running',
+                    mp_reconciliation:'running',
+                    payment_recovery: 'running',
+                    cart_abandonment: 'running',
+                },
+                timestamp: new Date().toISOString(),
+            });
+        } catch (e) { _adminErr(res, req, e); }
+    });
+
+    // ─── NOC: resolver incidente manualmente ────────────────────────
+    router.post('/incidents/:id/resolve', adminAuth, async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { error } = await supabase
+                .from('system_incidents')
+                .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+                .eq('id', id);
+            if (error) throw error;
+            console.log(JSON.stringify({ tag: 'INCIDENT_RESOLVED', incident_id: id, resolved_by: 'admin', timestamp: new Date().toISOString() }));
+            res.json({ success: true });
+        } catch (e) { _adminErr(res, req, e); }
+    });
+
     return router;
 };
 

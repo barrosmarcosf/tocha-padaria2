@@ -531,6 +531,7 @@ module.exports = function (supabase, stripe) {
 // Lógica de processamento da sessão Stripe paga
 // ──────────────────────────────────────────────────
 async function processPaidSession(supabase, stripe, session) {
+    const _processStart = Date.now();
     console.log(`\n--- 💳 INICIANDO PROCESSAMENTO DE SESSÃO PAGA: ${session.id} ---`);
     try {
         const paymentMethod = session.payment_method_types?.[0] === 'card' ? 'Crédito' :
@@ -658,6 +659,7 @@ async function processPaidSession(supabase, stripe, session) {
             if (r.status === 'fulfilled') console.log(`✨ ${type}: Sucesso.`);
             else console.error(`❌ ${type} FALHOU:`, r.reason);
         });
+        console.log(JSON.stringify({ tag: 'PAYMENT_LATENCY', provider: 'stripe', order_id: orderUpdate.id, duration_ms: Date.now() - _processStart, timestamp: new Date().toISOString() }));
     } catch (err) {
         console.error('💣 ERRO AO PROCESSAR SESSÃO PAGA:', err.message);
     }

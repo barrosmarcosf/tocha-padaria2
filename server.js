@@ -62,6 +62,10 @@ if (!process.env.SUPABASE_ANON_KEY) {
 
 console.log(JSON.stringify({ tag: 'SUPABASE_INIT', url_prefix: (supabaseUrl || 'NÃO DEFINIDO').slice(0, 30), timestamp: new Date().toISOString() }));
 
+// Injeta supabase no systemAlert para persistência de incidentes no banco
+const { initSystemAlert } = require('./src/utils/systemAlert');
+initSystemAlert(supabase);
+
 // Diagnóstico de conexão na subida
 (async () => {
     const { error } = await supabase.from('clientes').select('id').limit(1);
