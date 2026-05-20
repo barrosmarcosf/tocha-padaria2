@@ -124,6 +124,49 @@ let isBotReady = false;
 let botStatus = WA_STATE.INITIALIZING;
 let _waMessageCount = 0;
 
+// Fila de mensagens WA — bufferiza envios quando o bot não está READY
+// (ex: bot reiniciando após crash). TTL: 30 min.
+const _waQueue = [];
+const _WA_QUEUE_TTL = 30 * 60 * 1000;
+
+async function _resolveJid(phone) {
+    const cleaned = phone.toString().replace(/\D/g, '');
+    let normalized = cleaned.startsWith('55') ? cleaned : '55' + cleaned;
+    try {
+        let numberId = await client.getNumberId(normalized);
+        if (!numberId && normalized.length === 13) {
+            numberId = await client.getNumberId(normalized.substring(0, 4) + normalized.substring(5));
+        } else if (!numberId && normalized.length === 12) {
+            numberId = await client.getNumberId(normalized.substring(0, 4) + '9' + normalized.substring(4));
+        }
+        return numberId?._serialized || null;
+    } catch (_) {
+        return `${normalized}@c.us`;
+    }
+}
+
+async function _flushWaQueue() {
+    if (_waQueue.length === 0) return;
+    const now = Date.now();
+    const items = _waQueue.splice(0);
+    console.log(JSON.stringify({ tag: 'WA_QUEUE_FLUSH', count: items.length, timestamp: new Date().toISOString() }));
+    for (const item of items) {
+        if (now > item.expiresAt) {
+            console.warn(JSON.stringify({ tag: 'WA_QUEUE_EXPIRED', label: item.label, timestamp: new Date().toISOString() }));
+            continue;
+        }
+        for (const { phone, message } of item.messages) {
+            try {
+                const jid = await _resolveJid(phone);
+                if (jid) await client.sendMessage(jid, message);
+                console.log(JSON.stringify({ tag: 'WA_QUEUE_SENT', label: item.label, timestamp: new Date().toISOString() }));
+            } catch (e) {
+                console.error(JSON.stringify({ tag: 'WA_QUEUE_SEND_FAIL', error: e.message, label: item.label, timestamp: new Date().toISOString() }));
+            }
+        }
+    }
+}
+
 setInterval(() => {
     if (_waMessageCount > 0) {
         console.log(`[METRIC] whatsapp:messages-received per 10s: ${_waMessageCount}`);
@@ -181,7 +224,10 @@ client.on('ready', () => {
     isBotReady = true;
     isInitializing = false;
     _waRetryCount = 0;
-    console.log(JSON.stringify({ tag: 'WA_READY', timestamp: new Date().toISOString() }));
+    console.log(JSON.stringify({ tag: 'WA_READY', queue_pending: _waQueue.length, timestamp: new Date().toISOString() }));
+    if (_waQueue.length > 0) {
+        _flushWaQueue().catch(e => console.error(JSON.stringify({ tag: 'WA_FLUSH_ERROR', error: e.message, timestamp: new Date().toISOString() })));
+    }
 });
 
 client.on('auth_failure', (msg) => {
@@ -507,107 +553,69 @@ async function sendOrderWhatsApp(supabase, order, customer, paymentMethod = 'Nã
     const customerName = customer.name || customer.nome || 'Cliente';
     const totalStr = `R$ ${Number(order.total_amount).toFixed(2).replace('.', ',')}`;
 
-    // --- 1 & 2. BLOQUEIO EXPLÍCITO DE ESTADO (Roteiro) ---
+    // Formata mensagens antes de checar READY — necessário para poder enfileirar
+    let itemsText = "";
+    try {
+        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        const itemsArray = Array.isArray(items) ? items : (items.actual_items || []);
+        itemsText = itemsArray.map(i => `• ${i.name} (x${i.qty || i.quantidade || 1})`).join('\n');
+    } catch (e) { itemsText = "Itens do pedido (ver no admin)"; }
+
+    let waTemplate = `✅ *Pedido confirmado — {nome}*\n\n📍 *Retirada*\nAv. Presidente Kennedy, 627 — Vila Jurandir\n(Em frente à Tetraforma)\n\n🕒 *Quando*\nSábado, a partir das 15h\n\n⚠️ *Importante*\nVocê receberá confirmação no WhatsApp quando estiver pronto.\nRetire somente após essa mensagem.\n\n🚚 *Opções*\nRetirada pessoal | Uber Flash | 99 Flash\n\n🧾 *Pedido*\n{itens}\n\n*Total:* {total}\n*Pagamento:* {pagamento}\n\nSe precisar, é só chamar!`;
+    if (supabase) {
+        try {
+            const { data } = await supabase.from('site_content').select('value').eq('key', 'msg_wa_confirm').maybeSingle();
+            if (data?.value) waTemplate = data.value;
+        } catch (e) { console.error("Erro ao buscar template de WA confirm:", e); }
+    }
+
+    const clientMsg = waTemplate
+        .replace(/{nome}/g, customerName)
+        .replace(/{itens}/g, itemsText)
+        .replace(/{total}/g, totalStr)
+        .replace(/{pagamento}/g, paymentMethod);
+
+    const ownerMsg = `🤖 *TOCHA BOT: NOVA VENDA!* 💰\n\n` +
+        `👤 *Cliente:* ${customerName}\n` +
+        `🧾 *Pedido:* \n${itemsText}\n` +
+        `💰 *Total:* ${totalStr}\n` +
+        `💳 *Pagamento:* ${paymentMethod}`;
+
+    // Se bot não está READY, enfileira com TTL de 30 min e retorna
     if (botStatus !== WA_STATE.READY) {
-        console.error(`[WA-BLOCKED] Tentativa de envio abortada: client em estado ${botStatus}`);
+        const msgs = [];
+        if (customer.whatsapp) msgs.push({ phone: customer.whatsapp, message: clientMsg });
+        if (STORE_OWNER_WA) msgs.push({ phone: STORE_OWNER_WA, message: ownerMsg });
+        if (msgs.length > 0) {
+            _waQueue.push({ messages: msgs, expiresAt: Date.now() + _WA_QUEUE_TTL, label: `order:${order.id || '?'}` });
+            console.log(JSON.stringify({ tag: 'WA_QUEUED', state: botStatus, count: msgs.length, timestamp: new Date().toISOString() }));
+        }
         return;
     }
 
     try {
-        let itemsText = "";
-        try {
-            const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
-            const itemsArray = Array.isArray(items) ? items : (items.actual_items || []);
-            itemsText = itemsArray.map(i => `• ${i.name} (x${i.qty || i.quantidade || 1})`).join('\n');
-        } catch (e) { itemsText = "Itens do pedido (ver no admin)"; }
-        
-        // Busca template do banco
-        let waTemplate = `✅ *Pedido confirmado — {nome}*\n\n📍 *Retirada*\nAv. Presidente Kennedy, 627 — Vila Jurandir\n(Em frente à Tetraforma)\n\n🕒 *Quando*\nSábado, a partir das 15h\n\n⚠️ *Importante*\nVocê receberá confirmação no WhatsApp quando estiver pronto.\nRetire somente após essa mensagem.\n\n🚚 *Opções*\nRetirada pessoal | Uber Flash | 99 Flash\n\n🧾 *Pedido*\n{itens}\n\n*Total:* {total}\n*Pagamento:* {pagamento}\n\nSe precisar, é só chamar!`;
-        
-        if (supabase) {
-            try {
-                const { data } = await supabase.from('site_content').select('value').eq('key', 'msg_wa_confirm').maybeSingle();
-                if (data?.value) waTemplate = data.value;
-            } catch (e) { console.error("Erro ao buscar template de WA confirm:", e); }
-        }
-
-        const clientMsg = waTemplate
-            .replace(/{nome}/g, customerName)
-            .replace(/{itens}/g, itemsText)
-            .replace(/{total}/g, totalStr)
-            .replace(/{pagamento}/g, paymentMethod);
-
-        // --- 3. CORREÇÃO DEFINITIVA DA RESOLUÇÃO (Roteiro) ---
-        const resolveJid = async (raw, label) => {
-            const cleaned = raw.toString().replace(/\D/g, '');
-            let normalized = cleaned.startsWith('55') ? cleaned : '55' + cleaned;
-            
-            console.log(`[WA-CHECK] ${label} - Bruto: ${raw}`);
-            console.log(`[WA-CHECK] ${label} - Normalizado: ${normalized}`);
-            console.log(`[WA-CHECK] ${label} - Estado atual: ${botStatus}`);
-
-            try {
-                let numberId = await client.getNumberId(normalized);
-                
-                // Fallback para 9º dígito Brasil (Accounts antigas vs novas)
-                if (!numberId && normalized.startsWith('55')) {
-                    console.log(`[WA-CHECK] ${label} - Tentando fallback de 9º dígito...`);
-                    let alt;
-                    if (normalized.length === 13) {
-                        // Tenta remover o 9 (55 21 988887777 -> 55 21 88887777)
-                        alt = normalized.substring(0, 4) + normalized.substring(5);
-                    } else if (normalized.length === 12) {
-                        // Tenta adicionar o 9 (55 21 88887777 -> 55 21 988887777)
-                        alt = normalized.substring(0, 4) + '9' + normalized.substring(4);
-                    }
-                    
-                    if (alt) {
-                        console.log(`[WA-CHECK] ${label} - Normalizado Alt: ${alt}`);
-                        numberId = await client.getNumberId(alt);
-                    }
-                }
-
-                console.log(`[WA-CHECK] ${label} - getNumberId Final: ${JSON.stringify(numberId)}`);
-                
-                if (numberId && numberId._serialized) {
-                    return numberId._serialized;
-                }
-                console.error(`❌ [WA-ERROR] ${label} - Número não resolvido pela rede.`);
-                return null;
-            } catch (e) {
-                console.error(`❌ [WA-ERROR] ${label} - Erro na resolução: ${e.message}`);
-                return null;
+        if (customer.whatsapp) {
+            const clientJid = await _resolveJid(customer.whatsapp);
+            if (clientJid) {
+                await client.sendMessage(clientJid, clientMsg);
+                console.log(JSON.stringify({ tag: 'WA_SUCCESS', recipient: 'cliente', timestamp: new Date().toISOString() }));
+            } else {
+                console.error('[WA-ERROR] CLIENTE - Número não resolvido.');
             }
-        };
-
-        // --- RESOLUÇÃO DO CLIENTE ---
-        const clientJid = await resolveJid(customer.whatsapp, 'CLIENTE');
-        if (clientJid) {
-            console.log(`[WA-START] Enviando para: ${clientJid}`);
-            await client.sendMessage(clientJid, clientMsg);
-            console.log(`✅ [WA-SUCCESS] Mensagem entregue ao CLIENTE.`);
         }
 
-        // --- RESOLUÇÃO DA LOJA ---
-        const ownerJid = await resolveJid(STORE_OWNER_WA, 'LOJA');
-        if (ownerJid) {
-            console.log(`[WA-START] Enviando para: ${ownerJid}`);
-            const ownerMsg = `🤖 *TOCHA BOT: NOVA VENDA!* 💰\n\n` +
-                `👤 *Cliente:* ${customerName}\n` +
-                `📱 *WhatsApp:* ${customer.whatsapp || 'Não informado'}\n` +
-                `🧾 *Pedido:* \n${itemsText}\n` +
-                `💰 *Total:* ${totalStr}\n` +
-                `💳 *Pagamento:* ${paymentMethod}`;
-
-            await client.sendMessage(ownerJid, ownerMsg);
-            console.log(`✅ [WA-SUCCESS] Aviso de venda entregue à LOJA.`);
+        if (STORE_OWNER_WA) {
+            const ownerJid = await _resolveJid(STORE_OWNER_WA);
+            if (ownerJid) {
+                await client.sendMessage(ownerJid, ownerMsg);
+                console.log(JSON.stringify({ tag: 'WA_SUCCESS', recipient: 'loja', timestamp: new Date().toISOString() }));
+            }
         }
 
-        console.log(`✨ [WA-FINISH] Fluxo de WhatsApp concluído.`);
+        console.log(JSON.stringify({ tag: 'WA_FINISH', timestamp: new Date().toISOString() }));
         perfLog('whatsapp:sendOrderWhatsApp', _waOrderStart);
-
     } catch (error) {
-        console.error("❌ [WA-ERROR] Erro bruto completo:", error);
+        console.error(JSON.stringify({ tag: 'WA_ERROR', error: error.message, timestamp: new Date().toISOString() }));
         perfLog('whatsapp:sendOrderWhatsApp:error', _waOrderStart);
     }
 }
