@@ -80,7 +80,7 @@ function mapCartToMPItems(cart, priceMap) {
     }));
 }
 
-function buildPendingOrder(customerId, sessionId, totalAmount, storeStatus, batchDate, cart, paymentMethod, correlationId) {
+function buildPendingOrder(customerId, sessionId, totalAmount, storeStatus, batchDate, cart, paymentMethod, correlationId, clientSessionId) {
     return {
         customer_id: customerId,
         stripe_session_id: sessionId,
@@ -93,7 +93,8 @@ function buildPendingOrder(customerId, sessionId, totalAmount, storeStatus, batc
             cycle_type: storeStatus.cycleType,
             batch_date: batchDate,
             batch_label: storeStatus.batchLabel || storeStatus.nextBatchLabel,
-            payment_method: paymentMethod
+            payment_method: paymentMethod,
+            ...(clientSessionId ? { client_session_id: clientSessionId } : {})
         })
     };
 }
@@ -217,7 +218,7 @@ module.exports = function (supabase, stripe) {
         const { total: totalAmount, priceMap } = await recalcularTotal(supabase, cart);
 
         const { data: newOrder, error: orderErr } = await supabase.from('pedidos').insert([
-            buildPendingOrder(customerId, `mp_pix_pending_${Date.now()}`, totalAmount, storeStatus, batchDate, cart, 'Pix (Mercado Pago)', correlationId)
+            buildPendingOrder(customerId, `mp_pix_pending_${Date.now()}`, totalAmount, storeStatus, batchDate, cart, 'Pix (Mercado Pago)', correlationId, req.session_id)
         ]).select().single();
         if (orderErr) throw orderErr;
 
@@ -276,7 +277,7 @@ module.exports = function (supabase, stripe) {
         const { total: totalAmount, priceMap: cardPriceMap } = await recalcularTotal(supabase, cart);
 
         const { data: newOrder, error: orderErr } = await supabase.from('pedidos').insert([
-            buildPendingOrder(customerId, `mp_card_pending_${Date.now()}`, totalAmount, storeStatus, batchDate, cart, 'Cartão (Mercado Pago)', correlationId)
+            buildPendingOrder(customerId, `mp_card_pending_${Date.now()}`, totalAmount, storeStatus, batchDate, cart, 'Cartão (Mercado Pago)', correlationId, req.session_id)
         ]).select().single();
         if (orderErr) throw orderErr;
 
