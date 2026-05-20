@@ -4,7 +4,7 @@
   "description": "Sistema de Checkout e Automação de WhatsApp para Tocha Padaria.",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node tests/payment-regression.js",
     "start": "node server.js",
     "clean:auth": "rm -rf .wwebjs_auth",
     "clean:logs": "rm -f logs/*.log",

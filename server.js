@@ -873,6 +873,37 @@ app.listen(PORT, '0.0.0.0', () => {
         }
     }, 10 * 60 * 1000);
 
+    // Worker: backup da sessão WhatsApp a cada 6h → Supabase Storage (bucket: whatsapp-sessions)
+    const { exec: _execBackup } = require('child_process');
+    const _waAuthDir = path.resolve(__dirname, '.wwebjs_auth');
+    setInterval(() => {
+        if (!fs.existsSync(_waAuthDir)) return;
+        const _tmpFile = `/tmp/wa-session-${Date.now()}.tar.gz`;
+        _execBackup(`tar czf "${_tmpFile}" -C "${__dirname}" .wwebjs_auth`, (tarErr) => {
+            if (tarErr) {
+                console.error(JSON.stringify({ tag: 'WA_BACKUP_ERROR', step: 'tar', error: tarErr.message, timestamp: new Date().toISOString() }));
+                return;
+            }
+            fs.readFile(_tmpFile, async (readErr, buf) => {
+                try { fs.unlinkSync(_tmpFile); } catch (_) {}
+                if (readErr) {
+                    console.error(JSON.stringify({ tag: 'WA_BACKUP_ERROR', step: 'read', error: readErr.message, timestamp: new Date().toISOString() }));
+                    return;
+                }
+                try {
+                    const { error: _uploadErr } = await supabase.storage
+                        .from('whatsapp-sessions')
+                        .upload('session-latest.tar.gz', buf, { contentType: 'application/gzip', upsert: true });
+                    if (_uploadErr) throw new Error(_uploadErr.message);
+                    console.log(JSON.stringify({ tag: 'WA_BACKUP_OK', size_kb: Math.round(buf.length / 1024), timestamp: new Date().toISOString() }));
+                } catch (_uploadCatch) {
+                    console.error(JSON.stringify({ tag: 'WA_BACKUP_ERROR', step: 'upload', error: _uploadCatch.message, timestamp: new Date().toISOString() }));
+                }
+            });
+        });
+    }, 6 * 60 * 60 * 1000);
+    console.log(JSON.stringify({ tag: 'WORKER_STARTED', worker: 'wa-session-backup', interval_ms: 21600000, timestamp: new Date().toISOString() }));
+
     // Iniciar o WhatsApp Bot com um pequeno delay para não impactar o boot
     setTimeout(() => {
         console.log("🤖 [SERVER] Iniciando Tocha Bot (WhatsApp)...");
