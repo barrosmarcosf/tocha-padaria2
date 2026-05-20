@@ -27,6 +27,16 @@ if (missingEnv.length) {
 console.log(JSON.stringify({ tag: 'ENV_OK', BASE_URL: process.env.BASE_URL, NODE_ENV: process.env.NODE_ENV, timestamp: new Date().toISOString() }));
 console.log(JSON.stringify({ tag: 'SERVER_BOOT', pid: process.pid, timestamp: new Date().toISOString() }));
 
+// SEC-02: SUPABASE_ANON_KEY ausente significa RLS inativo em rotas públicas
+if (!process.env.SUPABASE_ANON_KEY) {
+    console.error(JSON.stringify({ tag: 'SEC_CONFIG_MISSING', variable: 'SUPABASE_ANON_KEY', impact: 'RLS bypassed on public routes — service_key used instead of anon_key', action: 'Add SUPABASE_ANON_KEY to .env and restart', timestamp: new Date().toISOString() }));
+}
+
+// SEC-07: Telegram não configurado = alertas financeiros silenciosos
+if (!process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID) {
+    console.error(JSON.stringify({ tag: 'SEC_CONFIG_MISSING', variable: 'TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID', impact: 'Critical financial alerts (CHARGEBACK, STOCK_FAILED, DLQ_MAX_RETRIES) will not reach operators', action: 'Configure Telegram bot in .env for real-time incident alerts', timestamp: new Date().toISOString() }));
+}
+
 process.on('uncaughtException', (err) => {
     console.error(JSON.stringify({ tag: 'UNCAUGHT_EXCEPTION', error: err.message, stack: err.stack, timestamp: new Date().toISOString() }));
     process.exit(1); // heap pode estar corrompido — PM2 reinicia automaticamente
@@ -56,9 +66,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // Se SUPABASE_ANON_KEY não estiver definida, cai back para service key (sem RLS).
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || supabaseKey;
 const supabasePublic = createClient(supabaseUrl, supabaseAnonKey);
-if (!process.env.SUPABASE_ANON_KEY) {
-    console.warn(JSON.stringify({ tag: 'ENV_WARNING', message: 'SUPABASE_ANON_KEY não definida — rotas públicas usam service key (sem RLS)', timestamp: new Date().toISOString() }));
-}
+// SUPABASE_ANON_KEY: warning já emitido como SEC_CONFIG_MISSING no startup (ver acima)
 
 console.log(JSON.stringify({ tag: 'SUPABASE_INIT', url_prefix: (supabaseUrl || 'NÃO DEFINIDO').slice(0, 30), timestamp: new Date().toISOString() }));
 
@@ -300,8 +308,8 @@ supabase
     broadcastStockUpdate({
         productId: data.produto_id,
         newStock: data.estoque_disponivel,
-        initialStock: data.estoque_base,
-        vendas: data.vendas_confirmadas
+        initialStock: data.estoque_base
+        // vendas_confirmadas removido do SSE público (SEC-04 — dado de BI interno)
     });
   })
   .subscribe();

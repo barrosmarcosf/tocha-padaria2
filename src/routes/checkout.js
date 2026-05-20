@@ -632,8 +632,10 @@ async function processPaidSession(supabase, stripe, session) {
 
         // Reduzir estoque
         try {
-            await deductStockAtomico(supabase, orderUpdate.id);
-            console.log(JSON.stringify({ tag: 'STOCK_DEDUCTION_SUCCESS', correlation_id: correlationId, order_id: orderUpdate.id, timestamp: new Date().toISOString() }));
+            const _stockResult = await deductStockAtomico(supabase, orderUpdate.id);
+            // SEC-06: distingue dedução real de skip silencioso (sem fornada configurada)
+            const _stockTag = _stockResult?.note === 'no_items_or_batch' ? 'STOCK_DEDUCTION_SKIPPED' : 'STOCK_DEDUCTION_SUCCESS';
+            console.log(JSON.stringify({ tag: _stockTag, note: _stockResult?.note || undefined, correlation_id: correlationId, order_id: orderUpdate.id, timestamp: new Date().toISOString() }));
         } catch (stockErr) {
             if (stockErr.code === 'RPC_NOT_FOUND') {
                 // Fallback não-atômico removido — era race condition garantida.

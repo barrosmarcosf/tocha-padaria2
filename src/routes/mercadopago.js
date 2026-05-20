@@ -440,11 +440,12 @@ module.exports = function (supabase) {
                 return res.status(400).json({ error: 'order_id obrigatório.' });
             }
 
+            // SEC-05: limite reduzido de 20→10 req/min para dificultar enumeração
             const _rlKey = String(orderId);
             const _rlNow = Date.now();
             const _rlRec = _rlCheckPayment.get(_rlKey);
             if (!_rlRec || _rlNow - _rlRec.first > 60_000) { _rlCheckPayment.set(_rlKey, { count: 1, first: _rlNow }); }
-            else if (_rlRec.count >= 20) { return res.status(429).json({ error: 'Muitas requisições. Aguarde.' }); }
+            else if (_rlRec.count >= 10) { return res.status(429).json({ error: 'Muitas requisições. Aguarde.' }); }
             else _rlRec.count++;
 
             const mpStatus = await payment.get({ id: mpId });
@@ -1402,8 +1403,10 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
 
     // Reduzir estoque
     try {
-        await deductStockAtomico(supabase, order.id);
-        console.log(JSON.stringify({ tag: 'STOCK_DEDUCTION_SUCCESS', correlation_id: correlationId, order_id: order.id, provider: 'mercadopago', timestamp: new Date().toISOString() }));
+        const _stockResult = await deductStockAtomico(supabase, order.id);
+        // SEC-06: distingue dedução real de skip silencioso (sem fornada configurada)
+        const _stockTag = _stockResult?.note === 'no_items_or_batch' ? 'STOCK_DEDUCTION_SKIPPED' : 'STOCK_DEDUCTION_SUCCESS';
+        console.log(JSON.stringify({ tag: _stockTag, note: _stockResult?.note || undefined, correlation_id: correlationId, order_id: order.id, provider: 'mercadopago', timestamp: new Date().toISOString() }));
     } catch (stockErr) {
         if (stockErr.code === 'RPC_NOT_FOUND') {
             // Fallback não-atômico removido — era race condition garantida.
