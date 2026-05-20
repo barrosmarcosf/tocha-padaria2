@@ -40,7 +40,7 @@ async function runScenario(name, fn) {
 }
 
 async function cleanupSim() {
-    await supabase.from('funnel_events').delete().like('session_id', 'sim_%').catch(() => {});
+    await supabase.from('funnel_events').delete().like('session_id', 'sim_%');
 }
 
 async function main() {

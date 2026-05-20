@@ -919,7 +919,7 @@ module.exports = function (supabase) {
                         const name = (order.clientes.name || 'Cliente').split(' ')[0];
                         const phone = String(order.clientes.whatsapp).replace(/\D/g, '');
                         const fallback = `🍞 *{nome}, seu pedido está pronto!*\n\nSeu pedido já está pronto para retirada.\n\n📍 *Retirada*\nAv. Presidente Kennedy, 627 — Vila Jurandir\n(Em frente à Tetraforma)\n\nObrigado por escolher a Padaria! 🤍`;
-                        const { data: tpl } = await supabase.from('site_content').select('value').eq('key', 'whatsapp_ready_for_pickup').maybeSingle().catch(() => ({ data: null }));
+                        const { data: tpl } = await supabase.from('site_content').select('value').eq('key', 'whatsapp_ready_for_pickup').maybeSingle();
                         const msg = (tpl?.value || fallback).replace(/{nome}/g, name);
                         await sendWhatsAppMessage(phone, msg);
                     } catch (e) {
@@ -945,7 +945,7 @@ module.exports = function (supabase) {
                 (async () => {
                     try {
                         const fallback = `🍞 *{nome}, seu pedido está pronto!*\n\nSeu pedido já está pronto para retirada.\n\n📍 *Retirada*\nAv. Presidente Kennedy, 627 — Vila Jurandir\n(Em frente à Tetraforma)\n\nObrigado por escolher a Padaria! 🤍`;
-                        const { data: tpl } = await supabase.from('site_content').select('value').eq('key', 'whatsapp_ready_for_pickup').maybeSingle().catch(() => ({ data: null }));
+                        const { data: tpl } = await supabase.from('site_content').select('value').eq('key', 'whatsapp_ready_for_pickup').maybeSingle();
                         const template = tpl?.value || fallback;
                         const { data: orders } = await supabase.from('pedidos').select('*, clientes(*)').in('id', ids);
                         for (const order of (orders || [])) {

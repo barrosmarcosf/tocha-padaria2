@@ -142,7 +142,8 @@ async function logInsights(supabase, entries) {
         value:       e.value ?? null,
         context:     e.context ?? {},
     }));
-    await supabase.from('insights_log').insert(rows).catch(() => {});
+    const { error: insightErr } = await supabase.from('insights_log').insert(rows);
+    if (insightErr) console.warn('[INSIGHT] insert failed:', insightErr.message);
 }
 
 // Reconstrói sessMaps + byType direto de funnel_events (sem tabela events)
