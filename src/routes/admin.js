@@ -139,8 +139,8 @@ module.exports = function (supabase) {
 
     // Rota para verificar status do Bot
     router.get('/bot-status', adminAuth, async (req, res) => {
-        const { botStatus } = require('../notification-service');
-        res.json({ ready: botStatus === 'READY', status: botStatus });
+        const ns = require('../notification-service');
+        res.json({ ready: ns.botStatus === 'READY', status: ns.botStatus, queue_pending: ns._waQueue?.length ?? 0 });
     });
 
     // Rota para reiniciar o Bot
@@ -1221,22 +1221,21 @@ module.exports = function (supabase) {
     
     // ROTA DE DIAGNÓSTICO (Etapa 4 e 5 do Roteiro)
     router.get('/test-connectivity', adminAuth, async (req, res) => {
-        const { sendOrderEmails, sendOrderWhatsApp } = require('../notification-service');
-        
-        const dummyOrder = { id: 'TESTE-ID', total_amount: 10.0, items: JSON.stringify([{name: 'Pão de Teste', qty: 1, price: 5.0}]) };
-        const dummyCustomer = { name: 'Audit Test', email: 'tocha.padariapagamentos@gmail.com', whatsapp: '21966205608' }; // Usando e-mail da loja para teste seguro
-        
-        console.log("\n🧪 --- INICIANDO TESTE DE CONECTIVIDADE ---");
-        
+        const ns = require('../notification-service');
+        const ownerPhone = process.env.OWNER_WHATSAPP || '';
+        const dummyOrder = { id: 'TESTE-ID', total_amount: 1.0, items: JSON.stringify({ actual_items: [{ name: 'Pão de Teste', qty: 1, price: 1.0 }] }) };
+        const dummyCustomer = { name: 'Teste Admin', email: process.env.SMTP_USER || 'tocha.padariapagamentos@gmail.com', whatsapp: ownerPhone };
+        const waStatus = ns.botStatus;
+        const results = {};
         try {
-            await Promise.allSettled([
-                sendOrderEmails(dummyOrder, dummyCustomer, 'Pix (Teste)'),
-                sendOrderWhatsApp(dummyOrder, dummyCustomer, 'Pix (Teste)')
-            ]);
-            res.json({ success: true, message: "Logs de teste gerados no console do sistema." });
-        } catch (e) {
-            _adminErr(res, req, e);
-        }
+            await ns.sendOrderEmails(supabase, dummyOrder, dummyCustomer, 'Teste');
+            results.email = 'enviado';
+        } catch (e) { results.email = `erro: ${e.message}`; }
+        try {
+            await ns.sendOrderWhatsApp(supabase, dummyOrder, dummyCustomer, 'Teste');
+            results.whatsapp = waStatus === 'READY' ? 'enviado' : `enfileirado (bot em ${waStatus})`;
+        } catch (e) { results.whatsapp = `erro: ${e.message}`; }
+        res.json({ wa_status: waStatus, queue_pending: ns._waQueue?.length ?? 0, results });
     });
 
     router.get('/store-status', async (req, res) => {
