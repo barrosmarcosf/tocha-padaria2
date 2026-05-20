@@ -60,14 +60,15 @@ async function startBot() {
 
     console.log(JSON.stringify({ tag: 'WA_INIT', attempt: _waRetryCount + 1, timestamp: new Date().toISOString() }));
 
-    initTimeoutId = setTimeout(() => {
+    initTimeoutId = setTimeout(async () => {
         if (!isBotReady) {
-            console.error('[WA TIMEOUT] Bot não chegou em READY');
-            console.error('[WA FIX REQUIRED]');
-            console.error('Executar no servidor:');
-            console.error('apt update && apt install -y chromium-browser fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libcups2 libdbus-1-3 libdrm2 libgbm1 libgtk-3-0 libnspr4 libnss3 libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 xdg-utils');
+            console.error(JSON.stringify({ tag: 'WA_TIMEOUT', attempt: _waRetryCount + 1, timestamp: new Date().toISOString() }));
+            // Destrói o Chromium travado e deixa o handler 'disconnected' cuidar do retry
+            isInitializing = false;
+            global.whatsappClient = null;
+            try { await client.destroy(); } catch (_) {}
         }
-    }, 60000);
+    }, 120000);
 
     client.initialize().catch(err => {
         if (initTimeoutId) { clearTimeout(initTimeoutId); initTimeoutId = null; }
