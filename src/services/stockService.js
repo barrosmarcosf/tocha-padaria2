@@ -1,53 +1,96 @@
 
+// Cache de pedidos pending compartilhado entre chamadas na mesma requisição de checkout.
+// Evita N queries duplicadas quando o carrinho tem vários itens da mesma fornada.
+// TTL de 10s — janela curta para manter consistência sem latência extra.
+let _pendingCache = null;
+let _pendingCacheAt = 0;
+const _PENDING_CACHE_TTL = 10_000;
+
+async function _loadPendingOrders(supabase) {
+    const now = Date.now();
+    if (_pendingCache && (now - _pendingCacheAt) < _PENDING_CACHE_TTL) return _pendingCache;
+    const cutoff = new Date(now - 2 * 60 * 60 * 1000).toISOString();
+    const { data } = await supabase
+        .from('pedidos')
+        .select('items')
+        .in('status', ['pending', 'payment_failed'])
+        .gte('created_at', cutoff);
+    _pendingCache = data || [];
+    _pendingCacheAt = now;
+    return _pendingCache;
+}
+
+function _sumPendingQty(pendingOrders, productId, batchDate) {
+    let total = 0;
+    for (const o of pendingOrders) {
+        try {
+            const items = typeof o.items === 'string' ? JSON.parse(o.items) : (o.items || {});
+            if (items.batch_date !== batchDate) continue;
+            for (const item of (items.actual_items || [])) {
+                if (String(item.id) === String(productId)) total += parseInt(item.qty) || 0;
+            }
+        } catch (_) {}
+    }
+    return total;
+}
+
 /**
  * Lógica Unificada de Estoque (Fonte Única de Verdade)
  * Esta função deve ser a única responsável por determinar quanto de um produto pode ser vendido agora.
+ *
+ * C4 mitigation: subtrai quantidades de pedidos pending/payment_failed recentes (últimas 2h)
+ * para a mesma fornada. Cria "reserva suave" que previne dupla venda em pagamentos simultâneos.
+ * A dedução final ainda é atômica via deductStockAtomico RPC (última linha de defesa).
  */
 async function getUnifiedAvailableStock(supabase, productId) {
     try {
-        console.log(`🔍 [StockService] Buscando estoque para: ${productId}`);
         // 1. Obtém a fornada atual configurada no site
         const { data: configRow } = await supabase.from('site_content').select('value').eq('key', 'opening_hours').maybeSingle();
         const config = configRow?.value || {};
         const currentBakeDate = config.currentBatch?.bakeDate;
-        console.log(`📅 [StockService] Fornada Configurada: ${currentBakeDate}`);
 
         // 2. Busca o produto para ter o estoque global (fallback)
         const { data: p, error: pError } = await supabase.from('produtos').select('name, stock_quantity').eq('id', productId).maybeSingle();
-        
+
         if (pError) console.error("❌ [StockService] Erro DB Produtos:", pError);
         if (!p) {
-            console.warn('PRODUCT_NOT_FOUND', { productId });
+            console.warn(JSON.stringify({ tag: 'PRODUCT_NOT_FOUND', productId }));
             return null;
         }
-
-        const globalStock = p.stock_quantity || 0;
-        console.log(`🌍 [StockService] Estoque Global de "${p.name}": ${globalStock}`);
 
         if (currentBakeDate) {
             // 3. Tenta buscar estoque específico da fornada
             const { data: fornada } = await supabase.from('fornadas').select('id').eq('bake_date', currentBakeDate).maybeSingle();
             if (fornada) {
-                console.log(`🎯 [StockService] Fornada encontrada ID: ${fornada.id}`);
                 const { data: bStock } = await supabase.from('produto_estoque_fornada')
                     .select('estoque_disponivel')
                     .eq('produto_id', productId)
                     .eq('fornada_id', fornada.id)
                     .maybeSingle();
-                
-                if (bStock) {
-                    console.log(`📦 [StockService] Estoque em Lote: ${bStock.estoque_disponivel}`);
-                    // null = não configurado → sem bloqueio; 0 = esgotado → bloqueia
-                    return bStock.estoque_disponivel != null ? Number(bStock.estoque_disponivel) : null;
+
+                if (bStock && bStock.estoque_disponivel != null) {
+                    const raw = Number(bStock.estoque_disponivel);
+
+                    // C4 — subtrai reservas em voo (pedidos pending na mesma fornada)
+                    try {
+                        const pending = await _loadPendingOrders(supabase);
+                        const reserved = _sumPendingQty(pending, productId, currentBakeDate);
+                        const adjusted = Math.max(0, raw - reserved);
+                        if (reserved > 0) {
+                            console.log(JSON.stringify({ tag: 'STOCK_ADJUSTED', productId, raw, reserved, adjusted, timestamp: new Date().toISOString() }));
+                        }
+                        return adjusted;
+                    } catch (_) {
+                        return raw; // fallback: retorna estoque bruto se a query de pending falhar
+                    }
                 }
-                console.log(`ℹ️ [StockService] Sem estoque específico em lote para este produto.`);
             }
         }
 
         // null = produto sem estoque configurado → sem bloqueio no checkout
         return p.stock_quantity != null ? Number(p.stock_quantity) : null;
     } catch (e) {
-        console.error(`❌ [StockService] Erro fatal para ${productId}:`, e.message);
+        console.error(JSON.stringify({ tag: 'STOCK_SERVICE_ERROR', productId, error: e.message, timestamp: new Date().toISOString() }));
         return 0;
     }
 }
