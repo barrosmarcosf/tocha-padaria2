@@ -1333,13 +1333,14 @@
     if (_pixPollTimer) { clearInterval(_pixPollTimer); _pixPollTimer = null; }
   }
 
-  function startPixPoll(paymentId) {
+  function startPixPoll(orderId) {
     stopPixPoll();
     _pixPollTimer = setInterval(async function () {
       try {
-        var r = await fetch('/api/mercadopago/check-payment/' + paymentId);
+        var r = await fetch('/api/orders/' + encodeURIComponent(orderId));
+        if (!r.ok) return;
         var d = await r.json();
-        if (d.status === 'approved') {
+        if (d.status === 'paid') {
           stopPixPoll();
           state.drawerView = 'success';
           renderDrawerBody();
@@ -1506,10 +1507,10 @@
       var data = await r.json();
 
       if (data.tipo === 'pix' && data.qr_code) {
-        state.pixData = { qr_code: data.qr_code, copia_e_cola: data.copia_e_cola, payment_id: data.payment_id };
+        state.pixData = { qr_code: data.qr_code, copia_e_cola: data.copia_e_cola, payment_id: data.payment_id, order_id: data.order_id };
         state.drawerView = 'pix_pending';
         renderDrawerBody();
-        startPixPoll(data.payment_id);
+        startPixPoll(data.order_id);
         safeTrack('pix_generated', { payment_id: data.payment_id });
       } else {
         state.drawerView = 'error_generic';
