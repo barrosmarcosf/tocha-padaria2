@@ -986,7 +986,7 @@ module.exports = function (supabase) {
                         raw_code: normalized.raw_code,
                         created_at: new Date().toISOString()
                     });
-                    await supabase.from('pedidos')
+                    const { error: rejErr } = await supabase.from('pedidos')
                         .update({
                             status: 'payment_failed',
                             rejection_reason: normalized.category,
@@ -994,8 +994,8 @@ module.exports = function (supabase) {
                             payment_attempts: attempts
                         })
                         .eq('id', order_id)
-                        .in('status', ['pending', 'payment_failed'])
-                        .catch(e => console.warn('[MP Card] Falha ao persistir rejeição:', e.message));
+                        .in('status', ['pending', 'payment_failed']);
+                    if (rejErr) console.warn('[MP Card] Falha ao persistir rejeição:', rejErr.message);
 
                     const { recordPaymentEvent } = require('../services/paymentEvents');
                     await recordPaymentEvent(supabase, {
@@ -1324,7 +1324,7 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
                 error_type: 'DB_UPDATE_FAILED',
                 payload: { externalId, error_code: updateErr.code },
                 last_error: updateErr.message
-            }).catch(dlqErr => console.error(JSON.stringify({ tag: 'DLQ_INSERT_FAILED', order_id: String(extRef || 'unknown'), error: dlqErr.message, timestamp: new Date().toISOString() })));
+            }).then(({ error: dlqErr }) => { if (dlqErr) console.error(JSON.stringify({ tag: 'DLQ_INSERT_FAILED', order_id: String(extRef || 'unknown'), error: dlqErr.message, timestamp: new Date().toISOString() })); });
             sendAlert({ tipo: 'MP_PROCESS_FAILED', order_id: String(extRef || 'unknown'), detail: updateErr.message }).catch(() => {});
         }
         return;
@@ -1385,10 +1385,10 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
     // Persiste o método real (crédito vs débito) no items do pedido para analytics
     if (MP_TYPE_MAP[_mpPayment?.payment_type_id] && MP_TYPE_MAP[_mpPayment.payment_type_id] !== itemsData.payment_method) {
         itemsData.payment_method = resolvedMethod;
-        await supabase.from('pedidos')
+        const { error: pmErr } = await supabase.from('pedidos')
             .update({ items: JSON.stringify(itemsData) })
-            .eq('id', order.id)
-            .catch(e => console.warn('[MP] Falha ao persistir payment_method:', e.message));
+            .eq('id', order.id);
+        if (pmErr) console.warn('[MP] Falha ao persistir payment_method:', pmErr.message);
     }
 
     // Reduzir estoque
@@ -1404,8 +1404,8 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
             console.error(JSON.stringify({ tag: 'STOCK_DEDUCTION_FAILED', correlation_id: correlationId, order_id: order.id, error: stockErr.message, timestamp: new Date().toISOString() }));
             systemAlert('STOCK_DEDUCTION_FAILED', { correlation_id: correlationId, order_id: order.id, error: stockErr.message });
         }
-        await supabase.from('pedidos').update({ stock_deduction_failed: true }).eq('id', order.id)
-            .catch(e => console.error(JSON.stringify({ tag: 'STOCK_FLAG_FAILED', order_id: order.id, error: e.message, timestamp: new Date().toISOString() })));
+        const { error: sfErr } = await supabase.from('pedidos').update({ stock_deduction_failed: true }).eq('id', order.id);
+        if (sfErr) console.error(JSON.stringify({ tag: 'STOCK_FLAG_FAILED', order_id: order.id, error: sfErr.message, timestamp: new Date().toISOString() }));
     }
 
     // Enviar notificações

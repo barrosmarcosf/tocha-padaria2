@@ -581,7 +581,7 @@ async function processPaidSession(supabase, stripe, session) {
         supabase.from('pedidos')
             .update({ items: JSON.stringify({ ...originalItems, payment_method: paymentMethod }) })
             .eq('id', orderUpdate.id)
-            .catch(() => {});
+            .then(() => {}).catch(() => {});
 
         const diff = Math.abs((session.amount_total / 100) - orderUpdate.total_amount);
         if (diff > 0.01) {
@@ -635,8 +635,8 @@ async function processPaidSession(supabase, stripe, session) {
                 console.error(JSON.stringify({ tag: 'STOCK_DEDUCTION_FAILED', order_id: orderUpdate.id, error: stockErr.message, timestamp: new Date().toISOString() }));
                 systemAlert('STOCK_DEDUCTION_FAILED', { correlation_id: correlationId, order_id: orderUpdate.id, error: stockErr.message });
             }
-            await supabase.from('pedidos').update({ stock_deduction_failed: true }).eq('id', orderUpdate.id)
-                .catch(e => console.error(JSON.stringify({ tag: 'STOCK_FLAG_FAILED', order_id: orderUpdate.id, error: e.message, timestamp: new Date().toISOString() })));
+            const { error: sfErr } = await supabase.from('pedidos').update({ stock_deduction_failed: true }).eq('id', orderUpdate.id);
+            if (sfErr) console.error(JSON.stringify({ tag: 'STOCK_FLAG_FAILED', order_id: orderUpdate.id, error: sfErr.message, timestamp: new Date().toISOString() }));
         }
 
         if (session.metadata?.sessionId) {
@@ -678,12 +678,12 @@ async function processStripeSessionExpired(supabase, session) {
         created_at: new Date().toISOString()
     });
 
-    await supabase.from('pedidos').update({
+    const { error: expErr } = await supabase.from('pedidos').update({
         rejection_reason: normalized.category,
         rejection_raw_code: 'session_expired',
         payment_attempts: attempts
-    }).eq('id', order.id)
-      .catch(e => console.warn('[Stripe] Falha ao persistir sessão expirada:', e.message));
+    }).eq('id', order.id);
+    if (expErr) console.warn('[Stripe] Falha ao persistir sessão expirada:', expErr.message);
 
     await recordPaymentEvent(supabase, {
         order_id: order.id,
@@ -720,13 +720,13 @@ async function processStripePaymentFailed(supabase, paymentIntent) {
         created_at: new Date().toISOString()
     });
 
-    await supabase.from('pedidos').update({
+    const { error: rejErr } = await supabase.from('pedidos').update({
         status: 'payment_failed',
         rejection_reason: normalized.category,
         rejection_raw_code: normalized.raw_code,
         payment_attempts: attempts
-    }).eq('id', order.id)
-      .catch(e => console.warn('[Stripe] Falha ao persistir rejeição:', e.message));
+    }).eq('id', order.id);
+    if (rejErr) console.warn('[Stripe] Falha ao persistir rejeição:', rejErr.message);
 
     await recordPaymentEvent(supabase, {
         order_id: order.id,
@@ -755,13 +755,13 @@ async function processStripeRefund(supabase, charge) {
     const refundAmount = charge.amount_refunded / 100;
     const isPartial = charge.amount_refunded < charge.amount;
 
-    await supabase.from('pedidos').update({
+    const { error: refErr } = await supabase.from('pedidos').update({
         refund_status: isPartial ? 'partially_refunded' : 'refunded',
         refund_amount: refundAmount,
         refund_reason: 'Reembolso aprovado via Stripe',
         refund_at: new Date().toISOString()
-    }).eq('id', order.id)
-      .catch(e => console.warn('[Stripe] Falha ao persistir reembolso:', e.message));
+    }).eq('id', order.id);
+    if (refErr) console.warn('[Stripe] Falha ao persistir reembolso:', refErr.message);
 
     await recordPaymentEvent(supabase, {
         order_id: order.id,
@@ -786,13 +786,13 @@ async function processStripeChargeback(supabase, dispute) {
     const { recordPaymentEvent } = require('../services/paymentEvents');
     const disputeAmount = dispute.amount / 100;
 
-    await supabase.from('pedidos').update({
+    const { error: cbErr } = await supabase.from('pedidos').update({
         refund_status: 'chargeback',
         refund_amount: disputeAmount,
         refund_reason: `Chargeback Stripe: ${dispute.reason || 'não especificado'}`,
         refund_at: new Date().toISOString()
-    }).eq('id', order.id)
-      .catch(e => console.warn('[Stripe] Falha ao persistir chargeback:', e.message));
+    }).eq('id', order.id);
+    if (cbErr) console.warn('[Stripe] Falha ao persistir chargeback:', cbErr.message);
 
     await recordPaymentEvent(supabase, {
         order_id: order.id,
