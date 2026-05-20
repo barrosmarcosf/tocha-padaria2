@@ -70,11 +70,11 @@ module.exports = function (supabase) {
 
             const canonical = FUNNEL_NORM[eventName];
             if (canonical) {
-                supabase.from('funnel_events').insert({
+                await supabase.from('funnel_events').insert({
                     event_type: canonical,
                     session_id: sid,
                     metadata:   meta,
-                }).catch(() => {});
+                });
             }
         } catch (_) {}
     });

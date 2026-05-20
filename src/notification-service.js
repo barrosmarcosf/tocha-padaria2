@@ -62,13 +62,18 @@ async function startBot() {
 
     initTimeoutId = setTimeout(async () => {
         if (!isBotReady) {
-            console.error(JSON.stringify({ tag: 'WA_TIMEOUT', attempt: _waRetryCount + 1, timestamp: new Date().toISOString() }));
+            _waRetryCount++;
+            console.error(JSON.stringify({ tag: 'WA_TIMEOUT', attempt: _waRetryCount, timestamp: new Date().toISOString() }));
             isInitializing = false;
             global.whatsappClient = null;
+            if (_waRetryCount >= WA_MAX_RETRIES) {
+                console.error(JSON.stringify({ tag: 'WA_RETRY_EXHAUSTED', retries: _waRetryCount, timestamp: new Date().toISOString() }));
+                return;
+            }
             try { await client.destroy(); } catch (_) {}
-            // Dispara retry explicitamente — não depende do evento 'disconnected' que pode não vir
-            // O evento 'disconnected' também pode chamar startBot() mas a guarda interna evita duplo start
-            setTimeout(() => startBot(), 5000);
+            const delay = _waBackoffMs(_waRetryCount - 1);
+            console.log(JSON.stringify({ tag: 'WA_TIMEOUT_RETRY', next_retry_ms: delay, attempt: _waRetryCount, timestamp: new Date().toISOString() }));
+            setTimeout(() => startBot(), delay);
         }
     }, 120000);
 
