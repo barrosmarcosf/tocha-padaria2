@@ -281,6 +281,9 @@ module.exports = function (supabase, stripe) {
         ]).select().single();
         if (orderErr) throw orderErr;
 
+        const baseUrl = process.env.BASE_URL || '';
+        const notificationUrl = baseUrl ? `${baseUrl}/api/mercadopago/webhook` : undefined;
+
         const idempotencyKey = `co_${newOrder.id}_${Date.now()}`;
         const mpRes = await fetch('https://api.mercadopago.com/v1/payments', {
             method: 'POST',
@@ -298,7 +301,8 @@ module.exports = function (supabase, stripe) {
                 issuer_id,
                 external_reference: String(newOrder.id),
                 payer: { ...payer, email: payer?.email || customer.email },
-                additional_info: { items: mapCartToMPItems(cart, cardPriceMap) }
+                additional_info: { items: mapCartToMPItems(cart, cardPriceMap) },
+                ...(notificationUrl ? { notification_url: notificationUrl } : {})
             })
         });
 

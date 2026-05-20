@@ -40,7 +40,7 @@ transporter.verify((error, success) => {
 let isInitializing = false;
 let initTimeoutId = null;
 let _waRetryCount = 0;
-const WA_MAX_RETRIES = 5;
+const WA_MAX_RETRIES = 10;
 
 function _waBackoffMs(attempt) {
     // Exponential backoff: 5s, 15s, 45s, 135s, 405s
@@ -63,10 +63,12 @@ async function startBot() {
     initTimeoutId = setTimeout(async () => {
         if (!isBotReady) {
             console.error(JSON.stringify({ tag: 'WA_TIMEOUT', attempt: _waRetryCount + 1, timestamp: new Date().toISOString() }));
-            // Destrói o Chromium travado e deixa o handler 'disconnected' cuidar do retry
             isInitializing = false;
             global.whatsappClient = null;
             try { await client.destroy(); } catch (_) {}
+            // Dispara retry explicitamente — não depende do evento 'disconnected' que pode não vir
+            // O evento 'disconnected' também pode chamar startBot() mas a guarda interna evita duplo start
+            setTimeout(() => startBot(), 5000);
         }
     }, 120000);
 

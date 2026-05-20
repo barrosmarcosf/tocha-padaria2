@@ -1409,17 +1409,39 @@ async function processPaidMPOrder(supabase, mpId, _mpPayment) {
     }
 
     // Enviar notificações
-    const notificationCustomer = {
-        ...order.clientes,
-        name: order.clientes?.name || 'Cliente',
-        whatsapp: order.clientes?.whatsapp,
-        email: order.clientes?.email
-    };
+    // JOIN clientes(*) pode retornar null se FK não estiver configurada ou customer_id for null
+    let _notifCliente = order.clientes;
+    if (!_notifCliente) {
+        console.warn(JSON.stringify({ tag: 'MP_CLIENTES_JOIN_NULL', order_id: order.id, customer_id: order.customer_id, timestamp: new Date().toISOString() }));
+        if (order.customer_id) {
+            const { data: fetchedCliente } = await supabase.from('clientes').select('*').eq('id', order.customer_id).maybeSingle();
+            _notifCliente = fetchedCliente;
+        }
+    }
 
-    await Promise.allSettled([
-        sendOrderEmails(supabase, order, notificationCustomer, paymentMethod),
-        sendOrderWhatsApp(supabase, order, notificationCustomer, paymentMethod)
-    ]);
+    if (!_notifCliente?.email) {
+        console.error(JSON.stringify({ tag: 'MP_NOTIFICATION_ABORT', reason: 'no_customer_email', order_id: order.id, customer_id: order.customer_id, timestamp: new Date().toISOString() }));
+    } else {
+        const notificationCustomer = {
+            ..._notifCliente,
+            name: _notifCliente.name || 'Cliente',
+            whatsapp: _notifCliente.whatsapp,
+            email: _notifCliente.email
+        };
+
+        const notifResults = await Promise.allSettled([
+            sendOrderEmails(supabase, order, notificationCustomer, paymentMethod),
+            sendOrderWhatsApp(supabase, order, notificationCustomer, paymentMethod)
+        ]);
+        notifResults.forEach((r, idx) => {
+            const type = idx === 0 ? 'EMAIL' : 'WHATSAPP';
+            if (r.status === 'rejected') {
+                console.error(JSON.stringify({ tag: `MP_NOTIFICATION_${type}_FAILED`, order_id: order.id, error: r.reason?.message, timestamp: new Date().toISOString() }));
+            } else {
+                console.log(JSON.stringify({ tag: `MP_NOTIFICATION_${type}_OK`, order_id: order.id, timestamp: new Date().toISOString() }));
+            }
+        });
+    }
 
     // Registrar evento de aprovação
     const { recordPaymentEvent } = require('../services/paymentEvents');
